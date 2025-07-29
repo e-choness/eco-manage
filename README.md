@@ -45,7 +45,7 @@ A quick look at the main features of the EcoManage dashboard.
 - **Framework**: [Express.js](https://expressjs.com/)
 - **Authentication**: JSON Web Tokens (JWT) for stateless authentication.
 - **Security**: `bcrypt` for secure password hashing.
-- **Database**: (Not specified, but compatible with any modern database like PostgreSQL, MongoDB, etc.)
+- **Database**: MongoDB
 
 ## Getting Started
 
@@ -61,7 +61,7 @@ Follow these instructions to get a copy of the project up and running on your lo
 1. **Clone the repository:**
 
     ```sh
-    git clone <your-repository-url>
+    git clone https://github.com/e-choness/eco-manage.git
     cd EcoManage
     ```
 
@@ -95,7 +95,7 @@ The server requires environment variables to run correctly.
     JWT_SECRET=your_super_secret_and_long_key
 
     # Connection string for your database, remember to add your MongDB key to `.env` file using the following format.
-    DATABASE_URL="postgresql://user:password@host:port/database"
+    DATABASE_URL="mongdb://user:password@host:port/database"
     ```
 
 ### Running the Application
