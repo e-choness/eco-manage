@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/useToast"
-import { User, Bell, Shield, Palette, Globe, Save } from "lucide-react"
+import { User, Bell, Shield, Palette, Save } from "lucide-react"
 
 export function Settings() {
   const [profile, setProfile] = useState({
