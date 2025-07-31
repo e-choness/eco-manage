@@ -12,8 +12,8 @@ The application features a secure backend API built with Node.js and a responsiv
 
 A quick look at the main features of the EcoManage dashboard.
 
-| Overview | Monitoring | Analytics | Optimization | Financial |
-| :---: | :---: | :---: | :---: | :---: |
+|                                  Overview                                  |                                       Monitoring                                        |                                      Analytics                                      |                                       Optimization                                        |                                       Financial                                       |
+| :------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------: |
 | <img src="./readme-img/ecomanage-overview.png" alt="Overview" width="200"> | <img src="./readme-img/ecomanage-realtime-monitoring.png" alt="Monitoring" width="200"> | <img src="./readme-img/ecomanage-energy-analytics.png" alt="Analytics" width="200"> | <img src="./readme-img/ecomanage-energy-optimization.png" alt="Optimization" width="200"> | <img src="./readme-img/ecomanage-financial-overview.png" alt="Financial" width="200"> |
 
 ## Features
@@ -60,24 +60,24 @@ Follow these instructions to get a copy of the project up and running on your lo
 
 1. **Clone the repository:**
 
-    ```sh
-    git clone https://github.com/e-choness/eco-manage.git
-    cd EcoManage
-    ```
+   ```sh
+   git clone https://github.com/e-choness/eco-manage.git
+   cd EcoManage
+   ```
 
 2. **Install server dependencies:**
 
-    ```sh
-    cd server
-    npm install
-    ```
+   ```sh
+   cd server
+   npm install
+   ```
 
 3. **Install client dependencies:**
 
-    ```sh
-    cd ../client
-    npm install
-    ```
+   ```sh
+   cd ../client
+   npm install
+   ```
 
 ### Configuration
 
@@ -87,16 +87,16 @@ The server requires environment variables to run correctly.
 2. Create a new file named `.env`.
 3. Add the necessary environment variables. At a minimum, you will need:
 
-    ```env
-    # Port for the backend server
-    PORT=5000
+   ```env
+   # Port for the backend server (e.g., 5000)
+   PORT=5000
 
-    # A secret key for signing JWTs
-    JWT_SECRET=your_super_secret_and_long_key
+   # A secret key for signing JWTs
+   JWT_SECRET=your_super_secret_and_long_key
 
-    # Connection string for your database, remember to add your MongDB key to `.env` file using the following format.
-    DATABASE_URL="mongdb://user:password@host:port/database"
-    ```
+   # Connection string for your database.
+   DATABASE_URL="mongodb://user:password@host:port/database"
+   ```
 
 ### Running the Application
 
@@ -104,21 +104,21 @@ You will need to run the backend and frontend servers in separate terminals.
 
 1. **Run the backend server:**
 
-    ```sh
-    cd server
-    npm run dev
-    ```
+   ```sh
+   cd server
+   npm run dev
+   ```
 
-    The server will start on the port specified in your `.env` file (e.g., `http://localhost:5000`).
+   The server will start on the port specified in your `.env` file (e.g., `http://localhost:5000`).
 
 2. **Run the frontend client:**
 
-    ```sh
-    cd client
-    npm run dev
-    ```
+   ```sh
+   cd client
+   npm run dev
+   ```
 
-    The React development server will start, typically at `http://localhost:3000`.
+   The React development server will start, typically at `http://localhost:3000`.
 
 ## License
 
