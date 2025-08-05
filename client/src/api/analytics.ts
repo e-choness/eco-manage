@@ -63,3 +63,24 @@ export const getConsumptionAnalytics = (period: string) => {
   //   throw new Error(error?.response?.data?.message || error.message);
   // }
 };
+
+export const getInsight = async (data: any) => {
+  console.log('Fetching insight data', data);
+  return new Promise((resolve) => {
+    setTimeout(() => {
+        const result = {
+          insight: 'Production and Consumption Insight'
+          // Add more insight data as needed
+        };
+        resolve(result); // Fix: Resolve the result directly
+    }, 1000); // Simulating a 1-second delay
+  });
+
+  try {
+    const response = await api.post('/insight', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting insight:', error);
+    throw error;
+  }
+};
