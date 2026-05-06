@@ -4,17 +4,19 @@
 
 EcoManage is a full-stack web application designed to help users monitor, analyze, and optimize their resource consumption. It provides a comprehensive dashboard for tracking key metrics related to energy, finance, and environmental impact, enabling informed decision-making for better sustainability and cost-efficiency.
 
-The application features a secure backend API built with Node.js and a responsive, modern frontend built with React and TypeScript.
+![banner](./readme-img/banner-wide.jpg)
 
-![eco-manage-landing](./readme-img/ecomanage-landing.gif)
+The application features a secure backend API built with Node.js and a responsive, modern frontend built with React and TypeScript.
 
 ## Dashboard Showcase
 
 A quick look at the main features of the EcoManage dashboard.
 
-|                                  Overview                                  |                                       Monitoring                                        |                                      Analytics                                      |                                       Optimization                                        |                                       Financial                                       |
-| :------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------: |
-| <img src="./readme-img/ecomanage-overview.png" alt="Overview" width="200"> | <img src="./readme-img/ecomanage-realtime-monitoring.png" alt="Monitoring" width="200"> | <img src="./readme-img/ecomanage-energy-analytics.png" alt="Analytics" width="200"> | <img src="./readme-img/ecomanage-energy-optimization.png" alt="Optimization" width="200"> | <img src="./readme-img/ecomanage-financial-overview.png" alt="Financial" width="200"> |
+![eco-manage-landing](./readme-img/ecomanage-landing.gif)
+
+|                                    Overview                                    |                                         Monitoring                                         |                                        Analytics                                        |                                         Optimization                                         |                                         Financial                                         |
+| :----------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------: |
+| `<img src="./readme-img/ecomanage-overview.png" alt="Overview" width="200">` | `<img src="./readme-img/ecomanage-realtime-monitoring.png" alt="Monitoring" width="200">` | `<img src="./readme-img/ecomanage-energy-analytics.png" alt="Analytics" width="200">` | `<img src="./readme-img/ecomanage-energy-optimization.png" alt="Optimization" width="200">` | `<img src="./readme-img/ecomanage-financial-overview.png" alt="Financial" width="200">` |
 
 ## Features
 
@@ -64,14 +66,12 @@ Follow these instructions to get a copy of the project up and running on your lo
    git clone https://github.com/e-choness/eco-manage.git
    cd EcoManage
    ```
-
 2. **Install server dependencies:**
 
    ```sh
    cd server
    npm install
    ```
-
 3. **Install client dependencies:**
 
    ```sh
@@ -110,7 +110,6 @@ You will need to run the backend and frontend servers in separate terminals.
    ```
 
    The server will start on the port specified in your `.env` file (e.g., `http://localhost:5000`).
-
 2. **Run the frontend client:**
 
    ```sh
