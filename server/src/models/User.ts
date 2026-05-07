@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { validatePassword, isPasswordHash } from '../utils/password.js';
+import { isPasswordHash } from '../utils/password';
 import { randomUUID } from 'crypto';
 
 export interface IUser extends Document {
@@ -53,7 +53,7 @@ const schema = new Schema<IUser>(
 );
 
 schema.set('toJSON', {
-  transform: (doc: IUser, ret: any) => {
+  transform: (_doc: IUser, ret: any) => {
     delete ret.password;
     return ret;
   },

@@ -1,8 +1,8 @@
 import { Router, Response } from 'express';
-import UserService from '../services/userService.js';
-import { requireUser, AuthenticatedRequest } from './middleware/auth.js';
-import User from '../models/User.js';
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/auth.js';
+import UserService from '../services/userService';
+import { requireUser, AuthenticatedRequest } from './middleware/auth';
+import User from '../models/User';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/auth';
 import jwt from 'jsonwebtoken';
 
 const router = Router();

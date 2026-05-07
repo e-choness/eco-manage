@@ -1,5 +1,5 @@
-import User, { IUser } from '../models/User.js';
-import { generatePasswordHash, validatePassword } from '../utils/password.js';
+import User, { IUser } from '../models/User';
+import { generatePasswordHash, validatePassword } from '../utils/password';
 
 export interface CreateUserInput {
   email: string;

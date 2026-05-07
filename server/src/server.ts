@@ -1,9 +1,9 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
-import { connectDB } from './config/database.js';
-import basicRoutes from './routes/index.js';
-import authRoutes from './routes/authRoutes.js';
+import { connectDB } from './config/database';
+import basicRoutes from './routes/index';
+import authRoutes from './routes/authRoutes';
 
 dotenv.config();
 
@@ -38,12 +38,12 @@ app.use(basicRoutes);
 app.use('/api/auth', authRoutes);
 
 // 404 handler
-app.use((req, res) => {
+app.use((_req, res) => {
   res.status(404).json({ message: 'Page not found.' });
 });
 
 // Global error handler
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(`Application error: ${err.message}`);
   console.error(err.stack);
   res.status(500).json({ message: 'There was an error serving your request.' });

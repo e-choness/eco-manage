@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import UserService from '../../services/userService.js';
-import { verifyAccessToken } from '../../utils/auth.js';
-import { IUser } from '../../models/User.js';
+import UserService from '../../services/userService';
+import { verifyAccessToken } from '../../utils/auth';
+import { IUser } from '../../models/User';
 
 export interface AuthenticatedRequest extends Request {
   user?: IUser;
