@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("accessToken", response.accessToken);
         setIsAuthenticated(true);
       } else {
-        throw new Error(error?.response?.data?.message || 'Login failed');
+        throw new Error('Login failed');
       }
     } catch (error) {
       localStorage.removeItem("refreshToken");

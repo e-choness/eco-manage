@@ -2,6 +2,7 @@ server/node_modules/
 server/.env
 server/package-lock.json
 client/node_modules/
+client/.env
 client/package-lock.json
 node_modules/
 package-lock.json
@@ -155,7 +156,7 @@ dist
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode
 
 ### VisualStudioCode ###
-.vscode/*
+.vscode/
 # !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
@@ -172,5 +173,9 @@ dist
 # Ignore all local history of files
 .history
 .ionide
+
+### Claude
+.claude
+.openclaude*
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode
