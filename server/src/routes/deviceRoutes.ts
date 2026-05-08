@@ -14,7 +14,7 @@ router.get('/', requireUser, async (req: AuthenticatedRequest, res: Response) =>
 
     const devices = await Device.find({ userId: req.user._id }).sort({ createdAt: -1 });
 
-    res.json(devices);
+    res.json({ devices });
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error(`Devices fetch error: ${err.message}`);

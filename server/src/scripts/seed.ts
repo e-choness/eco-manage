@@ -53,12 +53,24 @@ async function seed() {
 
     // 2. Create 4 devices
     console.log('\n🔌 Creating devices...');
+
+    // Calculate current solar output based on time of day (peaks at noon)
+    const now = new Date();
+    const hour = now.getHours();
+    const solarFraction = hour >= 6 && hour <= 18
+      ? Math.sin(((hour - 6) / 12) * Math.PI) * 0.8 + 0.2
+      : 0;
+
+    // Wind is relatively constant with some random variation
+    const windFraction = 0.6 + Math.random() * 0.3;
+
     const devices = await Device.create([
       {
         userId: demoUser._id,
         name: 'Solar Panel A',
         type: 'solar',
         status: 'online',
+        currentOutput: solarFraction * 5.5 * 0.6, // 60% of Solar B
         maxOutput: 5.5,
         efficiency: 95,
         lastMaintenance: new Date(),
@@ -68,6 +80,7 @@ async function seed() {
         name: 'Solar Panel B',
         type: 'solar',
         status: 'online',
+        currentOutput: solarFraction * 5.5,
         maxOutput: 5.5,
         efficiency: 92,
         lastMaintenance: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -77,6 +90,7 @@ async function seed() {
         name: 'Wind Turbine 1',
         type: 'wind',
         status: 'online',
+        currentOutput: windFraction * 10.0,
         maxOutput: 10.0,
         efficiency: 85,
         lastMaintenance: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
@@ -86,6 +100,7 @@ async function seed() {
         name: 'Battery Storage',
         type: 'battery',
         status: 'charging',
+        currentOutput: 8.0, // Half charged
         maxOutput: 15.0,
         efficiency: 97,
         lastMaintenance: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
@@ -96,8 +111,8 @@ async function seed() {
     // 3. Generate 365 days of energy readings
     console.log('\n⚡ Generating energy readings (365 days × 24 hours)...');
     const energyReadings: any[] = [];
-    const now = new Date();
-    const startDate = new Date(now.getFullYear(), 0, 1); // Jan 1 of current year
+    const energyStartDate = new Date();
+    const startDate = new Date(energyStartDate.getFullYear(), 0, 1); // Jan 1 of current year
 
     // Solar sine curve pattern + wind random pattern
     for (let dayOfYear = 0; dayOfYear < 365; dayOfYear++) {

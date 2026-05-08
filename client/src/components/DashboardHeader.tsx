@@ -28,8 +28,8 @@ export function DashboardHeader() {
     // Fetch immediately on mount
     fetchUnreadCount()
 
-    // Set up polling to refresh alert count every 5 seconds
-    const interval = setInterval(fetchUnreadCount, 5000)
+    // Set up polling to refresh alert count every 1 second for responsiveness
+    const interval = setInterval(fetchUnreadCount, 1000)
 
     // Cleanup interval on unmount
     return () => clearInterval(interval)

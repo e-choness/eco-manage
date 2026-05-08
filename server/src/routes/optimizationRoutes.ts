@@ -17,7 +17,7 @@ router.get('/recommendations', requireUser, async (req: AuthenticatedRequest, re
       status: { $in: ['pending', 'accepted'] },
     }).sort({ priority: -1, createdAt: -1 });
 
-    res.json(recommendations);
+    res.json({ recommendations });
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error(`Recommendations fetch error: ${err.message}`);
