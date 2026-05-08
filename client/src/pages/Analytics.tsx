@@ -399,7 +399,13 @@ export function Analytics() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={consumptionData}>
+                <LineChart
+                  data={productionData.map((prod, idx) => ({
+                    date: prod.date,
+                    total: prod.total,
+                    consumption: consumptionData[idx]?.consumption || 0,
+                  }))}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
@@ -407,7 +413,8 @@ export function Analytics() {
                   <Legend />
                   <Line
                     type="monotone"
-                    dataKey="production"
+                    dataKey="total"
+                    name="Production"
                     stroke="#10b981"
                     strokeWidth={2}
                   />

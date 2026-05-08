@@ -38,28 +38,40 @@ router.get('/production', requireUser, async (req: AuthenticatedRequest, res: Re
     const period = (req.query.period as string) || 'month';
     const { startDate, endDate } = getPeriodDates(period);
 
-    // Get all production readings for the period
+    // Get all production readings for the period with device info
     const readings = await EnergyReading.find({
       userId: req.user._id,
       type: 'production',
       timestamp: { $gte: startDate, $lte: endDate },
-    }).sort({ timestamp: 1 });
+    }).populate('deviceId').sort({ timestamp: 1 });
 
-    // Group by day
-    const dailyData: { [key: string]: number } = {};
+    // Group by day and by source (solar/wind)
+    const dailyData: { [key: string]: { solar: number; wind: number; total: number } } = {};
 
     readings.forEach((reading) => {
       const day = new Date(reading.timestamp).toISOString().split('T')[0];
       if (!dailyData[day]) {
-        dailyData[day] = 0;
+        dailyData[day] = { solar: 0, wind: 0, total: 0 };
       }
-      dailyData[day] += reading.value;
+
+      // Determine source from device type
+      const device = (reading as any).deviceId;
+      const deviceType = device?.type || 'unknown';
+
+      if (deviceType === 'solar') {
+        dailyData[day].solar += reading.value;
+      } else if (deviceType === 'wind') {
+        dailyData[day].wind += reading.value;
+      }
+      dailyData[day].total += reading.value;
     });
 
     // Convert to array format
-    const data = Object.entries(dailyData).map(([date, value]) => ({
+    const data = Object.entries(dailyData).map(([date, values]) => ({
       date,
-      production: parseFloat(value.toFixed(2)),
+      solar: parseFloat(values.solar.toFixed(2)),
+      wind: parseFloat(values.wind.toFixed(2)),
+      total: parseFloat(values.total.toFixed(2)),
     }));
 
     res.json({ period, data });

@@ -84,13 +84,15 @@ router.get('/energy-flow', requireUser, async (req: AuthenticatedRequest, res: R
       return;
     }
 
+    const userId = req.user._id;
+
     // Get most recent reading for each device
-    const devices = await Device.find({ userId: req.user._id });
+    const devices = await Device.find({ userId });
 
     const deviceReadings = await Promise.all(
       devices.map(async device => {
         const latestReading = await EnergyReading.findOne({
-          userId: req.user._id,
+          userId,
           deviceId: device._id,
         })
           .sort({ timestamp: -1 })
