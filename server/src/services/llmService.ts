@@ -1,13 +1,27 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization to avoid errors when API keys are not set
+let openai: OpenAI | null = null;
+let anthropic: Anthropic | null = null;
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const getOpenAI = (): OpenAI => {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || '',
+    });
+  }
+  return openai;
+};
+
+const getAnthropic = (): Anthropic => {
+  if (!anthropic) {
+    anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY || '',
+    });
+  }
+  return anthropic;
+};
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
@@ -19,7 +33,7 @@ const sleep = (ms: number): Promise<void> => {
 const sendRequestToOpenAI = async (model: string, message: string): Promise<string> => {
   for (let i = 0; i < MAX_RETRIES; i++) {
     try {
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model,
         messages: [{ role: 'user', content: message }],
         max_tokens: 1024,
@@ -41,7 +55,7 @@ const sendRequestToAnthropic = async (model: string, message: string): Promise<s
   for (let i = 0; i < MAX_RETRIES; i++) {
     try {
       console.log(`Sending request to Anthropic with model: ${model} and message: ${message}`);
-      const response = await anthropic.messages.create({
+      const response = await getAnthropic().messages.create({
         model,
         messages: [{ role: 'user', content: message }],
         max_tokens: 1024,
