@@ -4,6 +4,12 @@ import cors from 'cors';
 import { connectDB } from './config/database';
 import basicRoutes from './routes/index';
 import authRoutes from './routes/authRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
+import analyticsRoutes from './routes/analyticsRoutes';
+import alertRoutes from './routes/alertRoutes';
+import deviceRoutes from './routes/deviceRoutes';
+import financialRoutes from './routes/financialRoutes';
+import optimizationRoutes from './routes/optimizationRoutes';
 
 dotenv.config();
 
@@ -36,6 +42,12 @@ process.on('unhandledRejection', (err: unknown) => {
 // Routes
 app.use(basicRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/alerts', alertRoutes);
+app.use('/api/devices', deviceRoutes);
+app.use('/api/financial', financialRoutes);
+app.use('/api/optimization', optimizationRoutes);
 
 // 404 handler
 app.use((_req, res) => {
