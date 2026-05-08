@@ -19,8 +19,8 @@ export function Alerts() {
       try {
         console.log('Fetching alerts')
         const result = await getAlerts()
-        setAlerts((result as any).alerts)
-        setFilteredAlerts((result as any).alerts)
+        setAlerts((result as any)?.alerts || [])
+        setFilteredAlerts((result as any)?.alerts || [])
       } catch (error) {
         console.error('Error fetching alerts:', error)
         toast({
@@ -37,13 +37,13 @@ export function Alerts() {
   }, [toast])
 
   useEffect(() => {
-    let filtered = alerts
+    let filtered = alerts || []
     if (filter === 'unread') {
-      filtered = alerts.filter(alert => !alert.read)
+      filtered = (alerts || []).filter(alert => !alert.read)
     } else if (filter === 'critical') {
-      filtered = alerts.filter(alert => alert.type === 'critical')
+      filtered = (alerts || []).filter(alert => alert.type === 'critical')
     } else if (filter === 'resolved') {
-      filtered = alerts.filter(alert => alert.resolved)
+      filtered = (alerts || []).filter(alert => alert.resolved)
     }
     setFilteredAlerts(filtered)
   }, [alerts, filter])
@@ -101,8 +101,8 @@ export function Alerts() {
     return date.toLocaleDateString()
   }
 
-  const unreadCount = alerts.filter(alert => !alert.read).length
-  const criticalCount = alerts.filter(alert => alert.type === 'critical').length
+  const unreadCount = (alerts || []).filter(alert => !alert.read).length
+  const criticalCount = (alerts || []).filter(alert => alert.type === 'critical').length
 
   if (loading) {
     return (

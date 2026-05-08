@@ -16,10 +16,6 @@ export default defineConfig({
         target: 'http://server:3000',
         changeOrigin: true,
       },
-      '/logs': {
-        target: 'http://server:4444',
-        changeOrigin: true,
-      }
     },
     allowedHosts: [
       'localhost',

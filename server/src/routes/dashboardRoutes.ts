@@ -52,12 +52,18 @@ router.get('/overview', requireUser, async (req: AuthenticatedRequest, res: Resp
     // Carbon offset (roughly 0.5 kg CO2 per kWh)
     const carbonOffset = (totalProduction * 0.5).toFixed(2);
 
+    // Weather data (mock for now - would come from weather API)
+    const weatherCondition = 'sunny';
+    const temperature = 22;
+
     res.json({
       totalProduction: parseFloat(totalProduction.toFixed(2)),
       currentPower: parseFloat(currentPower.toFixed(2)),
       dailyProduction: parseFloat(dailyProduction.toFixed(2)),
       monthlyProduction: parseFloat(monthlyProduction.toFixed(2)),
       systemStatus: parseFloat(systemStatus as string),
+      weatherCondition,
+      temperature,
       savings: parseFloat(savings),
       carbonOffset: parseFloat(carbonOffset),
     });
