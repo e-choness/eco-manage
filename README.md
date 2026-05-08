@@ -10,7 +10,21 @@
 
 **A comprehensive full-stack energy management platform for monitoring, analyzing, and optimizing resource consumption with real-time insights and AI-powered recommendations.**
 
+![banner](./readme-img/banner-wide.jpg)
+
 EcoManage empowers users to make data-driven decisions about energy usage, costs, and environmental impact. With real-time monitoring, predictive analytics, and intelligent optimization suggestions, it's your complete solution for sustainable resource management.
+
+---
+
+## 🎮 Dashboard Showcase
+
+A quick look at the main features of the EcoManage dashboard.
+
+![eco-manage-landing](./readme-img/ecomanage-landing.gif)
+
+|                                    Overview                                    |                                         Monitoring                                         |                                        Analytics                                        |                                         Optimization                                         |                                         Financial                                         |
+| :----------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------: |
+| ![Overview](./readme-img/ecomanage-overview.png) | ![Monitoring](./readme-img/ecomanage-realtime-monitoring.png) | ![Analytics](./readme-img/ecomanage-energy-analytics.png) | ![Optimization](./readme-img/ecomanage-energy-optimization.png) | ![Financial](./readme-img/ecomanage-financial-overview.png) |
 
 ---
 
