@@ -45,6 +45,9 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile.dev
+    volumes:
+      - ./server:/app
+      - /app/node_modules
     command: ["npx", "tsx", "src/scripts/seed.ts"]
     env_file: ./server/.env
     environment:

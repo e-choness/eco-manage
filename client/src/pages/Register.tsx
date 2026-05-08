@@ -21,6 +21,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext"
 
 type RegisterForm = {
+  name: string
   email: string
   password: string
 }
@@ -35,12 +36,12 @@ export function Register() {
   const onSubmit = async (data: RegisterForm) => {
     try {
       setLoading(true)
-      await registerUser(data.email, data.password);
+      await registerUser(data.email, data.password, data.name);
       toast({
         title: "Success",
         description: "Account created successfully",
       })
-      navigate("/login")
+      navigate("/dashboard")
     } catch (error) {
       console.log("Register error:", error)
       toast({
@@ -70,6 +71,15 @@ export function Register() {
             </div>{ /* pythagora_mocked_data - DO NOT REMOVE THIS COMMENT */}
           </Alert>{ /* pythagora_mocked_data - DO NOT REMOVE THIS COMMENT */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Enter your full name"
+                {...register("name", { required: true })}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

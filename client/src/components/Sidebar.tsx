@@ -14,13 +14,13 @@ import {
 } from "lucide-react"
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
-  { name: 'Monitoring', href: '/monitoring', icon: Activity },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'Optimization', href: '/optimization', icon: Zap },
-  { name: 'Alerts', href: '/alerts', icon: Bell },
-  { name: 'Financial', href: '/financial', icon: DollarSign },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Monitoring', href: '/dashboard/monitoring', icon: Activity },
+  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Optimization', href: '/dashboard/optimization', icon: Zap },
+  { name: 'Alerts', href: '/dashboard/alerts', icon: Bell },
+  { name: 'Financial', href: '/dashboard/financial', icon: DollarSign },
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 
 export function Sidebar() {
@@ -46,7 +46,7 @@ export function Sidebar() {
             <NavLink
               key={item.name}
               to={item.href}
-              end={item.href === '/'}
+              end={item.href === '/dashboard'}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",

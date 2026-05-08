@@ -21,10 +21,10 @@ function App() {
       <ThemeProvider defaultTheme="light" storageKey="ui-theme">
         <Router>
           <Routes>
-            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="monitoring" element={<Monitoring />} />
               <Route path="analytics" element={<Analytics />} />
