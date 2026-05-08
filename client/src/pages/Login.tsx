@@ -40,7 +40,7 @@ export function Login() {
         title: "Success",
         description: "Logged in successfully",
       })
-      navigate("/")
+      navigate("/dashboard")
     } catch (error) {
       console.error("Login error:", error.message)
       toast({

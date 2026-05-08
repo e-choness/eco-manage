@@ -5,7 +5,7 @@ import { login as apiLogin, register as apiRegister } from "../api/auth";
 type AuthContextType = {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -34,9 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (email: string, password: string) => {
+  const register = async (email: string, password: string, name: string) => {
     try {
-      const response = await apiRegister(email, password);
+      const response = await apiRegister(email, password, name);
+      setIsAuthenticated(true);
     } catch (error) {
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("accessToken");
