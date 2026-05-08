@@ -30,8 +30,8 @@ export function Monitoring() {
         getEnergyFlow()
       ])
 
-      setDevices((devicesData as any).devices)
-      setEnergyFlow(flowData)
+      setDevices((devicesData as any)?.devices || [])
+      setEnergyFlow(flowData || null)
     } catch (error) {
       console.error('Error fetching monitoring data:', error)
       toast({
@@ -204,7 +204,7 @@ export function Monitoring() {
 
       {/* Device Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {devices.map((device) => (
+        {(devices || []).map((device) => (
           <Card key={device._id} className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-lg transition-all duration-200">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -248,7 +248,7 @@ export function Monitoring() {
         ))}
       </div>
 
-      {devices.length === 0 && (
+      {(!devices || devices.length === 0) && (
         <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Zap className="h-12 w-12 text-muted-foreground mb-4" />

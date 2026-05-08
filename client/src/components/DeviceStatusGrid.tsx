@@ -15,10 +15,20 @@ interface Device {
 }
 
 interface DeviceStatusGridProps {
-  devices: Device[]
+  devices?: Device[]
 }
 
-export function DeviceStatusGrid({ devices }: DeviceStatusGridProps) {
+export function DeviceStatusGrid({ devices = [] }: DeviceStatusGridProps) {
+  if (!devices || devices.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-8 text-center">
+        <div className="text-muted-foreground">
+          <p className="text-sm">No devices found</p>
+          <p className="text-xs mt-1">Add a device to get started monitoring energy production</p>
+        </div>
+      </div>
+    )
+  }
   const getDeviceIcon = (type: string) => {
     switch (type) {
       case 'solar': return <Sun className="h-5 w-5 text-yellow-500" />

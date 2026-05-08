@@ -16,7 +16,7 @@ export function Optimization() {
       try {
         console.log('Fetching optimization recommendations')
         const result = await getOptimizationRecommendations()
-        setRecommendations((result as any).recommendations)
+        setRecommendations((result as any)?.recommendations || [])
       } catch (error) {
         console.error('Error fetching recommendations:', error)
         toast({
@@ -123,11 +123,11 @@ export function Optimization() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Energy Optimization</h1>
         <Badge variant="outline" className="text-sm">
-          {recommendations.length} recommendations
+          {(recommendations || []).length} recommendations
         </Badge>
       </div>
 
-      {recommendations.length === 0 ? (
+      {(!recommendations || recommendations.length === 0) ? (
         <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
@@ -139,7 +139,7 @@ export function Optimization() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {recommendations.map((recommendation) => (
+          {(recommendations || []).map((recommendation) => (
             <Card key={recommendation._id} className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:shadow-lg transition-all duration-200">
               <CardHeader>
                 <div className="flex items-start justify-between">

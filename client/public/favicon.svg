@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#f0f9ff" stroke="#10b981" stroke-width="2"/>
+
+  <!-- Left leaf (green) -->
+  <path d="M 35 30 Q 30 50 40 70 Q 45 55 50 40 Q 48 35 45 32 Q 42 28 35 30" fill="#10b981" opacity="0.8"/>
+
+  <!-- Right leaf (lighter green) -->
+  <path d="M 65 30 Q 70 50 60 70 Q 55 55 50 40 Q 52 35 55 32 Q 58 28 65 30" fill="#34d399" opacity="0.6"/>
+
+  <!-- Lightning bolt (yellow) for energy -->
+  <path d="M 50 25 L 56 40 L 48 40 L 54 65 L 38 45 L 46 45 Z" fill="#fbbf24" opacity="0.9"/>
+
+  <!-- Center dot -->
+  <circle cx="50" cy="50" r="3" fill="#059669"/>
+</svg>

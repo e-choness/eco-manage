@@ -14,7 +14,7 @@ router.get('/', requireUser, async (req: AuthenticatedRequest, res: Response) =>
 
     const alerts = await Alert.find({ userId: req.user._id }).sort({ timestamp: -1 });
 
-    res.json(alerts);
+    res.json({ alerts });
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error(`Alerts fetch error: ${err.message}`);
