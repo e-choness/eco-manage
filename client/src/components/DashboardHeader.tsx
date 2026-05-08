@@ -5,11 +5,40 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
 import { Badge } from "./ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
+import { useEffect, useState } from "react"
+import { getAlerts } from "@/api/alerts"
 
 export function DashboardHeader() {
   const { logout } = useAuth()
   const navigate = useNavigate()
-  
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const result = await getAlerts()
+        const alerts = (result as any)?.alerts || []
+        const unread = alerts.filter((alert: any) => !alert.read).length
+        setUnreadCount(unread)
+      } catch (error) {
+        console.error('Error fetching alerts count:', error)
+      }
+    }
+
+    // Fetch immediately on mount
+    fetchUnreadCount()
+
+    // Set up polling to refresh alert count every 5 seconds
+    const interval = setInterval(fetchUnreadCount, 5000)
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval)
+  }, [])
+
+  const handleNotificationClick = () => {
+    navigate('/dashboard/alerts')
+  }
+
   const handleLogout = () => {
     console.log('User logging out')
     logout()
@@ -26,11 +55,13 @@ export function DashboardHeader() {
         </div>
         
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="relative">
+          <Button variant="ghost" size="icon" className="relative" onClick={handleNotificationClick}>
             <Bell className="h-5 w-5" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
-              3
-            </Badge>
+            {unreadCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500 text-white">
+                {unreadCount}
+              </Badge>
+            )}
           </Button>
           
           <ThemeToggle />
