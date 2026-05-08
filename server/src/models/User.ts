@@ -9,7 +9,6 @@ export interface IUser extends Document {
   lastLoginAt: Date;
   isActive: boolean;
   refreshToken?: string;
-  toJSON(): Partial<IUser>;
 }
 
 const schema = new Schema<IUser>(
