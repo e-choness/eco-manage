@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { AuthenticatedRequest, requireUser } from './middleware/auth';
 import EnergyReading from '../models/EnergyReading';
 import Device from '../models/Device';
+import Weather from '../models/Weather';
 
 const router = Router();
 
@@ -52,9 +53,10 @@ router.get('/overview', requireUser, async (req: AuthenticatedRequest, res: Resp
     // Carbon offset (roughly 0.5 kg CO2 per kWh)
     const carbonOffset = (totalProduction * 0.5).toFixed(2);
 
-    // Weather data (mock for now - would come from weather API)
-    const weatherCondition = 'sunny';
-    const temperature = 22;
+    // Weather data (from database)
+    const weather = await Weather.findOne({ userId: req.user._id });
+    const weatherCondition = weather?.condition || 'sunny';
+    const temperature = weather?.temperature || 22;
 
     res.json({
       totalProduction: parseFloat(totalProduction.toFixed(2)),

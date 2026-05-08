@@ -6,6 +6,7 @@ import EnergyReading from '../models/EnergyReading';
 import Alert from '../models/Alert';
 import FinancialRecord from '../models/FinancialRecord';
 import Recommendation from '../models/Recommendation';
+import Weather from '../models/Weather';
 import { generatePasswordHash } from '../utils/password';
 
 dotenv.config();
@@ -35,6 +36,7 @@ async function seed() {
       await EnergyReading.deleteMany({ userId: existingUser._id });
       await FinancialRecord.deleteMany({ userId: existingUser._id });
       await Recommendation.deleteMany({ userId: existingUser._id });
+      await Weather.deleteMany({ userId: existingUser._id });
       await User.deleteOne({ email: DEMO_EMAIL });
       console.log('✅ Cleared existing demo data');
     }
@@ -278,6 +280,18 @@ async function seed() {
     ]);
     console.log(`✅ Created ${recommendations.length} recommendations`);
 
+    // 7. Create weather data
+    console.log('\n🌤️ Creating weather data...');
+    const weather = await Weather.create({
+      userId: demoUser._id,
+      condition: 'sunny',
+      temperature: 22,
+      humidity: 65,
+      windSpeed: 8,
+      uvIndex: 6,
+    });
+    console.log(`✅ Created weather data: ${weather.condition}, ${weather.temperature}°C`);
+
     // Print summary
     console.log('\n' + '='.repeat(60));
     console.log('✨ SEEDING COMPLETE ✨');
@@ -290,6 +304,7 @@ async function seed() {
     console.log(`   Alerts: ${alerts.length}`);
     console.log(`   Financial Records: ${financialRecords.length} months`);
     console.log(`   Recommendations: ${recommendations.length}`);
+    console.log(`   Weather: 1 (Current weather data)`);
     console.log('\n🚀 Ready to use! Login with the demo credentials above.\n');
 
     await mongoose.connection.close();
