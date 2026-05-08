@@ -41,5 +41,18 @@ services:
       retries: 5
     restart: unless-stopped
 
+  mongo-seed:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    command: ["npx", "tsx", "src/scripts/seed.ts"]
+    env_file: ./server/.env
+    environment:
+      DATABASE_URL: mongodb://mongodb:27017/ecomanage
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: "no"
+
 volumes:
   mongo_data:
