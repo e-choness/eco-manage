@@ -14,6 +14,12 @@ dotenv.config();
 const DEMO_EMAIL = 'demo@ecomanage.io';
 const DEMO_PASSWORD = 'Demo1234!';
 
+const DEMO_ACCOUNTS = [
+  { email: 'demo@ecomanage.io', password: 'Demo1234!', name: 'Demo User' },
+  { email: 'demo2@ecomanage.io', password: 'Demo1234!', name: 'Alice Johnson' },
+  { email: 'demo3@ecomanage.io', password: 'Demo1234!', name: 'Bob Williams' },
+];
+
 async function seed() {
   try {
     console.log('🌱 Starting database seeding...');
@@ -27,19 +33,21 @@ async function seed() {
     await mongoose.connect(mongoUrl);
     console.log('✅ Connected to MongoDB');
 
-    // Clear existing demo data
-    const existingUser = await User.findOne({ email: DEMO_EMAIL });
-    if (existingUser) {
-      console.log('🔄 Clearing existing demo data...');
-      await Alert.deleteMany({ userId: existingUser._id });
-      await Device.deleteMany({ userId: existingUser._id });
-      await EnergyReading.deleteMany({ userId: existingUser._id });
-      await FinancialRecord.deleteMany({ userId: existingUser._id });
-      await Recommendation.deleteMany({ userId: existingUser._id });
-      await Weather.deleteMany({ userId: existingUser._id });
-      await User.deleteOne({ email: DEMO_EMAIL });
-      console.log('✅ Cleared existing demo data');
+    // Clear existing demo data for all demo accounts
+    for (const account of DEMO_ACCOUNTS) {
+      const existingUser = await User.findOne({ email: account.email });
+      if (existingUser) {
+        console.log(`🔄 Clearing existing demo data for ${account.email}...`);
+        await Alert.deleteMany({ userId: existingUser._id });
+        await Device.deleteMany({ userId: existingUser._id });
+        await EnergyReading.deleteMany({ userId: existingUser._id });
+        await FinancialRecord.deleteMany({ userId: existingUser._id });
+        await Recommendation.deleteMany({ userId: existingUser._id });
+        await Weather.deleteMany({ userId: existingUser._id });
+        await User.deleteOne({ email: account.email });
+      }
     }
+    console.log('✅ Cleared existing demo data');
 
     // 1. Create demo user
     console.log('\n📝 Creating demo user...');
@@ -320,7 +328,25 @@ async function seed() {
     console.log(`   Financial Records: ${financialRecords.length} months`);
     console.log(`   Recommendations: ${recommendations.length}`);
     console.log(`   Weather: 1 (Current weather data)`);
-    console.log('\n🚀 Ready to use! Login with the demo credentials above.\n');
+
+    // 8. Create 2 additional demo users (lighter accounts for testing multiple users)
+    console.log('\n👥 Creating additional demo accounts...');
+    for (let i = 1; i < DEMO_ACCOUNTS.length; i++) {
+      const account = DEMO_ACCOUNTS[i];
+      const passwordHash = await generatePasswordHash(account.password);
+      await User.create({
+        email: account.email,
+        password: passwordHash,
+        name: account.name,
+      });
+      console.log(`✅ Created user: ${account.email} (${account.name})`);
+    }
+
+    console.log('\n🚀 Ready to use! Login with any of the demo credentials below:');
+    for (const account of DEMO_ACCOUNTS) {
+      console.log(`   ${account.email} / ${account.password} (${account.name})`);
+    }
+    console.log('');
 
     await mongoose.connection.close();
     console.log('✅ Database connection closed');

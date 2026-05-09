@@ -9,7 +9,7 @@ import { useEffect, useState } from "react"
 import { getAlerts } from "@/api/alerts"
 
 export function DashboardHeader() {
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
 
@@ -72,7 +72,13 @@ export function DashboardHeader() {
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-56">
+              {user && (
+                <div className="px-2 py-1.5 text-sm text-muted-foreground border-b mb-1">
+                  <p className="font-medium text-foreground truncate">{user.name || 'User'}</p>
+                  <p className="text-xs truncate">{user.email}</p>
+                </div>
+              )}
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
