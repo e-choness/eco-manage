@@ -224,23 +224,23 @@ export function Monitoring() {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span>Current Output</span>
-                  <span className="font-medium">{device.currentOutput} / {device.maxOutput} kW</span>
+                  <span className="font-medium">{(device.currentOutput ?? 0).toFixed(2)} / {(device.maxOutput ?? 0).toFixed(2)} kW</span>
                 </div>
-                <Progress value={(device.currentOutput / device.maxOutput) * 100} className="h-2" />
+                <Progress value={Math.min(100, (((device.currentOutput ?? 0) / (device.maxOutput || 1)) * 100))} className="h-2" />
               </div>
-              
+
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span>Efficiency</span>
-                  <span className="font-medium">{device.efficiency}%</span>
+                  <span className="font-medium">{(device.efficiency ?? 0)}%</span>
                 </div>
-                <Progress value={device.efficiency} className="h-2" />
+                <Progress value={Math.min(100, (device.efficiency ?? 0))} className="h-2" />
               </div>
 
               <div className="pt-2 border-t">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Last Maintenance</span>
-                  <span>{new Date(device.lastMaintenance).toLocaleDateString()}</span>
+                  <span>{device.lastMaintenance ? new Date(device.lastMaintenance).toLocaleDateString() : 'N/A'}</span>
                 </div>
               </div>
             </CardContent>

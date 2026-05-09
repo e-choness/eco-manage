@@ -3,7 +3,7 @@ import api from './api';
 // Description: Get all devices
 // Endpoint: GET /api/devices
 // Request: {}
-// Response: Array<{ _id: string, name: string, type: string, status: string, currentOutput: number, maxOutput: number, efficiency: number, lastMaintenance: string }>
+// Response: { devices: Array<{ _id: string, name: string, type: string, status: string, currentOutput: number, maxOutput: number, efficiency: number, lastMaintenance: string }> }
 export const getDevices = async () => {
   try {
     const response = await api.get('/api/devices');

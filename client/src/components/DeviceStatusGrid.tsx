@@ -67,19 +67,19 @@ export function DeviceStatusGrid({ devices = [] }: DeviceStatusGridProps) {
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Output</span>
-                <span>{device.currentOutput}/{device.maxOutput} kW</span>
+                <span>{(device.currentOutput ?? 0).toFixed(2)}/{(device.maxOutput ?? 0).toFixed(2)} kW</span>
               </div>
-              <Progress value={(device.currentOutput / device.maxOutput) * 100} className="h-2" />
+              <Progress value={Math.min(100, (((device.currentOutput ?? 0) / (device.maxOutput || 1)) * 100))} className="h-2" />
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Efficiency</span>
-                <span>{device.efficiency}%</span>
+                <span>{(device.efficiency ?? 0)}%</span>
               </div>
-              <Progress value={device.efficiency} className="h-2" />
+              <Progress value={Math.min(100, (device.efficiency ?? 0))} className="h-2" />
             </div>
             <div className="text-xs text-muted-foreground">
-              Last maintenance: {new Date(device.lastMaintenance).toLocaleDateString()}
+              Last maintenance: {device.lastMaintenance ? new Date(device.lastMaintenance).toLocaleDateString() : 'N/A'}
             </div>
           </CardContent>
         </Card>

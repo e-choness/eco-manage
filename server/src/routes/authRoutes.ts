@@ -154,4 +154,56 @@ router.get('/me', requireUser, async (req: AuthenticatedRequest, res: Response) 
   }
 });
 
+router.put('/password', requireUser, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ message: 'Current password and new password are required' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ message: 'New password must be at least 6 characters' });
+      return;
+    }
+
+    const user = await UserService.authenticateWithPassword(req.user!.email, currentPassword);
+    if (!user) {
+      res.status(400).json({ message: 'Current password is incorrect' });
+      return;
+    }
+
+    await UserService.setPassword(user, newPassword);
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error(`Change password error: ${err.message}`);
+    res.status(500).json({ message: 'Failed to change password' });
+  }
+});
+
+router.put('/profile', requireUser, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { name } = req.body;
+
+    if (name !== undefined && (typeof name !== 'string' || name.trim().length === 0)) {
+      res.status(400).json({ message: 'Name must be a non-empty string' });
+      return;
+    }
+
+    const updated = await UserService.update(String(req.user!._id), { name: name?.trim() });
+    if (!updated) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    res.status(200).json(updated.toJSON());
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error(`Update profile error: ${err.message}`);
+    res.status(500).json({ message: 'Failed to update profile' });
+  }
+});
+
 export default router;

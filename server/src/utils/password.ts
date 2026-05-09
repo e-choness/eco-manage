@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 /**
  * Hashes the password using bcrypt algorithm
@@ -30,8 +30,8 @@ export const validatePassword = async (password: string, hash: string): Promise<
 export const isPasswordHash = (hash: string): boolean => {
   if (!hash || hash.length !== 60) return false;
   try {
-    bcrypt.getRounds(hash);
-    return true;
+    const rounds = bcrypt.getRounds(hash);
+    return !isNaN(rounds) && rounds > 0;
   } catch {
     return false;
   }

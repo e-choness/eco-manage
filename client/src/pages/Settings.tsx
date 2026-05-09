@@ -9,15 +9,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/useToast"
-import { User, Bell, Shield, Palette, Save } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { changePassword as changePasswordApi, updateProfile } from "@/api/auth"
+import { User, Bell, Shield, Palette, Save, Key, Loader2 } from "lucide-react"
 
 export function Settings() {
+  const { user } = useAuth()
+
   const [profile, setProfile] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
+    name: user?.name || 'Demo User',
+    email: user?.email || '',
     phone: '+1 (555) 123-4567',
     location: 'San Francisco, CA'
   })
+
+  const [changePassword, setChangePassword] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [savingProfile, setSavingProfile] = useState(false)
 
   const [notifications, setNotifications] = useState({
     emailAlerts: true,
@@ -38,12 +50,30 @@ export function Settings() {
 
   const { toast } = useToast()
 
-  const handleSaveProfile = () => {
-    console.log('Saving profile settings:', profile)
-    toast({
-      title: "Profile Updated",
-      description: "Your profile settings have been saved successfully.",
-    })
+  const handleSaveProfile = async () => {
+    setSavingProfile(true)
+    try {
+      const result = await updateProfile({ name: profile.name })
+      toast({
+        title: "Profile Updated",
+        description: "Your profile settings have been saved successfully.",
+      })
+      // Update local storage to keep AuthContext in sync
+      const stored = localStorage.getItem('userData')
+      if (stored) {
+        const userData = JSON.parse(stored)
+        userData.name = result.name || profile.name
+        localStorage.setItem('userData', JSON.stringify(userData))
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save profile.",
+        variant: "destructive",
+      })
+    } finally {
+      setSavingProfile(false)
+    }
   }
 
   const handleSaveNotifications = () => {
@@ -60,6 +90,51 @@ export function Settings() {
       title: "Preferences Updated",
       description: "Your preferences have been saved successfully.",
     })
+  }
+
+  const handleChangePassword = async () => {
+    if (!changePassword.currentPassword || !changePassword.newPassword || !changePassword.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Please fill in all password fields.",
+        variant: "destructive",
+      })
+      return
+    }
+    if (changePassword.newPassword !== changePassword.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match.",
+        variant: "destructive",
+      })
+      return
+    }
+    if (changePassword.newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "New password must be at least 6 characters.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setChangingPassword(true)
+    try {
+      await changePasswordApi(changePassword.currentPassword, changePassword.newPassword)
+      toast({
+        title: "Password Updated",
+        description: "Your password has been changed successfully.",
+      })
+      setChangePassword({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to change password.",
+        variant: "destructive",
+      })
+    } finally {
+      setChangingPassword(false)
+    }
   }
 
   return (
@@ -109,7 +184,8 @@ export function Settings() {
                     id="email"
                     type="email"
                     value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
                 <div className="space-y-2">
@@ -129,9 +205,13 @@ export function Settings() {
                   />
                 </div>
               </div>
-              <Button onClick={handleSaveProfile} className="flex items-center gap-2">
-                <Save className="h-4 w-4" />
-                Save Profile
+              <Button onClick={handleSaveProfile} className="flex items-center gap-2" disabled={savingProfile}>
+                {savingProfile ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {savingProfile ? 'Saving...' : 'Save Profile'}
               </Button>
             </CardContent>
           </Card>
@@ -299,11 +379,33 @@ export function Settings() {
                 <div>
                   <h4 className="font-medium mb-2">Change Password</h4>
                   <div className="space-y-2">
-                    <Input type="password" placeholder="Current password" />
-                    <Input type="password" placeholder="New password" />
-                    <Input type="password" placeholder="Confirm new password" />
+                    <Input
+                      type="password"
+                      placeholder="Current password"
+                      value={changePassword.currentPassword}
+                      onChange={(e) => setChangePassword({ ...changePassword, currentPassword: e.target.value })}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="New password"
+                      value={changePassword.newPassword}
+                      onChange={(e) => setChangePassword({ ...changePassword, newPassword: e.target.value })}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="Confirm new password"
+                      value={changePassword.confirmPassword}
+                      onChange={(e) => setChangePassword({ ...changePassword, confirmPassword: e.target.value })}
+                    />
                   </div>
-                  <Button className="mt-2">Update Password</Button>
+                  <Button className="mt-2" onClick={handleChangePassword} disabled={changingPassword}>
+                    {changingPassword ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Key className="h-4 w-4 mr-2" />
+                    )}
+                    {changingPassword ? 'Updating...' : 'Update Password'}
+                  </Button>
                 </div>
                 <Separator />
                 <div>
@@ -311,7 +413,15 @@ export function Settings() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Add an extra layer of security to your account
                   </p>
-                  <Button variant="outline">Enable 2FA</Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => toast({
+                      title: "Coming Soon",
+                      description: "Two-factor authentication will be available in a future update.",
+                    })}
+                  >
+                    Enable 2FA
+                  </Button>
                 </div>
                 <Separator />
                 <div>

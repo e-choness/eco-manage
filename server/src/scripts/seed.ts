@@ -14,6 +14,12 @@ dotenv.config();
 const DEMO_EMAIL = 'demo@ecomanage.io';
 const DEMO_PASSWORD = 'Demo1234!';
 
+const DEMO_ACCOUNTS = [
+  { email: 'demo@ecomanage.io', password: 'Demo1234!', name: 'Demo User' },
+  { email: 'demo2@ecomanage.io', password: 'Demo1234!', name: 'Alice Johnson' },
+  { email: 'demo3@ecomanage.io', password: 'Demo1234!', name: 'Bob Williams' },
+];
+
 async function seed() {
   try {
     console.log('🌱 Starting database seeding...');
@@ -27,19 +33,21 @@ async function seed() {
     await mongoose.connect(mongoUrl);
     console.log('✅ Connected to MongoDB');
 
-    // Clear existing demo data
-    const existingUser = await User.findOne({ email: DEMO_EMAIL });
-    if (existingUser) {
-      console.log('🔄 Clearing existing demo data...');
-      await Alert.deleteMany({ userId: existingUser._id });
-      await Device.deleteMany({ userId: existingUser._id });
-      await EnergyReading.deleteMany({ userId: existingUser._id });
-      await FinancialRecord.deleteMany({ userId: existingUser._id });
-      await Recommendation.deleteMany({ userId: existingUser._id });
-      await Weather.deleteMany({ userId: existingUser._id });
-      await User.deleteOne({ email: DEMO_EMAIL });
-      console.log('✅ Cleared existing demo data');
+    // Clear existing demo data for all demo accounts
+    for (const account of DEMO_ACCOUNTS) {
+      const existingUser = await User.findOne({ email: account.email });
+      if (existingUser) {
+        console.log(`🔄 Clearing existing demo data for ${account.email}...`);
+        await Alert.deleteMany({ userId: existingUser._id });
+        await Device.deleteMany({ userId: existingUser._id });
+        await EnergyReading.deleteMany({ userId: existingUser._id });
+        await FinancialRecord.deleteMany({ userId: existingUser._id });
+        await Recommendation.deleteMany({ userId: existingUser._id });
+        await Weather.deleteMany({ userId: existingUser._id });
+        await User.deleteOne({ email: account.email });
+      }
     }
+    console.log('✅ Cleared existing demo data');
 
     // 1. Create demo user
     console.log('\n📝 Creating demo user...');
@@ -53,12 +61,24 @@ async function seed() {
 
     // 2. Create 4 devices
     console.log('\n🔌 Creating devices...');
+
+    // Calculate current solar output based on time of day (peaks at noon)
+    const now = new Date();
+    const hour = now.getHours();
+    const solarFraction = hour >= 6 && hour <= 18
+      ? Math.sin(((hour - 6) / 12) * Math.PI) * 0.8 + 0.2
+      : 0;
+
+    // Wind is relatively constant with some random variation
+    const windFraction = 0.6 + Math.random() * 0.3;
+
     const devices = await Device.create([
       {
         userId: demoUser._id,
         name: 'Solar Panel A',
         type: 'solar',
         status: 'online',
+        currentOutput: solarFraction * 5.5 * 0.6, // 60% of Solar B
         maxOutput: 5.5,
         efficiency: 95,
         lastMaintenance: new Date(),
@@ -68,6 +88,7 @@ async function seed() {
         name: 'Solar Panel B',
         type: 'solar',
         status: 'online',
+        currentOutput: solarFraction * 5.5,
         maxOutput: 5.5,
         efficiency: 92,
         lastMaintenance: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -77,6 +98,7 @@ async function seed() {
         name: 'Wind Turbine 1',
         type: 'wind',
         status: 'online',
+        currentOutput: windFraction * 10.0,
         maxOutput: 10.0,
         efficiency: 85,
         lastMaintenance: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
@@ -86,6 +108,7 @@ async function seed() {
         name: 'Battery Storage',
         type: 'battery',
         status: 'charging',
+        currentOutput: 8.0, // Half charged
         maxOutput: 15.0,
         efficiency: 97,
         lastMaintenance: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
@@ -96,8 +119,8 @@ async function seed() {
     // 3. Generate 365 days of energy readings
     console.log('\n⚡ Generating energy readings (365 days × 24 hours)...');
     const energyReadings: any[] = [];
-    const now = new Date();
-    const startDate = new Date(now.getFullYear(), 0, 1); // Jan 1 of current year
+    const energyStartDate = new Date();
+    const startDate = new Date(energyStartDate.getFullYear(), 0, 1); // Jan 1 of current year
 
     // Solar sine curve pattern + wind random pattern
     for (let dayOfYear = 0; dayOfYear < 365; dayOfYear++) {
@@ -204,25 +227,27 @@ async function seed() {
     ]);
     console.log(`✅ Created ${alerts.length} alerts`);
 
-    // 5. Create 12 months of financial records
-    console.log('\n💰 Creating financial records (12 months)...');
+    // 5. Create 24 months of financial records
+    console.log('\n💰 Creating financial records (24 months)...');
     const financialRecords: any[] = [];
-    const currentYear = new Date().getFullYear();
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
 
-    for (let month = 0; month < 12; month++) {
-      const date = new Date(currentYear, month, 1);
+    for (let offset = 23; offset >= 0; offset--) {
+      const date = new Date(currentYear, currentDate.getMonth() - offset, 1);
 
-      // Realistic financial metrics
-      const savings = 150 + Math.random() * 100; // $150-250 monthly savings
-      const revenue = 200 + Math.random() * 150; // $200-350 from excess power
-      const costs = 50 + Math.random() * 30; // $50-80 maintenance/operational
+      // Realistic financial metrics with seasonal variation
+      const seasonalFactor = 0.6 + 0.4 * Math.sin((offset / 12) * Math.PI);
+      const savings = Math.round((150 + Math.random() * 100) * seasonalFactor * 100) / 100;
+      const revenue = Math.round((200 + Math.random() * 150) * seasonalFactor * 100) / 100;
+      const costs = Math.round((50 + Math.random() * 30) * 100) / 100;
 
       financialRecords.push({
         userId: demoUser._id,
         date,
-        savings: Math.round(savings * 100) / 100,
-        revenue: Math.round(revenue * 100) / 100,
-        costs: Math.round(costs * 100) / 100,
+        savings,
+        revenue,
+        costs,
         category: 'Solar & Wind Energy',
       });
     }
@@ -302,10 +327,28 @@ async function seed() {
     console.log(`   Devices: ${devices.length}`);
     console.log(`   Energy Readings: ${energyReadings.length} (365 days × 24 hours × 4 devices)`);
     console.log(`   Alerts: ${alerts.length}`);
-    console.log(`   Financial Records: ${financialRecords.length} months`);
+    console.log(`   Financial Records: ${financialRecords.length} months (2 years)`);
     console.log(`   Recommendations: ${recommendations.length}`);
     console.log(`   Weather: 1 (Current weather data)`);
-    console.log('\n🚀 Ready to use! Login with the demo credentials above.\n');
+
+    // 8. Create 2 additional demo users (lighter accounts for testing multiple users)
+    console.log('\n👥 Creating additional demo accounts...');
+    for (let i = 1; i < DEMO_ACCOUNTS.length; i++) {
+      const account = DEMO_ACCOUNTS[i];
+      const passwordHash = await generatePasswordHash(account.password);
+      await User.create({
+        email: account.email,
+        password: passwordHash,
+        name: account.name,
+      });
+      console.log(`✅ Created user: ${account.email} (${account.name})`);
+    }
+
+    console.log('\n🚀 Ready to use! Login with any of the demo credentials below:');
+    for (const account of DEMO_ACCOUNTS) {
+      console.log(`   ${account.email} / ${account.password} (${account.name})`);
+    }
+    console.log('');
 
     await mongoose.connection.close();
     console.log('✅ Database connection closed');

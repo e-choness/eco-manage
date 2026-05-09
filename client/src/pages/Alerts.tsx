@@ -42,6 +42,10 @@ export function Alerts() {
       filtered = (alerts || []).filter(alert => !alert.read)
     } else if (filter === 'critical') {
       filtered = (alerts || []).filter(alert => alert.type === 'critical')
+    } else if (filter === 'warning') {
+      filtered = (alerts || []).filter(alert => alert.type === 'warning')
+    } else if (filter === 'info') {
+      filtered = (alerts || []).filter(alert => alert.type === 'info')
     } else if (filter === 'resolved') {
       filtered = (alerts || []).filter(alert => alert.resolved)
     }
@@ -156,6 +160,8 @@ export function Alerts() {
               <SelectItem value="all">All Alerts</SelectItem>
               <SelectItem value="unread">Unread</SelectItem>
               <SelectItem value="critical">Critical</SelectItem>
+              <SelectItem value="warning">Warning</SelectItem>
+              <SelectItem value="info">Info</SelectItem>
               <SelectItem value="resolved">Resolved</SelectItem>
             </SelectContent>
           </Select>

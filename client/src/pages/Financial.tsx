@@ -21,7 +21,7 @@ export function Financial() {
       try {
         console.log('Fetching financial data')
         const [overviewData, historyData] = await Promise.all([
-          getFinancialOverview(),
+          getFinancialOverview(period),
           getFinancialHistory(period)
         ])
 

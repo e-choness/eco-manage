@@ -57,7 +57,7 @@ export function Dashboard() {
 
         setDashboardData(overviewData as DashboardData)
         setEnergyFlow(flowData as EnergyFlowData)
-        setDevices((devicesData as any).devices)
+        setDevices(Array.isArray((devicesData as any).devices) ? (devicesData as any).devices : [])
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
         toast({
