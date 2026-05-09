@@ -4,9 +4,9 @@ import api from './api';
 // Endpoint: GET /api/financial/overview
 // Request: {}
 // Response: { totalSavings: number, monthlyRevenue: number, roi: number, paybackPeriod: number, maintenanceCosts: number }
-export const getFinancialOverview = async () => {
+export const getFinancialOverview = async (period: string = 'year') => {
   try {
-    const response = await api.get('/api/financial/overview');
+    const response = await api.get(`/api/financial/overview?period=${period}`);
     return response.data;
   } catch (error) {
     throw new Error(error?.response?.data?.message || error.message);

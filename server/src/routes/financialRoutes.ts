@@ -4,7 +4,7 @@ import FinancialRecord from '../models/FinancialRecord';
 
 const router = Router();
 
-// GET /api/financial/overview - Get financial overview
+// GET /api/financial/overview?period=year|6months - Get financial overview
 router.get('/overview', requireUser, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) {
@@ -12,7 +12,18 @@ router.get('/overview', requireUser, async (req: AuthenticatedRequest, res: Resp
       return;
     }
 
-    const records = await FinancialRecord.find({ userId: req.user._id }).sort({ date: -1 });
+    const period = (req.query.period as string) || 'year';
+    const startDate = new Date();
+    if (period === '6months') {
+      startDate.setMonth(startDate.getMonth() - 6);
+    } else {
+      startDate.setFullYear(startDate.getFullYear() - 1);
+    }
+
+    const records = await FinancialRecord.find({
+      userId: req.user._id,
+      date: { $gte: startDate },
+    }).sort({ date: -1 });
 
     if (records.length === 0) {
       res.json({
