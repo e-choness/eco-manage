@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 export interface IUser extends Document {
   email: string;
   password: string;
+  name?: string;
   createdAt: Date;
   lastLoginAt: Date;
   isActive: boolean;
@@ -19,6 +20,11 @@ const schema = new Schema<IUser>(
       index: true,
       unique: true,
       lowercase: true,
+    },
+    name: {
+      type: String,
+      trim: true,
+      maxlength: 100,
     },
     password: {
       type: String,

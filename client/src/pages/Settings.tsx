@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/useToast"
 import { useAuth } from "@/contexts/AuthContext"
-import { changePassword as changePasswordApi } from "@/api/auth"
+import { changePassword as changePasswordApi, updateProfile } from "@/api/auth"
 import { User, Bell, Shield, Palette, Save, Key, Loader2 } from "lucide-react"
 
 export function Settings() {
@@ -29,6 +29,7 @@ export function Settings() {
     confirmPassword: ''
   })
   const [changingPassword, setChangingPassword] = useState(false)
+  const [savingProfile, setSavingProfile] = useState(false)
 
   const [notifications, setNotifications] = useState({
     emailAlerts: true,
@@ -49,12 +50,30 @@ export function Settings() {
 
   const { toast } = useToast()
 
-  const handleSaveProfile = () => {
-    console.log('Saving profile settings:', profile)
-    toast({
-      title: "Profile Updated",
-      description: "Your profile settings have been saved successfully.",
-    })
+  const handleSaveProfile = async () => {
+    setSavingProfile(true)
+    try {
+      const result = await updateProfile({ name: profile.name })
+      toast({
+        title: "Profile Updated",
+        description: "Your profile settings have been saved successfully.",
+      })
+      // Update local storage to keep AuthContext in sync
+      const stored = localStorage.getItem('userData')
+      if (stored) {
+        const userData = JSON.parse(stored)
+        userData.name = result.name || profile.name
+        localStorage.setItem('userData', JSON.stringify(userData))
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save profile.",
+        variant: "destructive",
+      })
+    } finally {
+      setSavingProfile(false)
+    }
   }
 
   const handleSaveNotifications = () => {
@@ -165,7 +184,8 @@ export function Settings() {
                     id="email"
                     type="email"
                     value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
                 <div className="space-y-2">
@@ -185,9 +205,13 @@ export function Settings() {
                   />
                 </div>
               </div>
-              <Button onClick={handleSaveProfile} className="flex items-center gap-2">
-                <Save className="h-4 w-4" />
-                Save Profile
+              <Button onClick={handleSaveProfile} className="flex items-center gap-2" disabled={savingProfile}>
+                {savingProfile ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {savingProfile ? 'Saving...' : 'Save Profile'}
               </Button>
             </CardContent>
           </Card>
