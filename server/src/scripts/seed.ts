@@ -227,25 +227,27 @@ async function seed() {
     ]);
     console.log(`✅ Created ${alerts.length} alerts`);
 
-    // 5. Create 12 months of financial records
-    console.log('\n💰 Creating financial records (12 months)...');
+    // 5. Create 24 months of financial records
+    console.log('\n💰 Creating financial records (24 months)...');
     const financialRecords: any[] = [];
-    const currentYear = new Date().getFullYear();
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
 
-    for (let month = 0; month < 12; month++) {
-      const date = new Date(currentYear, month, 1);
+    for (let offset = 23; offset >= 0; offset--) {
+      const date = new Date(currentYear, currentDate.getMonth() - offset, 1);
 
-      // Realistic financial metrics
-      const savings = 150 + Math.random() * 100; // $150-250 monthly savings
-      const revenue = 200 + Math.random() * 150; // $200-350 from excess power
-      const costs = 50 + Math.random() * 30; // $50-80 maintenance/operational
+      // Realistic financial metrics with seasonal variation
+      const seasonalFactor = 0.6 + 0.4 * Math.sin((offset / 12) * Math.PI);
+      const savings = Math.round((150 + Math.random() * 100) * seasonalFactor * 100) / 100;
+      const revenue = Math.round((200 + Math.random() * 150) * seasonalFactor * 100) / 100;
+      const costs = Math.round((50 + Math.random() * 30) * 100) / 100;
 
       financialRecords.push({
         userId: demoUser._id,
         date,
-        savings: Math.round(savings * 100) / 100,
-        revenue: Math.round(revenue * 100) / 100,
-        costs: Math.round(costs * 100) / 100,
+        savings,
+        revenue,
+        costs,
         category: 'Solar & Wind Energy',
       });
     }
@@ -325,7 +327,7 @@ async function seed() {
     console.log(`   Devices: ${devices.length}`);
     console.log(`   Energy Readings: ${energyReadings.length} (365 days × 24 hours × 4 devices)`);
     console.log(`   Alerts: ${alerts.length}`);
-    console.log(`   Financial Records: ${financialRecords.length} months`);
+    console.log(`   Financial Records: ${financialRecords.length} months (2 years)`);
     console.log(`   Recommendations: ${recommendations.length}`);
     console.log(`   Weather: 1 (Current weather data)`);
 
