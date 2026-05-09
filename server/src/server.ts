@@ -61,16 +61,20 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ message: 'There was an error serving your request.' });
 });
 
-// Start server
-const server = app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\nGraceful shutdown initiated...');
-  server.close(() => {
-    console.log('Server closed.');
-    process.exit(0);
+// Start server (skip on Vercel — it manages the server lifecycle)
+if (!process.env.VERCEL) {
+  const server = app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
   });
-});
+
+  // Graceful shutdown
+  process.on('SIGINT', async () => {
+    console.log('\nGraceful shutdown initiated...');
+    server.close(() => {
+      console.log('Server closed.');
+      process.exit(0);
+    });
+  });
+}
+
+export default app;
