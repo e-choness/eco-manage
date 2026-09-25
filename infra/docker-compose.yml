@@ -17,6 +17,7 @@ x-workspace: &workspace
     - /repo/packages/db/node_modules
     - /repo/packages/profiles/node_modules
     - /repo/apps/simulator/node_modules
+    - /repo/apps/ingest/node_modules
   environment: &workspace-env
     # Windows bind mounts don't deliver file events reliably, so the watchers poll.
     CHOKIDAR_USEPOLLING: "true"
@@ -65,6 +66,24 @@ services:
       timeout: 3s
       retries: 12
       start_period: 5s
+
+  # MQTT → telemetry time series (MongoDB) + latest values (Redis).
+  ingest:
+    <<: *workspace
+    command: ["pnpm", "--filter", "@ecomanage/ingest", "dev"]
+    environment:
+      <<: *workspace-env
+      DATABASE_URL: mongodb://mongodb:27017/ecomanage
+      REDIS_URL: redis://redis:6379
+      MQTT_URL: mqtts://mosquitto:8883
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+    restart: unless-stopped
 
   # Simulated Maple Grove School site: behaves exactly like its gateway over MQTT/TLS.
   # Speed and seed: SIM_SPEED (1–60), SIM_SEED. Control API: http://localhost:4100/sim/state

@@ -121,6 +121,49 @@ importers:
         specifier: ~5.6.2
         version: 5.6.3
 
+  apps/ingest:
+    dependencies:
+      '@ecomanage/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@ecomanage/profiles':
+        specifier: workspace:*
+        version: link:../../packages/profiles
+      '@ecomanage/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      ioredis:
+        specifier: ^5.4.1
+        version: 5.11.1
+      mongoose:
+        specifier: ^8.1.1
+        version: 8.24.4(socks@2.8.10)
+      mqtt:
+        specifier: ^5.10.1
+        version: 5.16.0
+      pino:
+        specifier: ^9.5.0
+        version: 9.14.0
+      tsx:
+        specifier: ^4.7.0
+        version: 4.23.15
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^20.11.5
+        version: 20.19.43
+      eslint:
+        specifier: ^9.13.0
+        version: 9.39.5(jiti@1.21.7)
+      typescript:
+        specifier: ~5.6.2
+        version: 5.6.3
+      vitest:
+        specifier: ^1.6.1
+        version: 1.6.1(@types/node@20.19.43)(@vitest/ui@1.6.1)(jsdom@23.2.0)
+
   apps/simulator:
     dependencies:
       '@ecomanage/profiles':
@@ -7009,7 +7052,7 @@ snapshots:
       pathe: 1.1.2
       picocolors: 1.1.1
       sirv: 2.0.4
-      vitest: 1.6.1(@types/node@22.20.4)(@vitest/ui@1.6.1)(jsdom@23.2.0)
+      vitest: 1.6.1(@types/node@20.19.43)(@vitest/ui@1.6.1)(jsdom@23.2.0)
 
   '@vitest/utils@1.6.1':
     dependencies:
