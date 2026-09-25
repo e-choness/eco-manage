@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getAlerts, markAlertAsRead } from "@/api/alerts"
+import { notifyAlertsChanged } from "@/lib/alertEvents"
 import type { Alert } from "@/api/types"
 import { useToast } from "@/hooks/useToast"
 import { AlertTriangle, Info, AlertCircle, CheckCircle, Clock, Filter } from "lucide-react"
@@ -57,6 +58,7 @@ export function Alerts() {
     try {
       console.log('Marking alert as read:', alertId)
       await markAlertAsRead(alertId)
+      notifyAlertsChanged()
 
       setAlerts(prev =>
         prev.map(alert =>

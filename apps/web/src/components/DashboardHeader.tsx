@@ -7,6 +7,7 @@ import { Badge } from "./ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { useEffect, useState } from "react"
 import { getAlerts } from "@/api/alerts"
+import { ALERT_POLL_MS, onAlertsChanged } from "@/lib/alertEvents"
 
 export function DashboardHeader() {
   const { user, logout } = useAuth()
@@ -25,14 +26,14 @@ export function DashboardHeader() {
       }
     }
 
-    // Fetch immediately on mount
     fetchUnreadCount()
+    const interval = setInterval(fetchUnreadCount, ALERT_POLL_MS)
+    const unsubscribe = onAlertsChanged(fetchUnreadCount)
 
-    // Set up polling to refresh alert count every 1 second for responsiveness
-    const interval = setInterval(fetchUnreadCount, 1000)
-
-    // Cleanup interval on unmount
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      unsubscribe()
+    }
   }, [])
 
   const handleNotificationClick = () => {
