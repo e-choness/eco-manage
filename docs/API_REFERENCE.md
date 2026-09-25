@@ -133,7 +133,7 @@ Errors: `400 {"error":"Missing alertId"}`, `404 {"error":"Alert not found"}`.
 
 | Method | Path               | Body                   | Success |
 | ------ | ------------------ | ---------------------- | ------- |
-| GET    | `/recommendations` | —                      | `200 {"recommendations":[…]}`, pending and accepted, sorted by the priority string (so `medium` before `high`, see bugs/004) |
+| GET    | `/recommendations` | —                      | `200 {"recommendations":[…]}`, pending and accepted, sorted by the priority string (so `medium` sorts before `high`; P3-03 replaces this module) |
 | POST   | `/accept`          | `{ recommendationId }` | `200` recommendation with `status: "accepted"` |
 | POST   | `/dismiss`         | `{ recommendationId }` | `200` recommendation with `status: "dismissed"` |
 

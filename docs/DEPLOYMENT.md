@@ -10,7 +10,7 @@ what production still needs. The v2 plan (P1-01) builds `infra/docker-compose.ym
 | ------------------ | ---------------------------------------------------------------------- |
 | `Dockerfile.dev`   | Dev image for the whole workspace. Source is bind-mounted; not for production. |
 | Web build          | `pnpm --filter @ecomanage/web build` → static files in `apps/web/dist`. |
-| API build          | `pnpm --filter @ecomanage/api build` compiles, but `node dist/server.js` fails on extensionless ESM imports (`bugs/002`). The API only runs under `tsx` today. |
+| API build          | `build` type-checks; the API runs TypeScript directly with `tsx` (`pnpm --filter @ecomanage/api start`). |
 | Vercel config      | Removed in P0-01 (v2 needs long-running services, Redis and MQTT).      |
 
 ## API configuration
@@ -36,7 +36,7 @@ The placeholder secrets in `apps/api/.env.example` are for local development onl
 
 ## Production still needs
 
-1. A runnable API build (`bugs/002`) and a production image without dev dependencies.
+1. A production image without dev dependencies.
 2. The web `dist/` served behind the same origin as `/api` (or `CORS_ORIGINS` set to the web
    origin). The refresh cookie is `SameSite=Strict` and scoped to `/api/auth`, so a same-site
    setup is the simplest.

@@ -19,9 +19,11 @@ graph LR
 | `web`        | `Dockerfile.dev`       | Vite dev server, proxies `/api` to `api`  |
 | `mongodb`    | `mongo:7`              | Data store                                |
 | `redis`      | `redis:7-alpine`       | Rate-limit store                          |
-| `mongo-seed` | `Dockerfile.dev`       | One-shot demo data reset                  |
+| `mosquitto`  | `eclipse-mosquitto:2`  | MQTT broker, TLS with client certificates, ACL per identity |
+| `mqtt-certs` | `alpine`               | One-shot: generates the dev CA and certificates into `infra/mosquitto/certs` (gitignored) |
+| `mongo-seed` | `Dockerfile.dev`       | One-shot demo data reset (profile `tools`, run on demand) |
 
-The source is bind-mounted into `/repo`. `node_modules` come from the image and sit in anonymous
+The stack is defined in `infra/docker-compose.yml`. The source is bind-mounted into `/repo`. `node_modules` come from the image and sit in anonymous
 volumes so the host never needs a local install.
 
 ## API (`apps/api/src`)

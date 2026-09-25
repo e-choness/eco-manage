@@ -30,7 +30,7 @@ docker compose run --rm api pnpm --filter @ecomanage/api test:coverage   # 55% g
 | `services/userService.test.ts`, `utils/*` | User service, JWT and bcrypt helpers                           |
 | `scripts/seedReadings.test.ts`         | Demo data generator: nothing in the future, consumption on the grid meter |
 | `config/database.test.ts`              | Connection handling                                               |
-| `models/*`, other `routes/*`, `scripts/seed.test.ts` | Mostly exercise mocks rather than app code (see `bugs/001`) |
+| `models/*`, other `routes/*`, `scripts/seed.test.ts` | Mostly exercise their own mocks rather than app code; the contract and integration suites are the ones that protect behaviour |
 
 ### Integration tests
 
@@ -62,5 +62,5 @@ makes the effect loop forever.
 ## End-to-end (`e2e/`, Playwright)
 
 The existing suite predates Phase 0 and is outdated. It checks for tokens in `localStorage`, and
-nothing wires it to the compose stack (see `bugs/003`). P1-12 replaces it with a compose-based
+nothing wires it to the compose stack. P1-12 replaces it with a compose-based
 smoke test.
