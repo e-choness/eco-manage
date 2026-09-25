@@ -14,10 +14,13 @@
     "lint": "eslint src",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "migrate": "tsx src/scripts/migrate.ts"
   },
   "license": "ISC",
   "dependencies": {
+    "@ecomanage/db": "workspace:*",
+    "@ecomanage/shared": "workspace:*",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",

@@ -1,7 +1,7 @@
 # Database
 
-MongoDB 7, database `ecomanage`. Every document belongs to one user (`userId`); v1 has no sites
-or roles yet (P1-03 adds `sites` and `memberships`). Schemas are in
+MongoDB 7, database `ecomanage`. The v1 collections below belong to one user (`userId`); the v2
+collections at the end belong to a site. Schemas are in
 `apps/api/src/modules/<module>/model.ts`.
 
 The indexes below are the ones Mongoose creates, read from a running database.
@@ -76,6 +76,40 @@ One per user (`userId` **unique**): `condition` (`sunny`, `cloudy`, `rainy`, `st
 - 365 days × 24 hourly readings for Solar A, Solar B, Wind (production) and the Grid Meter
   (consumption), ending at the current hour (35,040 readings)
 - 4 alerts, 24 monthly financial records, recommendations, and one weather document
+
+## v2 collections (`packages/db`)
+
+Added in P1-03. The Mongoose models live in `packages/db/src/models.ts` so the API and the
+services share them. Plain types live in `packages/shared/src/models.ts`.
+
+| Collection       | Key fields | Indexes |
+| ---------------- | ---------- | ------- |
+| `sites`          | name, address, tz, lat, lon, currency, billDay (1–28), demandCapKw, gatewayId | — |
+| `memberships`    | userId, siteId, role (owner, manager, installer), until | {userId, siteId} unique, siteId |
+| `invites`        | siteId, email, role, until, tokenHash, expiresAt, acceptedAt | tokenHash |
+| `devices`        | siteId, type (pv, battery, meter, submeter, ev, heatpump, gateway), name, profileId, address, role, status (pending, live, stale, offline), ratedKw, capacityKwh, lastSeenAt, commissionedAt/By | siteId |
+| `deviceProfiles` | id ("vendor-model@version"), vendor, model, protocol, deviceType, read[], write, states, faults, fixes, pollMs, reviewed | id unique |
+| `telemetry`      | **time series**: ts, meta {siteId, deviceId}, p_kw and the standard fields, q (ok, stale, estimated, backfilled). Expires after 13 months | meta.deviceId+ts, meta.siteId+ts |
+| `intervals15`    | siteId, start (UTC), pv, used, batt, grid, export, bld, hp, ev (kWh), demandKw, costCents, creditCents, quality, tariffVersion | {siteId, start} unique |
+| `auditEvents`    | siteId, userId (null for system actions), action, target, before, after, ts | {siteId, ts: -1} |
+
+`initModels()` creates the collections and syncs the indexes. The time-series collection has to be
+created explicitly.
+
+### Migration
+
+`docker compose run --rm api pnpm --filter @ecomanage/api migrate` brings a v1 database to v2. It is
+safe to run repeatedly:
+
+1. v1 documents in `devices` (the ones with a `userId`) move to `legacy_devices`, which the v1
+   modules now use (model `LegacyDevice`).
+2. The v2 collections and indexes are created.
+3. Every user without a membership gets a site named "<name>'s site" and an owner membership,
+   recorded as an audit event. The site's time zone is UTC until the owner sets it.
+
+The seed also builds the demo site (Maple Grove School, fixed id `650000000000000000000001`) with
+its 10 devices. It gives `demo@` the owner membership, and `manager@` and `installer@` memberships
+too; the installer's access ends on 31 Dec 2026. The fixture is in `packages/shared/src/demo.ts`.
 
 ## Planned changes
 

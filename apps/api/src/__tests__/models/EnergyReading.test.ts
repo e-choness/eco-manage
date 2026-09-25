@@ -33,9 +33,9 @@ describe('EnergyReading Model', () => {
     expect(typeEnum).toContain('consumption');
   });
 
-  it('should have deviceId reference to Device', () => {
+  it('should have deviceId reference to LegacyDevice', () => {
     const deviceIdRef = (EnergyReading.schema.paths.deviceId as any).options.ref;
-    expect(deviceIdRef).toBe('Device');
+    expect(deviceIdRef).toBe('LegacyDevice');
   });
 
   it('should have userId reference to User', () => {
