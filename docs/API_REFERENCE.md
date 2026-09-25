@@ -12,8 +12,8 @@ Base URL: `http://localhost:3000` (the web dev server proxies `/api` there).
 
   | Endpoints | Roles |
   | --------- | ----- |
-  | dashboard, analytics, alerts, device reads, site, `GET /optimization/recommendations` | owner, manager, installer |
-  | financial, `POST /optimization/accept`, `POST /optimization/dismiss` | owner, manager |
+  | alerts, device reads, site, `GET /optimization/recommendations` | owner, manager, installer |
+  | `POST /optimization/accept`, `POST /optimization/dismiss` | owner, manager |
   | `POST/PATCH/DELETE /devices` | installer |
   | `/auth/me`, `/auth/password`, `/auth/profile` | any signed-in user |
 
@@ -21,7 +21,7 @@ Base URL: `http://localhost:3000` (the web dev server proxies `/api` there).
 - Rate limits per client IP per minute: 300 on `/api/*`, and 10 on login, register and refresh.
   Over the limit: `429 {"error":{"code":429,"message":"Too many requests, try again later."}}`.
 - Unknown routes: `404 {"error":{"code":404,"message":"Not found"}}`.
-- Energy values are kWh (hourly readings) and power values kW. Money is in dollars.
+- Power is in kW and energy in kWh. Timestamps are UTC ISO strings.
 
 ## Health
 
@@ -72,49 +72,6 @@ Body `{ name? }` (trimmed; must not be blank if present).
 - `200` user fields
 - `400 {"message":"Name must be a non-empty string"}`
 
-## Dashboard `/api/dashboard` 🔒
-
-### `GET /overview`
-Readings dated after now are ignored. Day and month boundaries are UTC.
-
-```json
-{
-  "totalProduction": 3046.89,     // kWh, last 30 days
-  "currentPower": 4.67,           // kW, production in the latest hour
-  "dailyProduction": 101.56,      // kWh/day, 30-day average
-  "monthlyProduction": 2419.5,    // kWh, calendar month to date
-  "todayProduction": 23.09,       // kWh since midnight
-  "productionChangePct": 11.19,   // today vs yesterday up to the same time; null if no baseline
-  "systemStatus": "optimal",      // optimal | warning (≥50% working) | critical | unknown (no devices)
-  "weatherCondition": "sunny",
-  "temperature": 22,
-  "savings": 365.63,              // $, last 30 days at an assumed $0.12/kWh
-  "carbonOffsetKg": 1523.45       // kg CO₂, last 30 days at 0.5 kg/kWh
-}
-```
-
-Online and charging devices count as working for `systemStatus`.
-
-### `GET /energy-flow`
-All readings at the latest hour that isn't in the future.
-
-```json
-{ "solar": 0, "wind": 4.67, "battery": 0, "consumption": 3.14, "grid": -1.53, "timestamp": "2026-09-25T05:00:00.000Z" }
-```
-
-`grid = consumption − solar − wind − battery`: positive when importing, negative when exporting.
-`timestamp` is `null` when there are no readings.
-
-## Analytics `/api/analytics` 🔒
-
-`?period=week|month|year` (default `month`; unknown values behave like `month`).
-
-### `GET /production`
-`200 {"period","data":[{"date":"2026-09-01","solar":2,"wind":3,"total":5}]}`, daily sums (UTC dates).
-
-### `GET /consumption`
-`200 {"period","data":[{"date":"2026-09-01","consumption":5}]}`
-
 ## Devices `/api/devices` 🔒 (v2, P1-09)
 
 Scoped to the caller's site. Errors are `{ "error": { "code", "message" } }`. Writes are
@@ -155,20 +112,6 @@ Errors: `400 {"error":"Missing alertId"}`, `404 {"error":"Alert not found"}`.
 | POST   | `/dismiss`         | `{ recommendationId }` | `200` recommendation with `status: "dismissed"` |
 
 Errors: `400 {"error":"Missing recommendationId"}`, `404 {"error":"Recommendation not found"}`.
-
-## Financial `/api/financial` 🔒
-
-`?period=6months|year` (default `year`; anything else behaves like `year`).
-
-### `GET /overview`
-```json
-{ "totalSavings": 300, "monthlyRevenue": 40.28, "roi": 3.51, "paybackPeriod": 4.38, "maintenanceCosts": 30 }
-```
-ROI and payback assume a fixed $10,000 investment. The spec replaces this with owner-entered
-install cost in a later phase. With no records, every field is `0`.
-
-### `GET /history`
-`200 {"period","data":[{"id","date","savings","revenue","costs","category"}]}`, newest first.
 
 ## Server errors
 

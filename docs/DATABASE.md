@@ -1,8 +1,9 @@
 # Database
 
-MongoDB 7, database `ecomanage`. The v1 collections below belong to one user (`userId`); the v2
-collections at the end belong to a site. Schemas are in
-`apps/api/src/modules/<module>/model.ts`.
+MongoDB 7, database `ecomanage`. `users`, `alerts` and `recommendations` are v1 collections keyed
+by user (their models are in `apps/api/src/modules/<module>/model.ts`; alerts and recommendations
+are replaced in Phases 2–3). Everything else belongs to a site; see
+[v2 collections](#v2-collections-packagesdb).
 
 The indexes below are the ones Mongoose creates, read from a running database.
 
@@ -18,34 +19,6 @@ The indexes below are the ones Mongoose creates, read from a running database.
 | `isActive`     | boolean | default `true`                                           |
 | `refreshToken` | string  | current refresh token, **unique, sparse**; never returned |
 
-## devices (`modules/devices/model.ts`)
-
-| Field             | Type   | Notes                                              |
-| ----------------- | ------ | -------------------------------------------------- |
-| `userId`          | ObjectId | indexed                                          |
-| `name`            | string | required                                           |
-| `type`            | enum   | `solar`, `wind`, `battery`, `grid`                 |
-| `status`          | enum   | `online` (default), `offline`, `charging`, `maintenance` |
-| `currentOutput`   | number | ≥ 0; set by the seed, nothing updates it           |
-| `maxOutput`       | number | required, ≥ 0 (kW)                                 |
-| `efficiency`      | number | 0–100                                              |
-| `lastMaintenance` | Date   | set on creation, nothing updates it                |
-| timestamps        |        | `createdAt`, `updatedAt`                           |
-
-## energyreadings (`modules/analytics/model.ts`)
-
-Hourly energy per device.
-
-| Field       | Type     | Notes                                               |
-| ----------- | -------- | --------------------------------------------------- |
-| `userId`    | ObjectId | required                                            |
-| `deviceId`  | ObjectId | required, ref `Device`                              |
-| `timestamp` | Date     | start of the hour, UTC                              |
-| `value`     | number   | kWh for that hour, ≥ 0                              |
-| `type`      | enum     | `production` (solar, wind) or `consumption` (site load, on the grid meter) |
-
-Indexes: `userId`, `deviceId`, `timestamp`, `{userId, timestamp: -1}`, `{deviceId, timestamp: -1}`.
-
 ## alerts (`modules/alerts/model.ts`)
 
 `userId`, `title`, `message`, `type` (`critical`, `warning`, `info`), `timestamp`, `read`,
@@ -57,25 +30,9 @@ Indexes: `userId`, `deviceId`, `timestamp`, `{userId, timestamp: -1}`, `{deviceI
 `difficulty` (`easy`, `medium`, `hard`), `category`, `status` (`pending`, `accepted`,
 `dismissed`), timestamps. Indexes: `userId`, `{userId, status}`.
 
-## financialrecords (`modules/financial/model.ts`)
+## Demo data (`apps/api/src/scripts/seedDemo.ts`)
 
-One record per month: `userId`, `date`, `savings`, `revenue`, `costs` (all ≥ 0, dollars),
-`category`, timestamps. Indexes: `userId`, `date`, `{userId, date: -1}`.
-
-## weathers (`modules/dashboard/model.ts`)
-
-One per user (`userId` **unique**): `condition` (`sunny`, `cloudy`, `rainy`, `stormy`, `snowy`),
-`temperature`, `humidity`, `windSpeed`, `uvIndex`. Only the seed writes it.
-
-## Demo data (`apps/api/src/scripts/seed.ts`)
-
-`docker compose run --rm mongo-seed` deletes and recreates three demo users (`demo@`, `demo2@`,
-`demo3@ecomanage.io`, password `Demo1234!`). Only `demo@ecomanage.io` gets data:
-
-- 5 devices: Solar Panel A and B, Wind Turbine 1, Battery Storage, and a Grid Meter
-- 365 days × 24 hourly readings for Solar A, Solar B, Wind (production) and the Grid Meter
-  (consumption), ending at the current hour (35,040 readings)
-- 4 alerts, 24 monthly financial records, recommendations, and one weather document
+`docker compose run --rm mongo-seed` deletes and recreates five demo users (password `Demo1234!`): `demo@` (owner), `manager@` and `installer@` on the demo site, plus `demo2@` and `demo3@` with empty sites of their own. `demo@` also gets the v1 alerts and recommendations. The demo site's devices are recreated and its telemetry and intervals are cleared; the simulator refills them.
 
 ## v2 collections (`packages/db`)
 
@@ -111,8 +68,6 @@ The seed also builds the demo site (Maple Grove School, fixed id `65000000000000
 its 10 devices. It gives `demo@` the owner membership, and `manager@` and `installer@` memberships
 too; the installer's access ends on 31 Dec 2026. The fixture is in `packages/shared/src/demo.ts`.
 
-## Planned changes
+## Retired v1 collections
 
-The v2 data model (sites, memberships, time-series telemetry, 15-minute intervals, tariffs,
-commands, audit events) replaces `energyreadings`, `weathers` and `financialrecords` in Phase 1
-(P1-03, P1-10).
+`energyreadings`, `weathers`, `financialrecords` and `legacy_devices` were removed in P1-10; telemetry, forecasts (P2-10) and intervals × tariff (P2-03) replace them. `migrate -- --drop-legacy` deletes them from an existing database (the seed does this).

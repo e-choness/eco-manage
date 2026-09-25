@@ -6,11 +6,8 @@ import { logger as defaultLogger } from './config/logger';
 import { corsMiddleware, helmetMiddleware, rateLimiter, requestLogger } from './middleware/security';
 import basicRoutes from './modules/health/routes';
 import authRoutes from './modules/auth/routes';
-import dashboardRoutes from './modules/dashboard/routes';
-import analyticsRoutes from './modules/analytics/routes';
 import alertRoutes from './modules/alerts/routes';
 import { devicesRoutes } from './modules/devices/routes';
-import financialRoutes from './modules/financial/routes';
 import optimizationRoutes from './modules/optimization/routes';
 import { siteRoutes } from './modules/site/routes';
 import type { SiteEventHub } from './lib/siteEvents';
@@ -43,11 +40,8 @@ export const createApp = ({ env, redis, hub, logger = defaultLogger, sseHeartbea
     rateLimiter({ windowMs: window, max: env.AUTH_RATE_LIMIT_MAX, prefix: 'rl:auth:', redis })
   );
   app.use('/api/auth', authRoutes);
-  app.use('/api/dashboard', dashboardRoutes);
-  app.use('/api/analytics', analyticsRoutes);
   app.use('/api/alerts', alertRoutes);
   app.use('/api/devices', devicesRoutes(redis));
-  app.use('/api/financial', financialRoutes);
   app.use('/api/optimization', optimizationRoutes);
   app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs }));
 

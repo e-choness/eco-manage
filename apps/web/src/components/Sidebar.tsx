@@ -3,25 +3,18 @@ import { cn } from "@/lib/utils"
 import { 
   Home, 
   Activity, 
-  BarChart3, 
   Zap, 
   Bell, 
-  DollarSign, 
   Settings,
   Sun,
-  Wind,
-  Battery,
-  Radio
+  Battery
 } from "lucide-react"
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Live', href: '/dashboard/live', icon: Radio },
-  { name: 'Monitoring', href: '/dashboard/monitoring', icon: Activity },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Home', href: '/dashboard', icon: Home },
+  { name: 'Devices', href: '/dashboard/monitoring', icon: Activity },
   { name: 'Optimization', href: '/dashboard/optimization', icon: Zap },
   { name: 'Alerts', href: '/dashboard/alerts', icon: Bell },
-  { name: 'Financial', href: '/dashboard/financial', icon: DollarSign },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 
@@ -31,10 +24,7 @@ export function Sidebar() {
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <Sun className="h-6 w-6 text-yellow-500" />
-              <Wind className="h-4 w-4 text-blue-500 absolute -top-1 -right-1" />
-            </div>
+            <Sun className="h-6 w-6 text-yellow-500" />
             <Battery className="h-5 w-5 text-green-500" />
           </div>
           <div>

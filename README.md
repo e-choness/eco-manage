@@ -10,33 +10,29 @@
 
 ![banner](./readme-img/banner-wide.jpg)
 
-> **Status.** This is the v1 app after the v2 Phase 0 clean-up (bug fixes, security, monorepo
-> layout). The v2 rebuild — sites and roles, MQTT telemetry, tariffs, approvals — follows the
-> phased plan in the design handoff (`IMPLEMENTATION_PLAN.md`). Nothing from later phases exists
-> yet, and this README only describes what does.
-
----
-
-## Screens
-
-|                     Overview                     |                          Monitoring                           |                        Analytics                         |                          Optimization                           |                         Financial                          |
-| :----------------------------------------------: | :-----------------------------------------------------------: | :------------------------------------------------------: | :-------------------------------------------------------------: | :--------------------------------------------------------: |
-| ![Overview](./readme-img/ecomanage-overview.png) | ![Monitoring](./readme-img/ecomanage-realtime-monitoring.png) | ![Analytics](./readme-img/ecomanage-energy-analytics.png) | ![Optimization](./readme-img/ecomanage-energy-optimization.png) | ![Financial](./readme-img/ecomanage-financial-overview.png) |
+> **Status.** v2 Phase 1 (data backbone and simulator) is in place: sites and roles, MQTT over
+> TLS, a simulated site, ingest into a time series with 15-minute intervals, and a live view over
+> server-sent events. Money (tariffs, bills), the alert engine, recommendations with approvals and
+> the App v2 interface come in the next phases of the plan in the design handoff
+> (`IMPLEMENTATION_PLAN.md`). This README only describes what exists.
 
 ## What it does
 
-- **Dashboard**: current production, today's production vs the same time yesterday,
-  month-to-date and 30-day totals, estimated savings and CO₂ avoided, system status, and energy
-  flow (solar, wind, battery, consumption, grid import/export).
-- **Monitoring**: devices (solar, wind, battery, grid meter) with status. Devices can be added in
-  the UI; the API also supports editing and deleting them (the UI for that comes with P4-04).
-- **Analytics**: daily production by source and daily consumption for a week, month or year.
-- **Optimization**: recommendations you can accept or dismiss.
-- **Alerts**: list, filter, mark as read. The header badge refreshes every 30 s.
-- **Financial**: savings, revenue, costs, ROI and payback from monthly records.
+- **Home (live view)**: power from solar, battery, grid, EV chargers and heat pump, the calculated
+  building load, 15-minute demand so far and projected against the cap, the month's peak, battery
+  charge and time left, and gateway status. Values update over a server-sent event stream.
+- **Devices**: every device on the site with status (live, stale after 60 s without data, offline
+  after 5 min), latest reading, profile, commissioning details, last raw message and a 24-hour
+  chart. Installers can add, change and remove devices through the API.
+- **Roles**: owner, manager and installer per site, enforced on the server for every route.
+- **Simulator**: the demo site (Maple Grove School) runs as a simulated gateway with seeded
+  weather, school-day loads, EV sessions, battery and heat pump, plus fault injection.
+- **Optimization and Alerts**: the v1 recommendation and alert lists, until the rules engine
+  (Phase 2–3) replaces them.
 - **Account**: register, sign in, profile and password.
 
-All energy values are stored as hourly kWh readings. Day and month boundaries are UTC.
+Power is in kW and energy in kWh. Timestamps are stored in UTC; site-local time comes from the
+site's time zone.
 
 ## Quick start (Docker)
 
@@ -57,17 +53,20 @@ docker compose up -d
 | MQTT (TLS)| localhost:18883         |
 | Simulator | http://localhost:4100/sim/state |
 
-Load the demo accounts and a year of hourly demo readings (this **resets** them):
+Load the demo accounts and the demo site (this **resets** them, including the site's telemetry):
 
 ```bash
 docker compose run --rm mongo-seed
 ```
 
-Sign in with:
+The simulator starts feeding the demo site straight away. Sign in with any of these (password
+`Demo1234!`):
 
-```
-demo@ecomanage.io / Demo1234!
-```
+| Email                     | Role on Maple Grove School |
+| ------------------------- | -------------------------- |
+| `demo@ecomanage.io`       | owner                      |
+| `manager@ecomanage.io`    | manager                    |
+| `installer@ecomanage.io`  | installer (until 31 Dec 2026) |
 
 The API reads `apps/api/.env.example`, then `apps/api/.env` if it exists (gitignored), so a fresh
 clone works with no setup. Put real secrets in `apps/api/.env`.
@@ -76,10 +75,14 @@ clone works with no setup. Put real secrets in `apps/api/.env`.
 
 ```
 apps/
-  simulator/  simulated site + gateway (MQTT topics, commands, jobs, fault injection)
   api/        Express + Mongoose API (modules/<name>/{routes,controller,service,model}.ts)
+  ingest/     MQTT → telemetry time series, latest values, 15-minute intervals, live events
+  simulator/  simulated site + gateway (MQTT topics, commands, jobs, fault injection)
   web/        React 18 + Vite + Tailwind + shadcn/ui client
-packages/     shared workspace packages (none yet; P1-02 adds packages/shared)
+packages/
+  shared/     types, zod schemas, MQTT topics, units, sign rules, site-time and live helpers
+  db/         Mongoose models for the v2 data model
+  profiles/   device profiles (register maps, write limits, fixes)
 infra/        docker-compose.yml (the root compose file includes it), Mosquitto config and ACL
 e2e/          Playwright suite (outdated; replaced in P1-12)
 docs/         architecture, API, database, testing and ops notes

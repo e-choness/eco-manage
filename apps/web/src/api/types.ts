@@ -21,59 +21,6 @@ export interface Recommendation {
   status: 'pending' | 'accepted' | 'dismissed'
 }
 
-export interface EnergyFlow {
-  solar: number
-  wind: number
-  battery: number
-  consumption: number
-  // Positive when importing from the grid, negative when exporting
-  grid: number
-  timestamp: string | null
-}
-
-export interface DashboardOverview {
-  totalProduction: number
-  currentPower: number
-  dailyProduction: number
-  monthlyProduction: number
-  todayProduction: number
-  productionChangePct: number | null
-  systemStatus: 'optimal' | 'warning' | 'critical' | 'unknown'
-  weatherCondition: string
-  temperature: number
-  savings: number
-  carbonOffsetKg: number
-}
-
-export interface ProductionPoint {
-  date: string
-  solar: number
-  wind: number
-  total: number
-}
-
-export interface ConsumptionPoint {
-  date: string
-  consumption: number
-}
-
-export interface FinancialOverview {
-  totalSavings: number
-  monthlyRevenue: number
-  roi: number
-  paybackPeriod: number
-  maintenanceCosts: number
-}
-
-export interface FinancialHistoryItem {
-  id: string
-  date: string
-  savings: number
-  revenue: number
-  costs: number
-  category: string
-}
-
 export interface SessionUser {
   _id: string
   email: string
