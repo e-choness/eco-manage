@@ -24,6 +24,9 @@ vi.mock('@/hooks/useToast', () => ({
 // Mock auth API
 vi.mock('@/api/auth', () => ({
   register: vi.fn(),
+  // Registration signs in straight after creating the account.
+  login: vi.fn().mockResolvedValue({ _id: 'user-1', email: 'newuser@example.com', accessToken: 'token' }),
+  logout: vi.fn(),
 }))
 
 function renderRegister() {
@@ -86,6 +89,7 @@ describe('Register Page', () => {
       const user = userEvent.setup()
       const { register: registerMock } = await import('@/api/auth')
       vi.mocked(registerMock).mockResolvedValue({
+        _id: 'user-1',
         email: 'newuser@example.com',
       })
 
@@ -114,7 +118,7 @@ describe('Register Page', () => {
       const user = userEvent.setup()
       const { register: registerMock } = await import('@/api/auth')
       vi.mocked(registerMock).mockImplementation(() => new Promise(resolve => {
-        setTimeout(() => resolve({ email: 'test@example.com' }), 100)
+        setTimeout(() => resolve({ _id: 'user-1', email: 'test@example.com' }), 100)
       }))
 
       renderRegister()
@@ -140,7 +144,7 @@ describe('Register Page', () => {
       const user = userEvent.setup()
       const { register: registerMock } = await import('@/api/auth')
       vi.mocked(registerMock).mockImplementation(() => new Promise(resolve => {
-        setTimeout(() => resolve({ email: 'test@example.com' }), 50)
+        setTimeout(() => resolve({ _id: 'user-1', email: 'test@example.com' }), 50)
       }))
 
       renderRegister()
@@ -269,6 +273,7 @@ describe('Register Page', () => {
       const user = userEvent.setup()
       const { register: registerMock } = await import('@/api/auth')
       vi.mocked(registerMock).mockResolvedValue({
+        _id: 'user-1',
         email: 'alice@example.com',
       })
 
@@ -297,6 +302,7 @@ describe('Register Page', () => {
       const user = userEvent.setup()
       const { register: registerMock } = await import('@/api/auth')
       vi.mocked(registerMock).mockResolvedValue({
+        _id: 'user-1',
         email: 'test@test.com',
       })
 

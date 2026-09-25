@@ -59,7 +59,7 @@ const schema = new Schema<IUser>(
 
 schema.set('toJSON', {
   transform: (_doc, ret) => {
-    const { password: _password, ...rest } = ret;
+    const { password: _password, refreshToken: _refreshToken, ...rest } = ret;
     return rest;
   },
 });

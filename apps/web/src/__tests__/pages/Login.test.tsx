@@ -24,6 +24,8 @@ vi.mock('@/hooks/useToast', () => ({
 // Mock auth API
 vi.mock('@/api/auth', () => ({
   login: vi.fn(),
+  register: vi.fn(),
+  logout: vi.fn(),
 }))
 
 function renderLogin() {
@@ -78,8 +80,9 @@ describe('Login Page', () => {
       const user = userEvent.setup()
       const { login: loginMock } = await import('@/api/auth')
       vi.mocked(loginMock).mockResolvedValue({
+        _id: 'user-1',
+        email: 'test@example.com',
         accessToken: 'test-token',
-        refreshToken: 'test-refresh',
       })
 
       renderLogin()
@@ -101,7 +104,7 @@ describe('Login Page', () => {
       const user = userEvent.setup()
       const { login: loginMock } = await import('@/api/auth')
       vi.mocked(loginMock).mockImplementation(() => new Promise(resolve => {
-        setTimeout(() => resolve({ accessToken: 'test', refreshToken: 'test' }), 100)
+        setTimeout(() => resolve({ _id: 'user-1', email: 'test@example.com', accessToken: 'test' }), 100)
       }))
 
       renderLogin()
@@ -125,7 +128,7 @@ describe('Login Page', () => {
       const user = userEvent.setup()
       const { login: loginMock } = await import('@/api/auth')
       vi.mocked(loginMock).mockImplementation(() => new Promise(resolve => {
-        setTimeout(() => resolve({ accessToken: 'test', refreshToken: 'test' }), 50)
+        setTimeout(() => resolve({ _id: 'user-1', email: 'test@example.com', accessToken: 'test' }), 50)
       }))
 
       renderLogin()
@@ -193,8 +196,9 @@ describe('Login Page', () => {
       const user = userEvent.setup()
       const { login: loginMock } = await import('@/api/auth')
       vi.mocked(loginMock).mockResolvedValue({
+        _id: 'user-1',
+        email: 'test@example.com',
         accessToken: 'test-token',
-        refreshToken: 'test-refresh',
       })
 
       renderLogin()

@@ -14,7 +14,7 @@ import { changePassword as changePasswordApi, updateProfile } from "@/api/auth"
 import { User, Bell, Shield, Palette, Save, Key, Loader2 } from "lucide-react"
 
 export function Settings() {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
 
   const [profile, setProfile] = useState({
     name: user?.name || 'Demo User',
@@ -58,13 +58,7 @@ export function Settings() {
         title: "Profile Updated",
         description: "Your profile settings have been saved successfully.",
       })
-      // Update local storage to keep AuthContext in sync
-      const stored = localStorage.getItem('userData')
-      if (stored) {
-        const userData = JSON.parse(stored)
-        userData.name = result.name || profile.name
-        localStorage.setItem('userData', JSON.stringify(userData))
-      }
+      updateUser({ name: result.name || profile.name })
     } catch (error) {
       toast({
         title: "Error",

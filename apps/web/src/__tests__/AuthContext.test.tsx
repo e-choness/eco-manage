@@ -1,359 +1,197 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
-import { ReactNode } from 'react'
+import api, { setAccessToken } from '@/api/api'
+import { server } from './setup'
 
-// Mock API module
-vi.mock('@/api/auth', () => ({
-  login: vi.fn(),
-  register: vi.fn(),
-  logout: vi.fn(),
-}))
+const BASE = 'http://localhost:3000'
 
-// Component to test useAuth hook
 function TestComponent() {
-  const { isAuthenticated, login, register, logout } = useAuth()
-
+  const { isAuthenticated, isRestoring, user, login, register, logout } = useAuth()
   return (
     <div>
+      <div data-testid="restoring">{isRestoring ? 'restoring' : 'ready'}</div>
       <div data-testid="auth-status">{isAuthenticated ? 'authenticated' : 'not-authenticated'}</div>
+      <div data-testid="email">{user?.email ?? ''}</div>
+      <div data-testid="error" />
       <button
-        data-testid="login-button"
-        onClick={() => login('test@example.com', 'password').catch(() => {})}
+        onClick={() =>
+          login('test@example.com', 'password').catch((e: Error) => {
+            screen.getByTestId('error').textContent = e.message
+          })
+        }
       >
-        Login
+        login
       </button>
       <button
-        data-testid="register-button"
-        onClick={() => register('test@example.com', 'password', 'Test User').catch(() => {})}
+        onClick={() =>
+          register('new@example.com', 'password', 'New User').catch((e: Error) => {
+            screen.getByTestId('error').textContent = e.message
+          })
+        }
       >
-        Register
+        register
       </button>
-      <button
-        data-testid="logout-button"
-        onClick={() => logout()}
-      >
-        Logout
-      </button>
+      <button onClick={() => logout()}>logout</button>
     </div>
   )
 }
 
-function renderWithAuth(component: ReactNode) {
-  return render(
+const renderAuth = async () => {
+  render(
     <AuthProvider>
-      {component}
+      <TestComponent />
     </AuthProvider>
   )
+  await waitFor(() => expect(screen.getByTestId('restoring')).toHaveTextContent('ready'))
 }
+
+const status = () => screen.getByTestId('auth-status')
 
 describe('AuthContext', () => {
   beforeEach(() => {
-    localStorage.clear()
-    vi.clearAllMocks()
+    setAccessToken(null)
   })
 
-  describe('Initial State', () => {
-    it('should start with isAuthenticated as false when no tokens in localStorage', () => {
-      renderWithAuth(<TestComponent />)
-      const authStatus = screen.getByTestId('auth-status')
-      expect(authStatus).toHaveTextContent('not-authenticated')
+  describe('session restore', () => {
+    it('starts signed out when there is no refresh cookie', async () => {
+      await renderAuth()
+      expect(status()).toHaveTextContent('not-authenticated')
     })
 
-    it('should start with isAuthenticated as true when accessToken exists in localStorage', () => {
-      localStorage.setItem('accessToken', 'mock-token')
-      renderWithAuth(<TestComponent />)
-      const authStatus = screen.getByTestId('auth-status')
-      expect(authStatus).toHaveTextContent('authenticated')
-    })
-  })
-
-  describe('Login Flow', () => {
-    it('should successfully log in a user and store tokens', async () => {
-      const { login: loginMock } = await import('@/api/auth')
-      vi.mocked(loginMock).mockResolvedValue({
-        accessToken: 'test-access-token',
-        refreshToken: 'test-refresh-token',
-      })
-
-      renderWithAuth(<TestComponent />)
-      const loginButton = screen.getByTestId('login-button')
-
-      loginButton.click()
-
-      await waitFor(() => {
-        expect(localStorage.getItem('accessToken')).toBe('test-access-token')
-        expect(localStorage.getItem('refreshToken')).toBe('test-refresh-token')
-      })
-
-      const authStatus = screen.getByTestId('auth-status')
-      expect(authStatus).toHaveTextContent('authenticated')
-    })
-
-    it('should handle login errors gracefully', async () => {
-      const { login: loginMock } = await import('@/api/auth')
-      const error = new Error('Login failed')
-      vi.mocked(loginMock).mockRejectedValue(error)
-
-      const consoleMock = vi.spyOn(console, 'error').mockImplementation(() => {})
-
-      renderWithAuth(<TestComponent />)
-      const loginButton = screen.getByTestId('login-button')
-
-      try {
-        loginButton.click()
-        await waitFor(() => {
-          expect(localStorage.getItem('accessToken')).toBeNull()
-        })
-      } catch {
-        // Suppress unhandled rejection in test
-      }
-
-      consoleMock.mockRestore()
-
-      const authStatus = screen.getByTestId('auth-status')
-      expect(authStatus).toHaveTextContent('not-authenticated')
-    })
-
-    it('should clear tokens on login failure', async () => {
-      const { login: loginMock } = await import('@/api/auth')
-      vi.mocked(loginMock).mockRejectedValue(new Error('Invalid credentials'))
-
-      // Set initial tokens
-      localStorage.setItem('accessToken', 'old-token')
-      localStorage.setItem('refreshToken', 'old-refresh')
-
-      const consoleMock = vi.spyOn(console, 'error').mockImplementation(() => {})
-
-      renderWithAuth(<TestComponent />)
-      const loginButton = screen.getByTestId('login-button')
-
-      try {
-        loginButton.click()
-        await waitFor(() => {
-          expect(localStorage.getItem('accessToken')).toBeNull()
-          expect(localStorage.getItem('refreshToken')).toBeNull()
-        })
-      } catch {
-        // Suppress unhandled rejection
-      }
-
-      consoleMock.mockRestore()
-    })
-  })
-
-  describe('Register Flow', () => {
-    it('should successfully register a new user with name', async () => {
-      const { register: registerMock } = await import('@/api/auth')
-      vi.mocked(registerMock).mockResolvedValue({
-        email: 'test@example.com',
-      })
-
-      renderWithAuth(<TestComponent />)
-      const registerButton = screen.getByTestId('register-button')
-
-      registerButton.click()
-
-      await waitFor(() => {
-        const authStatus = screen.getByTestId('auth-status')
-        expect(authStatus).toHaveTextContent('authenticated')
-      })
-    })
-
-    it('should handle registration errors gracefully', async () => {
-      const { register: registerMock } = await import('@/api/auth')
-      vi.mocked(registerMock).mockRejectedValue(new Error('Email already exists'))
-
-      const consoleMock = vi.spyOn(console, 'error').mockImplementation(() => {})
-
-      renderWithAuth(<TestComponent />)
-      const registerButton = screen.getByTestId('register-button')
-
-      try {
-        registerButton.click()
-        await waitFor(() => {
-          const authStatus = screen.getByTestId('auth-status')
-          expect(authStatus).toHaveTextContent('not-authenticated')
-        })
-      } catch {
-        // Suppress unhandled rejection
-      }
-
-      consoleMock.mockRestore()
-    })
-
-    it('should pass name parameter to registration API', async () => {
-      const { register: registerMock } = await import('@/api/auth')
-      vi.mocked(registerMock).mockResolvedValue({
-        email: 'newuser@example.com',
-      })
-
-      const TestRegisterComponent = () => {
-        const { register } = useAuth()
-        return (
-          <button
-            onClick={() => register('newuser@example.com', 'pass123', 'John Doe').catch(() => {})}
-            data-testid="register-with-name"
-          >
-            Register
-          </button>
+    it('restores the session from the refresh cookie on load', async () => {
+      server.use(
+        http.post(`${BASE}/api/auth/refresh`, () =>
+          HttpResponse.json({ accessToken: 'restored-token', user: { _id: 'u1', email: 'back@example.com' } })
         )
-      }
-
-      renderWithAuth(<TestRegisterComponent />)
-      const registerButton = screen.getByTestId('register-with-name')
-
-      registerButton.click()
-
-      await waitFor(() => {
-        expect(registerMock).toHaveBeenCalledWith(
-          'newuser@example.com',
-          'pass123',
-          'John Doe'
-        )
-      })
+      )
+      await renderAuth()
+      expect(status()).toHaveTextContent('authenticated')
+      expect(screen.getByTestId('email')).toHaveTextContent('back@example.com')
     })
   })
 
-  describe('Logout Flow', () => {
-    it('should clear tokens on logout', async () => {
-      localStorage.setItem('accessToken', 'test-token')
-      localStorage.setItem('refreshToken', 'test-refresh')
+  describe('login', () => {
+    it('signs in and keeps tokens out of web storage', async () => {
+      await renderAuth()
+      await userEvent.click(screen.getByText('login'))
 
-      // Note: window.location.reload cannot be mocked in jsdom,
-      // so we test that tokens are cleared before the reload happens
-      renderWithAuth(<TestComponent />)
-      const logoutButton = screen.getByTestId('logout-button')
-
-      logoutButton.click()
-
-      // Verify tokens are cleared immediately on logout click
+      await waitFor(() => expect(status()).toHaveTextContent('authenticated'))
+      expect(screen.getByTestId('email')).toHaveTextContent('test@example.com')
       expect(localStorage.getItem('accessToken')).toBeNull()
       expect(localStorage.getItem('refreshToken')).toBeNull()
+      expect(localStorage.getItem('userData')).toBeNull()
     })
 
-    it('should clear tokens immediately when logout is called', async () => {
-      localStorage.setItem('accessToken', 'test-token')
-      localStorage.setItem('refreshToken', 'test-refresh')
+    it('sends the in-memory access token on later API calls', async () => {
+      let authHeader: string | null = null
+      server.use(
+        http.get(`${BASE}/api/alerts`, ({ request }) => {
+          authHeader = request.headers.get('authorization')
+          return HttpResponse.json({ alerts: [] })
+        })
+      )
+      await renderAuth()
+      await userEvent.click(screen.getByText('login'))
+      await waitFor(() => expect(status()).toHaveTextContent('authenticated'))
 
-      renderWithAuth(<TestComponent />)
-      const authStatus = screen.getByTestId('auth-status')
-      expect(authStatus).toHaveTextContent('authenticated')
+      await api.get('/api/alerts')
+      expect(authHeader).toBe('Bearer mock-access-token')
+    })
 
-      const logoutButton = screen.getByTestId('logout-button')
-      logoutButton.click()
+    it('stays signed out and reports the server message on failure', async () => {
+      server.use(
+        http.post(`${BASE}/api/auth/login`, () =>
+          HttpResponse.json({ message: 'Email or password is incorrect' }, { status: 400 })
+        )
+      )
+      await renderAuth()
+      await userEvent.click(screen.getByText('login'))
 
-      // Tokens should be cleared immediately
-      expect(localStorage.getItem('accessToken')).toBeNull()
-      expect(localStorage.getItem('refreshToken')).toBeNull()
-
-      // Auth status also updated
-      expect(authStatus).toHaveTextContent('authenticated') // May still show until render completes
+      await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent('Email or password is incorrect'))
+      expect(status()).toHaveTextContent('not-authenticated')
     })
   })
 
-  describe('Token Management', () => {
-    it('should persist tokens in localStorage on successful login', async () => {
-      const { login: loginMock } = await import('@/api/auth')
-      vi.mocked(loginMock).mockResolvedValue({
-        accessToken: 'persistent-access-token',
-        refreshToken: 'persistent-refresh-token',
-      })
-
-      renderWithAuth(<TestComponent />)
-      const loginButton = screen.getByTestId('login-button')
-
-      loginButton.click()
-
-      await waitFor(() => {
-        expect(localStorage.getItem('accessToken')).toBe('persistent-access-token')
-        expect(localStorage.getItem('refreshToken')).toBe('persistent-refresh-token')
-      })
+  describe('register', () => {
+    it('creates the account and then signs in', async () => {
+      await renderAuth()
+      await userEvent.click(screen.getByText('register'))
+      await waitFor(() => expect(status()).toHaveTextContent('authenticated'))
     })
 
-    it('should handle missing tokens in API response', async () => {
-      const { login: loginMock } = await import('@/api/auth')
-      vi.mocked(loginMock).mockResolvedValue({})
-
-      const consoleMock = vi.spyOn(console, 'error').mockImplementation(() => {})
-
-      renderWithAuth(<TestComponent />)
-      const loginButton = screen.getByTestId('login-button')
-
-      try {
-        loginButton.click()
-        await waitFor(() => {
-          const authStatus = screen.getByTestId('auth-status')
-          expect(authStatus).toHaveTextContent('not-authenticated')
+    it('does not sign in when registration fails', async () => {
+      let loginCalled = false
+      server.use(
+        http.post(`${BASE}/api/auth/register`, () =>
+          HttpResponse.json({ message: 'User with this email already exists' }, { status: 400 })
+        ),
+        http.post(`${BASE}/api/auth/login`, () => {
+          loginCalled = true
+          return HttpResponse.json({})
         })
-      } catch {
-        // Expected: missing tokens trigger error
-      }
+      )
+      await renderAuth()
+      await userEvent.click(screen.getByText('register'))
 
-      consoleMock.mockRestore()
+      await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent('already exists'))
+      expect(loginCalled).toBe(false)
+      expect(status()).toHaveTextContent('not-authenticated')
     })
   })
 
-  describe('Error States', () => {
-    it('should handle network errors during login', async () => {
-      const { login: loginMock } = await import('@/api/auth')
-      const networkError = new Error('Network error')
-      vi.mocked(loginMock).mockRejectedValue(networkError)
-
-      const consoleMock = vi.spyOn(console, 'error').mockImplementation(() => {})
-
-      renderWithAuth(<TestComponent />)
-      const loginButton = screen.getByTestId('login-button')
-
-      try {
-        loginButton.click()
-        await waitFor(() => {
-          const authStatus = screen.getByTestId('auth-status')
-          expect(authStatus).toHaveTextContent('not-authenticated')
+  describe('logout', () => {
+    it('calls the server and clears the session', async () => {
+      let logoutCalled = false
+      server.use(
+        http.post(`${BASE}/api/auth/logout`, () => {
+          logoutCalled = true
+          return HttpResponse.json({ message: 'ok' })
         })
-      } catch {
-        // Suppress unhandled rejection
-      }
+      )
+      await renderAuth()
+      await userEvent.click(screen.getByText('login'))
+      await waitFor(() => expect(status()).toHaveTextContent('authenticated'))
 
-      consoleMock.mockRestore()
-    })
-
-    it('should clear previous tokens on authentication failure', async () => {
-      localStorage.setItem('accessToken', 'old-token')
-      localStorage.setItem('refreshToken', 'old-refresh')
-
-      const { login: loginMock } = await import('@/api/auth')
-      vi.mocked(loginMock).mockRejectedValue(new Error('Authentication failed'))
-
-      const consoleMock = vi.spyOn(console, 'error').mockImplementation(() => {})
-
-      renderWithAuth(<TestComponent />)
-      const loginButton = screen.getByTestId('login-button')
-
-      try {
-        loginButton.click()
-        await waitFor(() => {
-          expect(localStorage.getItem('accessToken')).toBeNull()
-          expect(localStorage.getItem('refreshToken')).toBeNull()
-        })
-      } catch {
-        // Suppress unhandled rejection
-      }
-
-      consoleMock.mockRestore()
+      await userEvent.click(screen.getByText('logout'))
+      await waitFor(() => expect(status()).toHaveTextContent('not-authenticated'))
+      expect(logoutCalled).toBe(true)
     })
   })
 
-  describe('useAuth Hook', () => {
-    it('should throw error when used outside AuthProvider', () => {
-      // Suppress console.error for this test
-      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  describe('expired access token', () => {
+    it('refreshes once on 401 and retries the request', async () => {
+      let calls = 0
+      server.use(
+        http.get(`${BASE}/api/alerts`, ({ request }) => {
+          calls++
+          return request.headers.get('authorization') === 'Bearer fresh-token'
+            ? HttpResponse.json({ alerts: [] })
+            : HttpResponse.json({ error: 'Invalid or expired token' }, { status: 401 })
+        }),
+        http.post(`${BASE}/api/auth/refresh`, () =>
+          HttpResponse.json({ accessToken: 'fresh-token', user: { _id: 'u1', email: 'a@b.c' } })
+        )
+      )
+      setAccessToken('stale-token')
 
-      expect(() => {
-        render(<TestComponent />)
-      }).toThrow('useAuth must be used within an AuthProvider')
+      const res = await api.get('/api/alerts')
+      expect(res.status).toBe(200)
+      expect(calls).toBe(2)
+    })
 
-      errorSpy.mockRestore()
+    it('signs the user out when the refresh also fails', async () => {
+      await renderAuth()
+      await userEvent.click(screen.getByText('login'))
+      await waitFor(() => expect(status()).toHaveTextContent('authenticated'))
+
+      server.use(
+        http.get(`${BASE}/api/alerts`, () => HttpResponse.json({ error: 'expired' }, { status: 401 }))
+      )
+      await expect(api.get('/api/alerts')).rejects.toBeDefined()
+      await waitFor(() => expect(status()).toHaveTextContent('not-authenticated'))
     })
   })
 })

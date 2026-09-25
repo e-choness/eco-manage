@@ -7,31 +7,36 @@ export interface AuthenticatedRequest extends Request {
   user?: IUser;
 }
 
+// 401 for a missing, invalid or expired access token (the client then refreshes).
+// Lookup failures are server errors and go to the error handler.
 export const requireUser = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  let userId: string;
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
-    }
+    userId = verifyAccessToken(token).sub;
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired token' });
+    return;
+  }
 
-    const decoded = verifyAccessToken(token);
-    const user = await UserService.get(decoded.sub);
-
+  try {
+    const user = await UserService.get(userId);
     if (!user) {
       res.status(401).json({ error: 'User not found' });
       return;
     }
-
     req.user = user;
     next();
   } catch (err) {
-    const error = err instanceof Error ? err : new Error(String(err));
-    console.error(`Auth middleware error: ${error.message}`);
-    res.status(403).json({ error: 'Invalid or expired token' });
+    next(err);
   }
 };

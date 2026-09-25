@@ -1,15 +1,15 @@
 import api, { errorMessage } from './api';
+import type { SessionUser } from './types';
 
 // Description: Login user functionality
 // Endpoint: POST /api/auth/login
 // Request: { email: string, password: string }
-// Response: { accessToken: string, refreshToken: string }
-export const login = async (email: string, password: string) => {
+// Response: user fields plus { accessToken }; the refresh token is set as an httpOnly cookie
+export const login = async (email: string, password: string): Promise<SessionUser & { accessToken: string }> => {
   try {
     const response = await api.post('/api/auth/login', { email, password });
     return response.data;
   } catch (error) {
-    console.error('Login error:', error);
     throw new Error(errorMessage(error));
   }
 };
@@ -18,7 +18,7 @@ export const login = async (email: string, password: string) => {
 // Endpoint: POST /api/auth/register
 // Request: { email: string, password: string, name: string }
 // Response: { email: string }
-export const register = async (email: string, password: string, name: string) => {
+export const register = async (email: string, password: string, name: string): Promise<SessionUser> => {
   try {
     const response = await api.post('/api/auth/register', { email, password, name });
     return response.data;
