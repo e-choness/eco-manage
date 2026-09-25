@@ -24,6 +24,7 @@ export interface DeviceView {
 export interface DeviceDetail extends DeviceView {
   commissionedBy: { id: string; name: string } | null;
   profile: { id: string; vendor: string; model: string; protocol: string; pollMs: number; writeActions: string[]; fixes: string[] } | null;
+  maintenance: { at: string; source: 'visit' | 'alert'; text: string }[]; // newest first
 }
 
 /** POST /api/devices (installer): add a device found by a scan; it starts as pending. */

@@ -191,6 +191,9 @@ every site (QoS 1, persistent session).
   receive time, and a stale or offline device goes back to `live` (pending devices stay pending).
 - Every 10 s, devices silent for 60 s become `stale` and after 5 min `offline`.
 - Gateway status goes to `gw:{siteId}` and device status to `status:{deviceId}` in Redis.
+- A command ack (`site/{id}/cmd/{commandId}/ack`) moves its `sent` command to `acked` or
+  `failed` (with the gateway's error), and publishes a `command` event (P2-08). Acks from another
+  site, for unknown ids, or repeated acks change nothing.
 
 ### 15-minute intervals (`apps/ingest/src/intervals.ts`)
 
@@ -268,10 +271,10 @@ Each check returns findings and the (rule, device) pairs it could judge.
 | Rule | Condition | Clears |
 | ---- | --------- | ------ |
 | `device-silent` | a device that has reported is silent over 5 min | it reports again |
-| `pv-underperform` | an inverter under 90% of expected for the last 24 daylight buckets (2 h) | 3 buckets (15 min) back at 90% or more |
+| `pv-underperform` | an inverter under 90% of expected for the last 24 daylight buckets (2 h) | 12 buckets (1 h of daylight) within 5% of expected |
 | `battery-below-reserve` | a fresh reading shows SoC more than 0.5 points under the reserve | SoC at the reserve |
 | `demand-near-cap` | this interval's projected demand at 90% of the cap or more | under 85% |
-| `command-ack-slow` | a command sent over 30 s ago without an ack (one alert per device) | acked or failed |
+| `command-ack-slow` | a command sent over 30 s ago without an ack (one alert per device) | one-off: the condition clears when it is acked or fails, and the alert stays open until someone closes it with a cause |
 | `command-failed` | an event: each failed command of the last 24 h | never by itself; a person resolves it |
 | `gateway-buffer` | the gateway reports buffered readings older than 1 h | the backlog is newer than 1 h |
 
@@ -287,6 +290,7 @@ device, rule). A unique partial index enforces this, even if two rules processes
   `resolution { cause: "Condition cleared", auto: true }`.
 - Pairs that couldn't be judged leave their alerts alone. Examples: a stale battery reading, or
   night for PV.
+- One-off alerts (a late ack) only mark their condition `cleared` and wait for a person.
 - Event alerts start with `condition: "cleared"` and count each new command id once.
 - An occurrence someone already resolved doesn't reopen.
 - Opened, resolved and counted alerts are published as `alert` events on the site channel, and

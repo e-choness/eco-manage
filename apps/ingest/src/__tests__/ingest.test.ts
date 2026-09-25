@@ -7,7 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import mongoose from 'mongoose'
 import { Redis } from 'ioredis'
 import pino from 'pino'
-import { Device, Telemetry, initModels } from '@ecomanage/db'
+import { Command, Device, Telemetry, initModels } from '@ecomanage/db'
 import { DEMO_DEVICES, DEMO_SITE_ID, topics, type TelemetryReading } from '@ecomanage/shared'
 import { Ingestor, keys } from '../ingestor'
 import { markSilentDevices } from '../stale'
@@ -195,5 +195,39 @@ describe('silent devices', () => {
     expect(await status('ev3')).toBe('stale')
     expect(await status('ev4')).toBe('offline')
     expect(await status('meter')).toBe('pending')
+  })
+})
+
+describe('command acks (P2-08)', () => {
+  const sentCommand = (siteId = DEMO_SITE_ID) =>
+    Command.create({ siteId, deviceId: dev('ev3').id, action: 'reset', expiresAt: new Date('2026-09-24T16:45:00Z'), status: 'sent', sentAt: new Date('2026-09-24T16:40:00Z') })
+  const ackAt = new Date('2026-09-24T16:40:04Z')
+
+  it('marks a sent command acked, or failed with the gateway’s error, and reports the change', async () => {
+    const seen: unknown[][] = []
+    const withCallback = new Ingestor({ redis, logger: log, flushMs: 0, onCommand: (...args) => seen.push(args) })
+    const ok = await sentCommand()
+    const bad = await sentCommand()
+    await withCallback.handle(topics.commandAck(DEMO_SITE_ID, String(ok._id)), JSON.stringify({ ok: true, ts: ackAt.toISOString() }), ackAt)
+    await withCallback.handle(topics.commandAck(DEMO_SITE_ID, String(bad._id)), JSON.stringify({ ok: false, error: 'rejected by device', ts: ackAt.toISOString() }), ackAt)
+    expect(await Command.findById(ok._id).lean()).toMatchObject({ status: 'acked', ackedAt: ackAt })
+    expect(await Command.findById(bad._id).lean()).toMatchObject({ status: 'failed', failedAt: ackAt, error: 'rejected by device' })
+    expect(seen).toEqual([
+      [DEMO_SITE_ID, String(ok._id), dev('ev3').id, 'acked'],
+      [DEMO_SITE_ID, String(bad._id), dev('ev3').id, 'failed'],
+    ])
+    // A repeated ack changes nothing
+    await withCallback.handle(topics.commandAck(DEMO_SITE_ID, String(bad._id)), JSON.stringify({ ok: true, ts: ackAt.toISOString() }), ackAt)
+    expect((await Command.findById(bad._id).lean())!.status).toBe('failed')
+    expect(seen).toHaveLength(2)
+  })
+
+  it('ignores acks from another site, for unknown ids, or malformed', async () => {
+    const cmd = await sentCommand()
+    await ingestor.handle(topics.commandAck(OTHER_SITE, String(cmd._id)), JSON.stringify({ ok: true, ts: ackAt.toISOString() }), ackAt)
+    await ingestor.handle(topics.commandAck(DEMO_SITE_ID, 'not-an-id'), JSON.stringify({ ok: true, ts: ackAt.toISOString() }), ackAt)
+    await ingestor.handle(topics.commandAck(DEMO_SITE_ID, String(cmd._id)), JSON.stringify({ ok: 'yes' }), ackAt)
+    expect((await Command.findById(cmd._id).lean())!.status).toBe('sent')
+    expect(ingestor.stats.rejected).toEqual({ 'unknown-command': 1, 'bad-ack': 1 })
   })
 })

@@ -77,7 +77,7 @@ describe('migrating a v1 database', () => {
     await db().collection('energyreadings').insertOne({ value: 1 });
     await db().collection('weathers').insertOne({ condition: 'sunny' });
     expect((await migrateToV2()).legacyDropped).toEqual([]);
-    expect((await migrateToV2({ dropLegacy: true })).legacyDropped.sort()).toEqual(['energyreadings', 'legacy_devices', 'weathers']);
+    expect((await migrateToV2({ dropLegacy: true })).legacyDropped.sort()).toEqual(['energyreadings', 'legacy_alerts', 'legacy_devices', 'weathers']);
     const names = (await db().listCollections().toArray()).map((c) => c.name);
     expect(names).not.toContain('energyreadings');
     expect((await migrateToV2({ dropLegacy: true })).legacyDropped).toEqual([]);

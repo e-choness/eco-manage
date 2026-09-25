@@ -51,6 +51,11 @@ export class EventPublisher {
     this.throttle(`d:${siteId}`, siteId, { type: 'demand', demand, quality });
   }
 
+  /** Status changes are rare and each matters: sent straight away, not throttled. */
+  command(siteId: string, commandId: string, deviceId: string, status: string): void {
+    this.send(siteId, { type: 'command', commandId, deviceId, status });
+  }
+
   stop(): void {
     for (const t of this.timers.values()) clearTimeout(t);
     this.timers.clear();

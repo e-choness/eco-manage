@@ -1,17 +1,39 @@
 import { z } from 'zod';
-import * as alertService from './service';
-import { handle, HttpError, parse, userIdOf } from '../../lib/http';
+import { fixAlertBody, resolveAlertBody } from '@ecomanage/shared';
+import { handle, parseBody, userIdOf } from '../../lib/http';
+import type { AuthenticatedRequest } from '../../middleware/auth';
+import * as alerts from './service';
 
-const markReadBody = z.object({ alertId: z.string().min(1) });
+const FALLBACK = { status: 500, body: { error: { code: 500, message: 'Alert request failed' } } };
+const siteOf = (req: AuthenticatedRequest) => req.site!;
+const idOf = (req: AuthenticatedRequest) => String(req.params.id);
 
-export const list = handle({ status: 500, body: { error: 'Failed to fetch alerts' } }, async (req, res) => {
-  const alerts = await alertService.listAlerts(userIdOf(req));
-  res.json({ alerts });
-});
+const listQuery = z
+  .object({
+    state: z.enum(['open', 'closed']).default('open'),
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    before: z.coerce.date().optional(),
+  })
+  .strict();
 
-export const markRead = handle({ status: 500, body: { error: 'Failed to update alert' } }, async (req, res) => {
-  const { alertId } = parse(markReadBody, req.body, 400, { error: 'Missing alertId' });
-  const alert = await alertService.markRead(userIdOf(req), alertId);
-  if (!alert) throw new HttpError(404, { error: 'Alert not found' });
-  res.json(alert);
+export const alertsController = (deps: alerts.AlertDeps) => ({
+  list: handle(FALLBACK, async (req, res) => {
+    res.json(await alerts.listAlerts(siteOf(req), parseBody(listQuery, req.query)));
+  }),
+  detail: handle(FALLBACK, async (req, res) => {
+    res.json(await alerts.alertDetail(siteOf(req), idOf(req)));
+  }),
+  ack: handle(FALLBACK, async (req, res) => {
+    res.json(await alerts.ack(deps, siteOf(req), userIdOf(req), idOf(req)));
+  }),
+  snooze: handle(FALLBACK, async (req, res) => {
+    res.json(await alerts.snooze(deps, siteOf(req), userIdOf(req), idOf(req)));
+  }),
+  resolve: handle(FALLBACK, async (req, res) => {
+    res.json(await alerts.resolve(deps, siteOf(req), userIdOf(req), idOf(req), parseBody(resolveAlertBody, req.body)));
+  }),
+  fix: handle(FALLBACK, async (req, res) => {
+    const { fixId } = parseBody(fixAlertBody, req.body);
+    res.status(202).json(await alerts.fix(deps, siteOf(req), userIdOf(req), idOf(req), fixId));
+  }),
 });

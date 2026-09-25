@@ -1,8 +1,7 @@
 import mongoose from 'mongoose';
 import { DEMO_CALENDAR_INPUT, DEMO_DEVICES, DEMO_SITE, DEMO_SITE_ID, DEMO_USERS, TARIFF_TEMPLATES } from '@ecomanage/shared';
-import { Alert as SiteAlert, Bill, Calendar, Command, RuleMute, Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, deleteSiteFiles, initModels } from '@ecomanage/db';
+import { Alert as SiteAlert, Bill, Calendar, Command, Maintenance, RuleMute, Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, deleteSiteFiles, initModels } from '@ecomanage/db';
 import User from '../modules/auth/model';
-import Alert from '../modules/alerts/model';
 import Recommendation from '../modules/optimization/model';
 import { generatePasswordHash } from '../utils/password';
 import { migrateToV2 } from './migrateV2';
@@ -25,7 +24,7 @@ export interface SeedSummary {
 
 type Log = (message: string) => void;
 
-// Resets the demo accounts, their alerts and recommendations, and the v2 demo site. Expects an open connection.
+// Resets the demo accounts, their recommendations, and the v2 demo site (with its alerts). Expects an open connection.
 export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
     log('🌱 Starting database seeding...');
     await initModels();
@@ -35,7 +34,6 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       const existingUser = await User.findOne({ email: account.email });
       if (existingUser) {
         log(`🔄 Clearing existing demo data for ${account.email}...`);
-        await Alert.deleteMany({ userId: existingUser._id });
         await Recommendation.deleteMany({ userId: existingUser._id });
         const memberships = await Membership.find({ userId: existingUser._id });
         const ownSites = memberships.filter((m) => m.role === 'owner' && String(m.siteId) !== DEMO_SITE_ID).map((m) => m.siteId);
@@ -54,6 +52,7 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       Bill.deleteMany({ siteId: DEMO_SITE_ID }),
       Calendar.deleteMany({ siteId: DEMO_SITE_ID }),
       SiteAlert.deleteMany({ siteId: DEMO_SITE_ID }),
+      Maintenance.deleteMany({ siteId: DEMO_SITE_ID }),
       RuleMute.deleteMany({ siteId: DEMO_SITE_ID }),
       Command.deleteMany({ siteId: DEMO_SITE_ID }),
       deleteSiteFiles(DEMO_SITE_ID),
@@ -70,49 +69,7 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
     });
     log(`✅ Created user: ${DEMO_EMAIL}`);
 
-    // 2. Create 4 alerts
-    log('\n🚨 Creating alerts...');
-    const alerts = await Alert.create([
-      {
-        userId: demoUser._id,
-        title: 'Solar Panel B Efficiency Low',
-        message: 'Panel efficiency dropped to 92%. Schedule maintenance check.',
-        type: 'warning',
-        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        read: false,
-        resolved: false,
-      },
-      {
-        userId: demoUser._id,
-        title: 'Battery Storage Charging',
-        message: 'Battery is currently charging. Estimated 2 hours to full capacity.',
-        type: 'info',
-        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        read: true,
-        resolved: true,
-      },
-      {
-        userId: demoUser._id,
-        title: 'High Energy Consumption Detected',
-        message: 'Energy consumption peaked at 8.5 kW during peak hours today.',
-        type: 'warning',
-        timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
-        read: false,
-        resolved: false,
-      },
-      {
-        userId: demoUser._id,
-        title: 'Maintenance Due',
-        message: 'Wind Turbine 1 maintenance is due soon. Schedule for next week.',
-        type: 'critical',
-        timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-        read: false,
-        resolved: false,
-      },
-    ]);
-    log(`✅ Created ${alerts.length} alerts`);
-
-    // 3. Create 4 recommendations
+    // 2. Create 4 recommendations
     log('\n💡 Creating recommendations...');
     const recommendations = await Recommendation.create([
       {
@@ -209,6 +166,49 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       }
     );
     await Calendar.create({ siteId: DEMO_SITE_ID, ...DEMO_CALENDAR_INPUT });
+
+    // Alerts and maintenance notes as App v2 shows them (P2-08). Alerts whose condition no longer
+    // holds on the simulator are closed by the rules service as soon as it next evaluates the site.
+    const devId = (key: string) => DEMO_DEVICES.find((d) => d.key === key)!.id;
+    const hoursAgo = (h: number) => new Date(Date.now() - h * 3600_000);
+    const installerId = userIdOf('installer@ecomanage.io');
+    await SiteAlert.create([
+      {
+        siteId: DEMO_SITE_ID,
+        deviceId: devId('bat'),
+        ruleId: 'command-ack-slow',
+        severity: 'info',
+        title: 'Command confirmed late',
+        detail: 'Battery: peak_shave_target confirmed after 38 s (limit 60 s). The command completed.',
+        state: 'open',
+        condition: 'cleared',
+        openedAt: hoursAgo(3),
+        lastSeenAt: hoursAgo(3),
+      },
+      {
+        siteId: DEMO_SITE_ID,
+        deviceId: devId('meter'),
+        ruleId: 'demand-near-cap',
+        severity: 'warning',
+        title: 'Demand close to the cap',
+        detail: 'Demand reached 112 kW (93% of cap). New monthly peak.',
+        state: 'resolved',
+        condition: 'cleared',
+        openedAt: hoursAgo(16 * 24),
+        lastSeenAt: hoursAgo(16 * 24 - 0.25),
+        resolvedAt: hoursAgo(16 * 24 - 0.25),
+        resolution: { cause: 'Condition cleared', note: '', by: null, auto: true },
+      },
+    ]);
+    await Maintenance.create(
+      [
+        ['invA', 'Panels cleaned.', '2026-06-12'],
+        ['invB', 'Panels cleaned.', '2026-06-12'],
+        ['invB', 'String 2 connector replaced.', '2026-08-03'],
+        ['bat', 'Firmware 3.2.1 installed. SoH 97%.', '2026-09-02'],
+        ['meter', 'CT direction checked at commissioning.', '2024-03-14'],
+      ].map(([key, text, day]) => ({ siteId: DEMO_SITE_ID, deviceId: devId(key), at: new Date(`${day}T15:00:00Z`), by: installerId, source: 'visit', text }))
+    );
 
     // Tariff history (App v2: version 3 valid from 1 Apr 2026; earlier rates were a little lower).
     const tou = TARIFF_TEMPLATES[0].tariff;

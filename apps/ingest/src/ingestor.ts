@@ -1,9 +1,10 @@
 import mongoose from 'mongoose';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
-import { Device, Telemetry } from '@ecomanage/db';
+import { Command, Device, Telemetry } from '@ecomanage/db';
 import { undeclaredFields } from '@ecomanage/profiles';
 import {
+  commandAckMessage,
   deviceStatusMessage,
   gatewayStatusMessage,
   isBackfill,
@@ -42,6 +43,8 @@ export interface IngestorOptions {
   onReading?: (siteId: string, ts: Date, receivedAt: Date) => void;
   /** Called when a device has a new newest reading (drives the live stream). */
   onLatest?: (siteId: string, device: KnownDevice, reading: TelemetryReading) => void;
+  /** Called when a command's ack changes its status (sent → acked or failed). */
+  onCommand?: (siteId: string, commandId: string, deviceId: string, status: 'acked' | 'failed') => void;
 }
 
 type Row = { ts: Date; meta: { siteId: mongoose.Types.ObjectId; deviceId: mongoose.Types.ObjectId } } & Omit<TelemetryReading, 'ts'>;
@@ -58,6 +61,7 @@ export class Ingestor {
   private readonly devices: DeviceCache;
   private readonly onReading?: IngestorOptions['onReading'];
   private readonly onLatest?: IngestorOptions['onLatest'];
+  private readonly onCommand?: IngestorOptions['onCommand'];
   private rows: Row[] = [];
   private lastSeen = new Map<string, Date>(); // deviceId -> received time, written on flush
   private latestTs = new Map<string, number>();
@@ -71,6 +75,7 @@ export class Ingestor {
     this.devices = opts.devices ?? new DeviceCache();
     this.onReading = opts.onReading;
     this.onLatest = opts.onLatest;
+    this.onCommand = opts.onCommand;
     const flushMs = opts.flushMs ?? 500;
     if (flushMs > 0) {
       this.timer = setInterval(() => void this.flush(), flushMs);
@@ -103,7 +108,23 @@ export class Ingestor {
       const s = gatewayStatusMessage.safeParse(payload);
       if (s.success) await this.redis.set(keys.gateway(t.siteId), JSON.stringify({ ...s.data, receivedAt: receivedAt.toISOString() }));
     }
-    // Command acks and job results are consumed by the API (P1-09, P3-04).
+    if (t.kind === 'commandAck') return this.handleCommandAck(t.siteId, t.commandId, payload, receivedAt);
+    // Job results are consumed by the API (P1-09).
+  }
+
+  /**
+   * A gateway's answer to a command: `sent` becomes `acked` or `failed` (with the gateway's error).
+   * Only commands of the topic's site that are still waiting change, so a repeated or stray ack
+   * does nothing.
+   */
+  private async handleCommandAck(siteId: string, commandId: string, payload: unknown, receivedAt: Date): Promise<void> {
+    const ack = commandAckMessage.safeParse(payload);
+    if (!ack.success) return this.reject('bad-ack', { siteId, commandId });
+    if (!mongoose.isValidObjectId(commandId) || !mongoose.isValidObjectId(siteId)) return this.reject('unknown-command', { siteId, commandId });
+    const set = ack.data.ok ? { status: 'acked', ackedAt: receivedAt } : { status: 'failed', failedAt: receivedAt, error: ack.data.error ?? 'Rejected by the gateway' };
+    const cmd = await Command.findOneAndUpdate({ _id: commandId, siteId, status: 'sent' }, { $set: set }, { new: true }).lean();
+    if (!cmd) return;
+    this.onCommand?.(siteId, commandId, cmd.deviceId, set.status as 'acked' | 'failed');
   }
 
   private async handleTelemetry(siteId: string, deviceId: string, payload: unknown, receivedAt: Date): Promise<void> {

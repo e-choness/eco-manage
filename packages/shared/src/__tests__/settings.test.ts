@@ -2,7 +2,7 @@
  * P2-06: settings schemas and calendar day types.
  */
 import { describe, expect, it } from 'vitest'
-import { DEMO_CALENDAR_INPUT, alertKey, batteryPatch, calendarDayType, calendarInput, parseTopic, sitePatch, topics } from '../index'
+import { DEMO_CALENDAR_INPUT, alertActions, alertKey, batteryPatch, calendarDayType, calendarInput, parseTopic, sitePatch, topics } from '../index'
 
 describe('calendarDayType', () => {
   const cal = DEMO_CALENDAR_INPUT
@@ -48,5 +48,14 @@ describe('alert keys', () => {
   it('name one rule and device, or the whole site', () => {
     expect(alertKey('device-silent', 'ev3')).toBe('device-silent|ev3')
     expect(alertKey('demand-near-cap', null)).toBe('demand-near-cap|')
+  })
+})
+
+describe('alert buttons (Backend Coverage §3)', () => {
+  it('ack while open; snooze, fix and false alarm while the condition is true; resolve once it cleared', () => {
+    expect(alertActions({ state: 'open', condition: 'active' }, true)).toEqual({ ack: true, snooze: true, fix: true, resolve: false, falseAlarm: true })
+    expect(alertActions({ state: 'ack', condition: 'active' }, false)).toEqual({ ack: false, snooze: true, fix: false, resolve: false, falseAlarm: true })
+    expect(alertActions({ state: 'open', condition: 'cleared' }, true)).toEqual({ ack: true, snooze: false, fix: false, resolve: true, falseAlarm: false })
+    expect(alertActions({ state: 'resolved', condition: 'cleared' }, true)).toEqual({ ack: false, snooze: false, fix: false, resolve: false, falseAlarm: false })
   })
 })

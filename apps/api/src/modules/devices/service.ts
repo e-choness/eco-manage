@@ -1,6 +1,6 @@
 import mongoose, { isValidObjectId } from 'mongoose';
 import type { Redis } from 'ioredis';
-import { Device, Telemetry, recordAudit, type DeviceDoc } from '@ecomanage/db';
+import { Device, Maintenance, Telemetry, recordAudit, type DeviceDoc, type MaintenanceDoc } from '@ecomanage/db';
 import { getProfile } from '@ecomanage/profiles';
 import {
   MAX_POINTS,
@@ -55,17 +55,22 @@ export const listDevices = async (redis: Redis, siteId: string): Promise<DeviceV
   return devices.map((d, i) => toView(d, parseLatest(latest[i])));
 };
 
+/** Latest maintenance entries shown on the device (App v2 device detail → Maintenance). */
+const MAINTENANCE_SHOWN = 20;
+
 export const getDevice = async (redis: Redis, siteId: string, id: string): Promise<DeviceDetail | null> => {
   const d = await findOwn(siteId, id);
   if (!d) return null;
-  const [latest, installer] = await Promise.all([
+  const [latest, installer, log] = await Promise.all([
     redis.get(latestKey(id)),
     d.commissionedBy ? User.findById(d.commissionedBy).select('name email').lean() : Promise.resolve(null),
+    Maintenance.find({ siteId, deviceId: id }).sort({ at: -1 }).limit(MAINTENANCE_SHOWN).lean<MaintenanceDoc[]>(),
   ]);
   const p = d.profileId ? getProfile(d.profileId) : undefined;
   return {
     ...toView(d, parseLatest(latest)),
     commissionedBy: installer ? { id: String(installer._id), name: installer.name || installer.email } : null,
+    maintenance: log.map((m) => ({ at: m.at.toISOString(), source: m.source as 'visit' | 'alert', text: m.text })),
     profile: p
       ? { id: p.id, vendor: p.vendor, model: p.model, protocol: p.protocol, pollMs: p.pollMs, writeActions: Object.keys(p.write), fixes: p.fixes.map((f) => f.label) }
       : null,
