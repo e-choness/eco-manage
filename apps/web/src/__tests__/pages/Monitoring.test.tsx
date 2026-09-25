@@ -19,6 +19,7 @@ const detail = (id: string): DeviceDetail => ({
   commissionedAt: '2024-03-14T15:00:00Z',
   commissionedBy: { id: 'u', name: 'Northside Solar' },
   profile: { id: 'p', vendor: 'v', model: 'Three-phase string inverter', protocol: 'modbus-tcp', pollMs: 5000, writeActions: [], fixes: ['Remote restart'] },
+  maintenance: [],
 })
 
 describe('Devices (Monitoring) page', () => {

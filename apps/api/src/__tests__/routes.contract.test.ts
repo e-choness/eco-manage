@@ -37,7 +37,7 @@ beforeAll(() => {
   process.env.REFRESH_TOKEN_SECRET = 'contract-refresh';
   token = jwt.sign({ sub: String(userId) }, 'contract-jwt');
   // Loaded by createApp's imports; referenced here so the names are registered.
-  ['User', 'LegacyAlert', 'Recommendation'].forEach(model);
+  ['User', 'Recommendation'].forEach(model);
 });
 
 // Site access (P1-04): the caller is a member of one site with this role.
@@ -74,7 +74,7 @@ describe('authentication guard', () => {
     ['put', '/api/auth/password'],
     ['put', '/api/auth/profile'],
     ['get', '/api/alerts'],
-    ['put', '/api/alerts/read'],
+    ['post', '/api/alerts/650000000000000000000999/ack'],
     ['get', '/api/optimization/recommendations'],
     ['post', '/api/optimization/accept'],
   ] as const)('%s %s needs a token', async (method, path) => {
@@ -152,40 +152,7 @@ describe('auth', () => {
   });
 });
 
-describe('alerts', () => {
-  it('lists alerts newest first', async () => {
-    const find = jest.spyOn(model('LegacyAlert'), 'find').mockImplementation(() => query([{ title: 'a' }]) as never);
-    const res = await authed(request(app).get('/api/alerts'));
-    expect(res.body).toEqual({ alerts: [{ title: 'a' }] });
-    expect(find).toHaveBeenCalledWith({ userId: expect.anything() });
-  });
-
-  it('mark read: 400 without id, 404 when missing, 200 when found', async () => {
-    const update = jest.spyOn(model('LegacyAlert'), 'findOneAndUpdate');
-    expect((await authed(request(app).put('/api/alerts/read')).send({})).body).toEqual({ error: 'Missing alertId' });
-
-    update.mockResolvedValueOnce(null as never);
-    const missing = await authed(request(app).put('/api/alerts/read')).send({ alertId: 'a1' });
-    expect(missing.status).toBe(404);
-    expect(missing.body).toEqual({ error: 'Alert not found' });
-
-    update.mockResolvedValueOnce({ _id: 'a1', read: true } as never);
-    const ok = await authed(request(app).put('/api/alerts/read')).send({ alertId: 'a1' });
-    expect(ok.body).toEqual({ _id: 'a1', read: true });
-    expect(update).toHaveBeenLastCalledWith({ _id: 'a1', userId: expect.anything() }, { read: true }, { new: true });
-  });
-
-  it('database errors become the route fallback', async () => {
-    jest.spyOn(model('LegacyAlert'), 'find').mockImplementation(() => {
-      throw new Error('db down');
-    });
-    const res = await authed(request(app).get('/api/alerts'));
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'Failed to fetch alerts' });
-  });
-});
-
-// v2 devices (P1-09) are covered in integration/devices.test.ts.
+// v2 devices (P1-09) and alerts (P2-08) are covered in integration/.
 
 describe('optimization', () => {
   it('lists open recommendations', async () => {

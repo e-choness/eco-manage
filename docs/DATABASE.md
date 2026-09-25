@@ -53,8 +53,9 @@ services share them. Plain types live in `packages/shared/src/models.ts`.
 | `bills`          | siteId, period (YYYY-MM), start, end, inProgress, lines {energyPk/Md/Op, demand, fixed, exportCredit}Cents, energyKwh, totalCents, peakKw, peakAt, tariffVersion, tariffVersions, intervals, estimatedShare, unpricedIntervals, savedCents and savings {baselineCents, solarCents, batteryCents, demandCents, baselinePeakKw} (null until 7 days of data), utility {status, totalCents, diffCents, source, fileId, fileName, error, uploadedBy, parsedAt}, statement {fileId, renderedAt}, computedAt | {siteId, period} unique |
 | `files.files`, `files.chunks` | GridFS bucket `files`: uploaded utility bills and rendered statements; metadata {siteId, kind, contentType, period} | — |
 | `alerts`         | siteId, deviceId, ruleId, severity, title, detail, state (open, ack, resolved), condition (active, cleared), openedAt, lastSeenAt, count, eventKeys, ackBy, ackAt, snoozedUntil, resolvedAt, resolution {cause, note, by, auto} | {siteId, deviceId, ruleId, state}; one open/acked per (siteId, deviceId, ruleId) (unique partial) |
-| `ruleMutes`      | siteId, deviceId (null: whole site), ruleId, until, by | {siteId, ruleId, until} |
-| `commands`       | siteId, deviceId, recommendationId, action, params, expiresAt, revertAt, status (created, sent, acked, failed, verified, reverted, cancelled), sentAt, ackedAt, failedAt, error, createdBy | {siteId, status} |
+| `ruleMutes`      | siteId, deviceId (null: whole site), ruleId, until, by, alertId, review (a false alarm flags the threshold) | {siteId, ruleId, until} |
+| `maintenance`    | siteId, deviceId, at, by, source (visit, alert), text, alertId | {siteId, deviceId, at: -1} |
+| `commands`       | siteId, deviceId, recommendationId, alertId, action, params, expiresAt, revertAt, status (created, sent, acked, failed, verified, reverted, cancelled), sentAt, ackedAt, failedAt, error, createdBy | {siteId, status} |
 | `auditEvents`    | siteId, userId (null for system actions), action, target, before, after, ts | {siteId, ts: -1} |
 
 `initModels()` creates the collections and syncs the indexes. The time-series collection has to be
@@ -67,7 +68,7 @@ safe to run repeatedly:
 
 1. v1 documents in `devices` (the ones with a `userId`) move to `legacy_devices`, which the v1
    modules now use (model `LegacyDevice`). Likewise v1 per-user `alerts` move to
-   `legacy_alerts` (model `LegacyAlert`), read by the v1 alerts routes until P2-08 replaces them.
+   `legacy_alerts`. Nothing reads them since the v2 Alerts API replaced the v1 routes (P2-08).
 2. The v2 collections and indexes are created.
 3. Every user without a membership gets a site named "<name>'s site" and an owner membership,
    recorded as an audit event. The site's time zone is UTC until the owner sets it.
@@ -78,4 +79,4 @@ too; the installer's access ends on 31 Dec 2026. The fixture is in `packages/sha
 
 ## Retired v1 collections
 
-`energyreadings`, `weathers`, `financialrecords` and `legacy_devices` were removed in P1-10; telemetry, forecasts (P2-10) and intervals × tariff (P2-03) replace them. `migrate -- --drop-legacy` deletes them from an existing database (the seed does this).
+`energyreadings`, `weathers`, `financialrecords` and `legacy_devices` were removed in P1-10 (and `legacy_alerts` in P2-08); telemetry, forecasts (P2-10) and intervals × tariff (P2-03) replace them. `migrate -- --drop-legacy` deletes them from an existing database (the seed does this).

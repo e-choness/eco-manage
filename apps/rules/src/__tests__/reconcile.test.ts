@@ -80,6 +80,19 @@ describe('condition alerts', () => {
   })
 })
 
+describe('one-off alerts (late command acks)', () => {
+  const late: Finding = { ruleId: 'command-ack-slow', deviceId: 'bat', detail: 'Battery: set_reserve sent 40 s ago, no answer' }
+  const key = alertKey('command-ack-slow', 'bat')
+
+  it('stay open with the condition cleared until a person closes them', async () => {
+    expect(await reconcile(sid, run([late]), T(0))).toEqual([expect.objectContaining({ state: 'open', condition: 'active' })])
+    expect(await reconcile(sid, run([], [key]), T(1))).toEqual([expect.objectContaining({ state: 'open', condition: 'cleared' })])
+    expect(await reconcile(sid, run([], [key]), T(2))).toEqual([])
+    expect(await reconcile(sid, run([late]), T(3))).toEqual([expect.objectContaining({ state: 'open', condition: 'active' })])
+    expect(await Alert.countDocuments({ ruleId: 'command-ack-slow' })).toBe(1)
+  })
+})
+
 describe('mutes', () => {
   it('stop new alerts for the rule and device until they end', async () => {
     await RuleMute.create({ siteId, deviceId: 'ev3', ruleId: 'device-silent', until: T(60) })

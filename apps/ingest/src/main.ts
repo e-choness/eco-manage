@@ -40,6 +40,7 @@ const main = async () => {
       const d = demand.update(device.id, reading);
       if (d) publisher.demand(siteId, d.demand, d.quality);
     },
+    onCommand: (siteId, commandId, deviceId, status) => publisher.command(siteId, commandId, deviceId, status),
   });
 
   const client = mqtt.connect(env.MQTT_URL, {

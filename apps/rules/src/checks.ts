@@ -69,7 +69,7 @@ export const deviceSilent = (ctx: SiteContext): CheckResult => {
 
 /**
  * Solar below 90% of expected for 2 h of daylight. Opens when the last 24 daylight buckets are all
- * low; once open, it closes only after 15 minutes back above (so a passing cloud doesn't flap it).
+ * low; once open, it closes only after 1 h of daylight within 5% of expected (Backend Coverage §3).
  */
 export const pvUnderperform = (ctx: SiteContext): CheckResult => {
   const r = result();
@@ -79,7 +79,7 @@ export const pvUnderperform = (ctx: SiteContext): CheckResult => {
     if (ratios.length < (wasActive ? L.pvClearBuckets : L.pvDaylightBuckets)) continue; // night or too little data
     r.evaluated.push(key);
     const opens = ratios.length >= L.pvDaylightBuckets && ratios.slice(-L.pvDaylightBuckets).every((x) => x < L.pvRatio);
-    const recovered = ratios.slice(-L.pvClearBuckets).every((x) => x >= L.pvRatio);
+    const recovered = ratios.slice(-L.pvClearBuckets).every((x) => x >= L.pvClearRatio);
     if (opens || (wasActive && !recovered)) {
       const recent = ratios.slice(-L.pvClearBuckets);
       const name = ctx.devices.find((d) => d.id === deviceId)?.name ?? deviceId;

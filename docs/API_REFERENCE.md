@@ -94,14 +94,36 @@ installer-only and each one writes an audit event with before and after.
   400 points, the next coarser one is used and `capped` is `true`. Over 400 hourly points
   (16 days) gets `400`.
 
-## Alerts `/api/alerts` 🔒
+## Alerts `/api/alerts` 🔒 all roles (v2, P2-08)
 
-| Method | Path    | Body          | Success |
-| ------ | ------- | ------------- | ------- |
-| GET    | `/`     | —             | `200 {"alerts":[…]}` newest first |
-| PUT    | `/read` | `{ alertId }` | `200` updated alert |
+The rules service opens alerts and closes the ones whose condition clears (ARCHITECTURE, Rules).
+These endpoints follow Backend Coverage §3. They record who is handling an alert, pause its
+emails, send a remote fix, or close it with a cause. They can't hide a problem that is still
+happening.
 
-Errors: `400 {"error":"Missing alertId"}`, `404 {"error":"Alert not found"}`.
+| Method | Path | Body | Result |
+| ------ | ---- | ---- | ------ |
+| GET | `/?state=open\|closed&limit=50&before=<iso>` | — | `{ items: AlertView[], counts: { open, closed } }`. `open` includes acknowledged alerts. Newest first; page with `before` = the last `openedAt` |
+| GET | `/:id` | — | `AlertDetail`: the view plus `deviceName`, `ackBy`, `ackAt`, `snoozedUntil`, `resolution { cause, note, by, auto }`, `fixes [{ id, label }]` from the device profile, and `actions { ack, snooze, fix, resolve, falseAlarm }` |
+| POST | `/:id/ack` | — | `AlertView` with state `ack`. `409` unless open |
+| POST | `/:id/snooze` | — | Pauses emails for 24 h (`snoozedUntil`). `409` unless the condition is still true |
+| POST | `/:id/resolve` | `{ cause, note? }` | `{ alert, mute }`, where cause is `Fixed on site`, `Known issue`, `Device replaced` or `False alarm` |
+| POST | `/:id/fix` | `{ fixId }` | `202 { command }`: the profile's fix sent to the gateway as a Command |
+
+- **Resolve** answers `409` (`details.condition: "active"`) while the condition is true, unless the
+  cause is `False alarm`. A false alarm closes the alert anyway and creates a 7-day `ruleMutes`
+  entry for the rule and device with `review: true` (its threshold is flagged for review). The
+  answer is `mute: { until }`.
+- The cause and note go to the device's maintenance log. `GET /api/devices/:id` shows the
+  latest 20 entries as `maintenance`.
+- **Fix** is offered while the condition is true and the device's profile lists fixes: OCPP
+  soft reset, or the Modbus restart register. An unknown `fixId` answers `422`. The command
+  expires after 2 minutes. If the broker can't be reached, the command is recorded as `failed`
+  and the answer is `503` with `details.command`.
+- Ingest records the gateway's ack on the command (`acked` or `failed`). If the device recovers,
+  the rules service closes the alert.
+- Every action is audited (`alert.ack`, `alert.snooze`, `alert.resolve`, `alert.false-alarm`,
+  `alert.fix`) and published on the live stream (`alert`, and `command` for a fix).
 
 ## Optimization `/api/optimization` 🔒
 
@@ -167,7 +189,8 @@ client reads the stream with `fetch`. Events:
 | `telemetry` | `{ type, deviceId, reading }`, at most one per device every 5 s |
 | `demand`    | `{ type, demand: { intervalStart, soFarKw, projectedKw }, quality }` |
 | `device`    | `{ type, deviceId, status }` when a device goes live, stale or offline |
-| `alert`     | `{ type, alert: AlertView }` when an alert opens, resolves or counts a repeat (P2-07) |
+| `alert`     | `{ type, alert: AlertView }` when an alert opens, resolves, counts a repeat, or someone acts on it (P2-07, P2-08) |
+| `command`   | `{ type, commandId, deviceId, status }` when a command is sent, acked or fails (P2-08) |
 
 A `: heartbeat` comment is sent every 20 s. Events published while the snapshot is being built are
 held back and sent right after it.

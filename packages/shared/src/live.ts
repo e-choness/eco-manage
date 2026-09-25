@@ -114,4 +114,5 @@ export type SiteEvent =
   | { type: 'telemetry'; deviceId: string; reading: TelemetryReading }
   | { type: 'demand'; demand: DemandNow; quality: 'ok' | 'estimated' }
   | { type: 'device'; deviceId: string; status: string }
-  | { type: 'alert'; alert: AlertView };
+  | { type: 'alert'; alert: AlertView }
+  | { type: 'command'; commandId: string; deviceId: string; status: string };

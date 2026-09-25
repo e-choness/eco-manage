@@ -1,13 +1,16 @@
 import { readFileSync } from 'node:fs';
 import mqtt, { type MqttClient } from 'mqtt';
-import { topics, type GatewayConfigMessage } from '@ecomanage/shared';
+import { topics, type CommandMessage, type GatewayConfigMessage } from '@ecomanage/shared';
 
 // The API's MQTT side (svc-api certificate). For now it only publishes the retained gateway
-// config; commands and jobs join it in Phase 3. Tests pass a stand-in through createApp.
+// config and remote fixes from alerts (P2-08); recommendations' commands and jobs join it in
+// Phase 3. Tests pass a stand-in through createApp.
 
 export interface GatewayLink {
   /** Publishes the site's gateway config (retained). Resolves false if the broker is unreachable. */
   sendConfig(siteId: string, config: Omit<GatewayConfigMessage, 'ts'>): Promise<boolean>;
+  /** Publishes a device command (QoS 1). Resolves false if the broker is unreachable. */
+  sendCommand(siteId: string, commandId: string, command: CommandMessage): Promise<boolean>;
   /** Runs on every (re)connect, so config that couldn't be sent is sent then. */
   onConnect(listener: () => void): void;
   close(): Promise<void>;
@@ -24,17 +27,23 @@ export const createGatewayLink = (url: string, certDir: string): GatewayLink => 
     reconnectPeriod: 2000,
   });
 
+  const publish = (topic: string, payload: unknown, retain: boolean) =>
+    new Promise<boolean>((resolve) => {
+      if (!client.connected) return resolve(false);
+      const timer = setTimeout(() => resolve(false), PUBLISH_TIMEOUT_MS);
+      client.publish(topic, JSON.stringify(payload), { qos: 1, retain }, (err) => {
+        clearTimeout(timer);
+        resolve(!err);
+      });
+    });
+
   return {
     sendConfig(siteId, config) {
       const message: GatewayConfigMessage = { ts: new Date().toISOString(), ...config };
-      return new Promise((resolve) => {
-        if (!client.connected) return resolve(false);
-        const timer = setTimeout(() => resolve(false), PUBLISH_TIMEOUT_MS);
-        client.publish(topics.gatewayConfig(siteId), JSON.stringify(message), { qos: 1, retain: true }, (err) => {
-          clearTimeout(timer);
-          resolve(!err);
-        });
-      });
+      return publish(topics.gatewayConfig(siteId), message, true);
+    },
+    sendCommand(siteId, commandId, command) {
+      return publish(topics.command(siteId, commandId), command, false);
     },
     onConnect(listener) {
       client.on('connect', listener);

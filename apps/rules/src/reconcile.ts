@@ -1,28 +1,13 @@
-import { Alert, RuleMute, type AlertDoc, type RuleMuteDoc } from '@ecomanage/db';
+import { Alert, RuleMute, alertView, type AlertDoc, type RuleMuteDoc } from '@ecomanage/db';
 import { ALERT_RULES, alertKey, type AlertRuleId, type AlertView, type CheckResult } from '@ecomanage/shared';
 
 // Findings → alerts (plan P2-07): at most one open or acked alert per (site, device, rule).
 // Condition alerts resolve themselves when their check runs and no longer finds the condition;
+// one-off alerts (a late command ack) only mark their condition cleared and wait for a person;
 // event alerts (a failed command) stay open until a person resolves them and count repeats.
 // A mute (false alarm, P2-08) stops new alerts for its rule and device until it ends.
 
 const MAX_EVENT_KEYS = 20;
-
-export const toView = (a: AlertDoc): AlertView => ({
-  id: String(a._id),
-  siteId: String(a.siteId),
-  deviceId: a.deviceId ?? null,
-  ruleId: a.ruleId as AlertRuleId,
-  severity: a.severity as AlertView['severity'],
-  title: a.title,
-  detail: a.detail ?? '',
-  state: a.state as AlertView['state'],
-  condition: a.condition as AlertView['condition'],
-  openedAt: a.openedAt.toISOString(),
-  lastSeenAt: a.lastSeenAt.toISOString(),
-  count: a.count ?? 1,
-  resolvedAt: a.resolvedAt?.toISOString() ?? null,
-});
 
 const isMuted = (mutes: RuleMuteDoc[], ruleId: string, deviceId: string | null) =>
   mutes.some((m) => m.ruleId === ruleId && (m.deviceId == null || m.deviceId === deviceId));
@@ -58,9 +43,13 @@ export const reconcile = async (siteId: string, result: CheckResult, now: Date, 
           { new: true }
         ).lean<AlertDoc>();
         if (updated) changed.push(updated);
+      } else if (existing.condition === 'cleared') {
+        // A one-off alert whose condition came back while it was still open.
+        const updated = await Alert.findOneAndUpdate({ _id: existing._id }, { $set: { lastSeenAt: now, detail: f.detail, condition: 'active' } }, { new: true }).lean<AlertDoc>();
+        if (updated) changed.push(updated);
       } else {
         // Still active: keep it fresh; not worth a stream event.
-        await Alert.updateOne({ _id: existing._id }, { $set: { lastSeenAt: now, detail: f.detail, condition: 'active' } });
+        await Alert.updateOne({ _id: existing._id }, { $set: { lastSeenAt: now, detail: f.detail } });
       }
       continue;
     }
@@ -94,7 +83,15 @@ export const reconcile = async (siteId: string, result: CheckResult, now: Date, 
 
   const evaluated = new Set(result.evaluated);
   for (const [key, a] of current) {
-    if (found.has(key) || !evaluated.has(key) || ALERT_RULES[a.ruleId as AlertRuleId]?.kind !== 'condition') continue;
+    const kind = ALERT_RULES[a.ruleId as AlertRuleId]?.kind;
+    if (found.has(key) || !evaluated.has(key) || kind === 'event') continue;
+    if (kind === 'one-off') {
+      // Cleared but kept open: someone closes it with a cause so repeats can be spotted.
+      if (a.condition === 'cleared') continue;
+      const cleared = await Alert.findOneAndUpdate({ _id: a._id, state: { $in: ['open', 'ack'] } }, { $set: { condition: 'cleared' } }, { new: true }).lean<AlertDoc>();
+      if (cleared) changed.push(cleared);
+      continue;
+    }
     const resolved = await Alert.findOneAndUpdate(
       { _id: a._id, state: { $in: ['open', 'ack'] } },
       { $set: { state: 'resolved', condition: 'cleared', resolvedAt: now, resolution: { cause: 'Condition cleared', note: '', by: null, auto: true } } },
@@ -103,5 +100,5 @@ export const reconcile = async (siteId: string, result: CheckResult, now: Date, 
     if (resolved) changed.push(resolved);
   }
 
-  return changed.map(toView);
+  return changed.map(alertView);
 };

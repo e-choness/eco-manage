@@ -6,7 +6,7 @@ import { logger as defaultLogger } from './config/logger';
 import { corsMiddleware, helmetMiddleware, rateLimiter, requestLogger } from './middleware/security';
 import basicRoutes from './modules/health/routes';
 import authRoutes from './modules/auth/routes';
-import alertRoutes from './modules/alerts/routes';
+import { alertsRoutes } from './modules/alerts/routes';
 import { devicesRoutes } from './modules/devices/routes';
 import optimizationRoutes from './modules/optimization/routes';
 import { siteRoutes } from './modules/site/routes';
@@ -49,7 +49,7 @@ export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogg
     rateLimiter({ windowMs: window, max: env.AUTH_RATE_LIMIT_MAX, prefix: 'rl:auth:', redis })
   );
   app.use('/api/auth', authRoutes);
-  app.use('/api/alerts', alertRoutes);
+  app.use('/api/alerts', alertsRoutes({ redis, gateway }));
   app.use('/api/devices', devicesRoutes(redis));
   app.use('/api/optimization', optimizationRoutes);
   app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs, gateway }));

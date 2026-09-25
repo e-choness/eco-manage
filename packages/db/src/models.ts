@@ -359,12 +359,33 @@ const ruleMuteSchema = new Schema(
     ruleId: { type: String, required: true },
     until: { type: Date, required: true },
     by: { type: ObjectId, ref: 'User', default: null },
+    alertId: { type: ObjectId, ref: 'Alert', default: null },
+    // A false alarm flags the rule's threshold for review (Settings → Rules, P3-02).
+    review: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 ruleMuteSchema.index({ siteId: 1, ruleId: 1, until: 1 });
 export type RuleMuteDoc = InferSchemaType<typeof ruleMuteSchema> & { _id: Types.ObjectId };
 export const RuleMute = mongoose.model('RuleMute', ruleMuteSchema, 'ruleMutes');
+
+// Device maintenance log (App v2 device detail → Maintenance): visits an installer logs, and the
+// cause and note of each alert someone resolves (P2-08).
+const maintenanceSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    deviceId: { type: String, required: true },
+    at: { type: Date, required: true },
+    by: { type: ObjectId, ref: 'User', default: null },
+    source: { type: String, enum: ['visit', 'alert'], required: true },
+    text: { type: String, required: true },
+    alertId: { type: ObjectId, ref: 'Alert', default: null },
+  },
+  { timestamps: true }
+);
+maintenanceSchema.index({ siteId: 1, deviceId: 1, at: -1 });
+export type MaintenanceDoc = InferSchemaType<typeof maintenanceSchema> & { _id: Types.ObjectId };
+export const Maintenance = mongoose.model('Maintenance', maintenanceSchema, 'maintenance');
 
 // Device commands (plan §2). Created from approved recommendations or installer diagnostics
 // (P3-04); the rules service watches acks and failures (P2-07).
@@ -373,6 +394,7 @@ const commandSchema = new Schema(
     siteId: { type: ObjectId, ref: 'Site', required: true },
     deviceId: { type: String, required: true },
     recommendationId: { type: ObjectId, ref: 'Recommendation', default: null },
+    alertId: { type: ObjectId, ref: 'Alert', default: null }, // a remote fix from an alert (P2-08)
     action: { type: String, required: true },
     params: { type: Schema.Types.Mixed, default: {} },
     expiresAt: { type: Date, required: true },
@@ -408,7 +430,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Command, AuditEvent] as const;
+export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

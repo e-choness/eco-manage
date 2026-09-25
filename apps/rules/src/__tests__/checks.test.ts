@@ -74,11 +74,15 @@ describe('PV underperforming', () => {
     expect(pvUnderperform(ctx({ pvRatios: new Map([['invB', [...low.slice(1), 0.95]]]) })).findings).toEqual([])
   })
 
-  it('stays open through a brief recovery, and clears after 15 minutes back above', () => {
+  it('stays open until 1 h of daylight is back within 5% of expected', () => {
     const active = new Set([alertKey('pv-underperform', 'invB')])
-    expect(pvUnderperform(ctx({ active, pvRatios: new Map([['invB', [0.8, 0.8, 0.95, 0.96]]]) })).findings).toHaveLength(1)
-    const cleared = pvUnderperform(ctx({ active, pvRatios: new Map([['invB', [0.8, 0.95, 0.96, 0.97]]]) }))
+    const hour = (x: number) => Array(12).fill(x)
+    expect(pvUnderperform(ctx({ active, pvRatios: new Map([['invB', [0.8, ...hour(0.99).slice(1), 0.93]]]) })).findings).toHaveLength(1)
+    expect(pvUnderperform(ctx({ active, pvRatios: new Map([['invB', [0.8, ...hour(0.94)]]]) })).findings).toHaveLength(1)
+    const cleared = pvUnderperform(ctx({ active, pvRatios: new Map([['invB', [0.8, ...hour(0.97)]]]) }))
     expect(cleared.findings).toEqual([])
+    // Less than an hour of daylight since it opened: not judged yet
+    expect(pvUnderperform(ctx({ active, pvRatios: new Map([['invB', hour(1).slice(1)]]) })).evaluated).toEqual([])
     expect(cleared.evaluated).toEqual([alertKey('pv-underperform', 'invB')])
   })
 
