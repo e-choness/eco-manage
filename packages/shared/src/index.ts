@@ -13,3 +13,4 @@ export * from './tariff';
 export * from './billing';
 export * from './jobs';
 export * from './api/settings';
+export * from './alerts';

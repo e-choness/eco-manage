@@ -148,7 +148,9 @@ handling as a real one, so the backend can't tell the two apart.
   mode unless commanded. The grid meter is the remainder. Every device integrates its own
   energy counters.
 - `gateway.ts`: publishes each device every 5 simulated seconds (once per real second above
-  5×); buffers while the gateway is "offline" and resends in order in `{items}` batches; checks
+  5×); buffers while the gateway is "offline". On reconnect it reports its status first (with
+  the backlog), then drains one `{items}` batch of 500 per tick. New readings queue behind the
+  backlog, so everything arrives in time order. It applies the retained config (battery floor); checks
   command expiry and profile write limits before acking; answers scan, commission and restart jobs.
 - Faults (`POST /sim/faults {type, device?, minutes?}`): `device-offline`, `meter-gap`,
   `gateway-offline`, `command-rejected`, `output-drop`. A `reset` or `restart` command brings an
@@ -246,6 +248,49 @@ The `documents` queue (P2-05) runs on demand, two at a time:
   template, sets `utility.status` to `done` with `diffCents` = ours − utility, or to `failed` so the
   owner can type the total in. A job for a file that a newer upload replaced does nothing.
   Recomputing a bill keeps `diffCents` in step with our total.
+
+## Rules (`apps/rules`, P2-07)
+
+The alert engine. It subscribes to `site:*:events` in Redis. Each reading ingest publishes marks
+its site for evaluation, at most once every 2 s per site. Every 15 s it also evaluates every site,
+so time-based checks fire even when nothing arrives. It never commands a device (plan rule 9);
+recommendations join it in Phase 3.
+
+Each check in `checks.ts` is a pure function of a `SiteContext`:
+- devices with their latest readings (Redis `latest:*`)
+- the gateway status (`gw:*`)
+- the last `demand` event
+- commands that are sent or recently failed
+- 5-minute PV buckets for the last 3 h
+
+Each check returns findings and the (rule, device) pairs it could judge.
+
+| Rule | Condition | Clears |
+| ---- | --------- | ------ |
+| `device-silent` | a device that has reported is silent over 5 min | it reports again |
+| `pv-underperform` | an inverter under 90% of expected for the last 24 daylight buckets (2 h) | 3 buckets (15 min) back at 90% or more |
+| `battery-below-reserve` | a fresh reading shows SoC more than 0.5 points under the reserve | SoC at the reserve |
+| `demand-near-cap` | this interval's projected demand at 90% of the cap or more | under 85% |
+| `command-ack-slow` | a command sent over 30 s ago without an ack (one alert per device) | acked or failed |
+| `command-failed` | an event: each failed command of the last 24 h | never by itself; a person resolves it |
+| `gateway-buffer` | the gateway reports buffered readings older than 1 h | the backlog is newer than 1 h |
+
+Until the PV forecast exists (P2-10), "expected" comes from the other inverters. It is this
+inverter's kWp × (their kW ÷ their kWp) in the same bucket. Buckets where the peers make under
+5% of their rating count as night and aren't judged, and a site with one inverter isn't judged.
+
+`reconcile.ts` turns findings into `alerts`, with at most one open or acked alert per (site,
+device, rule). A unique partial index enforces this, even if two rules processes race.
+- A new finding opens an alert, unless a `ruleMutes` entry covers the rule and the device (or
+  the whole site).
+- An open condition alert whose pair was judged and not found resolves itself:
+  `resolution { cause: "Condition cleared", auto: true }`.
+- Pairs that couldn't be judged leave their alerts alone. Examples: a stale battery reading, or
+  night for PV.
+- Event alerts start with `condition: "cleared"` and count each new command id once.
+- An occurrence someone already resolved doesn't reopen.
+- Opened, resolved and counted alerts are published as `alert` events on the site channel, and
+  the SSE stream forwards them.
 
 ## Live view (P1-08)
 

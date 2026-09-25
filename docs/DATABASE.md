@@ -52,6 +52,9 @@ services share them. Plain types live in `packages/shared/src/models.ts`.
 | `tariffs`        | siteId, version, validFrom (local date), name, seasons, periods, demandRateCents, demandIntervalMin (15, 30), exportRateCents, fixedCents, holidays, createdBy | {siteId, version} unique |
 | `bills`          | siteId, period (YYYY-MM), start, end, inProgress, lines {energyPk/Md/Op, demand, fixed, exportCredit}Cents, energyKwh, totalCents, peakKw, peakAt, tariffVersion, tariffVersions, intervals, estimatedShare, unpricedIntervals, savedCents and savings {baselineCents, solarCents, batteryCents, demandCents, baselinePeakKw} (null until 7 days of data), utility {status, totalCents, diffCents, source, fileId, fileName, error, uploadedBy, parsedAt}, statement {fileId, renderedAt}, computedAt | {siteId, period} unique |
 | `files.files`, `files.chunks` | GridFS bucket `files`: uploaded utility bills and rendered statements; metadata {siteId, kind, contentType, period} | — |
+| `alerts`         | siteId, deviceId, ruleId, severity, title, detail, state (open, ack, resolved), condition (active, cleared), openedAt, lastSeenAt, count, eventKeys, ackBy, ackAt, snoozedUntil, resolvedAt, resolution {cause, note, by, auto} | {siteId, deviceId, ruleId, state}; one open/acked per (siteId, deviceId, ruleId) (unique partial) |
+| `ruleMutes`      | siteId, deviceId (null: whole site), ruleId, until, by | {siteId, ruleId, until} |
+| `commands`       | siteId, deviceId, recommendationId, action, params, expiresAt, revertAt, status (created, sent, acked, failed, verified, reverted, cancelled), sentAt, ackedAt, failedAt, error, createdBy | {siteId, status} |
 | `auditEvents`    | siteId, userId (null for system actions), action, target, before, after, ts | {siteId, ts: -1} |
 
 `initModels()` creates the collections and syncs the indexes. The time-series collection has to be
@@ -63,7 +66,8 @@ created explicitly.
 safe to run repeatedly:
 
 1. v1 documents in `devices` (the ones with a `userId`) move to `legacy_devices`, which the v1
-   modules now use (model `LegacyDevice`).
+   modules now use (model `LegacyDevice`). Likewise v1 per-user `alerts` move to
+   `legacy_alerts` (model `LegacyAlert`), read by the v1 alerts routes until P2-08 replaces them.
 2. The v2 collections and indexes are created.
 3. Every user without a membership gets a site named "<name>'s site" and an owner membership,
    recorded as an audit event. The site's time zone is UTC until the owner sets it.

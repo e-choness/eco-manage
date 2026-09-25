@@ -37,7 +37,7 @@ beforeAll(() => {
   process.env.REFRESH_TOKEN_SECRET = 'contract-refresh';
   token = jwt.sign({ sub: String(userId) }, 'contract-jwt');
   // Loaded by createApp's imports; referenced here so the names are registered.
-  ['User', 'Alert', 'Recommendation'].forEach(model);
+  ['User', 'LegacyAlert', 'Recommendation'].forEach(model);
 });
 
 // Site access (P1-04): the caller is a member of one site with this role.
@@ -154,14 +154,14 @@ describe('auth', () => {
 
 describe('alerts', () => {
   it('lists alerts newest first', async () => {
-    const find = jest.spyOn(model('Alert'), 'find').mockImplementation(() => query([{ title: 'a' }]) as never);
+    const find = jest.spyOn(model('LegacyAlert'), 'find').mockImplementation(() => query([{ title: 'a' }]) as never);
     const res = await authed(request(app).get('/api/alerts'));
     expect(res.body).toEqual({ alerts: [{ title: 'a' }] });
     expect(find).toHaveBeenCalledWith({ userId: expect.anything() });
   });
 
   it('mark read: 400 without id, 404 when missing, 200 when found', async () => {
-    const update = jest.spyOn(model('Alert'), 'findOneAndUpdate');
+    const update = jest.spyOn(model('LegacyAlert'), 'findOneAndUpdate');
     expect((await authed(request(app).put('/api/alerts/read')).send({})).body).toEqual({ error: 'Missing alertId' });
 
     update.mockResolvedValueOnce(null as never);
@@ -176,7 +176,7 @@ describe('alerts', () => {
   });
 
   it('database errors become the route fallback', async () => {
-    jest.spyOn(model('Alert'), 'find').mockImplementation(() => {
+    jest.spyOn(model('LegacyAlert'), 'find').mockImplementation(() => {
       throw new Error('db down');
     });
     const res = await authed(request(app).get('/api/alerts'));

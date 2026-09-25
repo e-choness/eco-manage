@@ -1,13 +1,9 @@
 {
-  "name": "@ecomanage/simulator",
+  "name": "@ecomanage/rules",
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "exports": {
-    "./engine": "./src/engine/site.ts",
-    "./gateway": "./src/gateway.ts"
-  },
-  "description": "Simulated site and gateway: speaks the same MQTT topics as a real gateway",
+  "description": "Rules service: alert checks on every reading (P2-07); recommendations follow in Phase 3",
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts",
@@ -18,16 +14,16 @@
   },
   "license": "ISC",
   "dependencies": {
-    "@ecomanage/profiles": "workspace:*",
+    "@ecomanage/db": "workspace:*",
     "@ecomanage/shared": "workspace:*",
-    "luxon": "^3.5.0",
-    "mqtt": "^5.10.1",
+    "ioredis": "^5.4.1",
+    "mongoose": "^8.1.1",
     "pino": "^9.5.0",
     "tsx": "^4.7.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/luxon": "^3.4.2",
+    "@ecomanage/simulator": "workspace:*",
     "@types/node": "^20.11.5",
     "eslint": "^9.13.0",
     "typescript": "~5.6.2",

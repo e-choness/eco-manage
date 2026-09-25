@@ -159,20 +159,25 @@ describe('faults', () => {
     expect(readingsFor(sent, 'invB')).toHaveLength(360)
   })
 
-  it('gateway offline: buffers everything and resends it in order, in batches', () => {
+  it('gateway offline: buffers everything, reports the backlog on reconnect, and drains it in order', () => {
     const { gateway, sent, run } = makeSite(42, midday)
     gateway.addFault({ type: 'gateway-offline', minutes: 30 })
     run(1795) // 16:29:55, still offline
     expect(sent).toHaveLength(0)
     expect(gateway.bufferedCount()).toBe(9 * 359)
-    run(5) // 16:30:00, back online
-    const batches = sent.filter((s) => 'items' in (s.payload as object))
-    expect(batches).toHaveLength(9)
-    expect(sent.indexOf(batches[0])).toBe(0)
-    const meter = readingsFor(sent, 'meter')
-    expect(meter.length).toBe(360)
-    expect(meter.map((r) => r.ts)).toEqual([...meter.map((r) => r.ts)].sort())
+    run(5) // 16:30:00, back online: status first, then one batch per tick
+    expect(sent[0]).toEqual({
+      topic: topics.gatewayStatus(DEMO_SITE_ID),
+      payload: expect.objectContaining({ buffered: 9 * 359, oldestBufferedTs: '2026-09-24T16:00:05.000Z' }),
+    })
+    expect(gateway.bufferedCount()).toBe(9 * 359 - 500 + 9) // new readings queue behind the backlog
+    run(60)
     expect(gateway.bufferedCount()).toBe(0)
+    const batches = sent.filter((s) => 'items' in (s.payload as object))
+    expect(batches.every((b) => (b.payload as { items: unknown[] }).items.length <= 500)).toBe(true)
+    const meter = readingsFor(sent, 'meter')
+    expect(meter.length).toBe(359 + 13) // the backlog, then 16:30:00–16:31:00
+    expect(meter.map((r) => r.ts)).toEqual([...meter.map((r) => r.ts)].sort())
   })
 
   it('command rejected: the next command is refused, later ones work', () => {

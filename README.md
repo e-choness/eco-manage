@@ -78,6 +78,7 @@ apps/
   api/        Express + Mongoose API (modules/<name>/{routes,controller,service,model}.ts)
   ingest/     MQTT → telemetry time series, latest values, 15-minute intervals, live events
   worker/     BullMQ jobs: interval costs, bills, statement PDFs, utility bill reading
+  rules/      alert checks on every reading (opens and auto-resolves alerts)
   simulator/  simulated site + gateway (MQTT topics, commands, jobs, fault injection)
   web/        React 18 + Vite + Tailwind + shadcn/ui client
 packages/

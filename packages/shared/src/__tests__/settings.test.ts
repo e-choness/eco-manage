@@ -2,7 +2,7 @@
  * P2-06: settings schemas and calendar day types.
  */
 import { describe, expect, it } from 'vitest'
-import { DEMO_CALENDAR_INPUT, batteryPatch, calendarDayType, calendarInput, parseTopic, sitePatch, topics } from '../index'
+import { DEMO_CALENDAR_INPUT, alertKey, batteryPatch, calendarDayType, calendarInput, parseTopic, sitePatch, topics } from '../index'
 
 describe('calendarDayType', () => {
   const cal = DEMO_CALENDAR_INPUT
@@ -41,5 +41,12 @@ describe('settings schemas', () => {
 
   it('parses the gateway config topic', () => {
     expect(parseTopic(topics.gatewayConfig('650000000000000000000001'))).toEqual({ kind: 'gatewayConfig', siteId: '650000000000000000000001' })
+  })
+})
+
+describe('alert keys', () => {
+  it('name one rule and device, or the whole site', () => {
+    expect(alertKey('device-silent', 'ev3')).toBe('device-silent|ev3')
+    expect(alertKey('demand-near-cap', null)).toBe('demand-near-cap|')
   })
 })
