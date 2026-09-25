@@ -38,6 +38,8 @@ export interface IngestorOptions {
   flushMs?: number;
   batchSize?: number;
   devices?: DeviceCache;
+  /** Called for each stored reading, so closed intervals that get late data are recomputed. */
+  onReading?: (siteId: string, ts: Date, receivedAt: Date) => void;
 }
 
 type Row = { ts: Date; meta: { siteId: mongoose.Types.ObjectId; deviceId: mongoose.Types.ObjectId } } & Omit<TelemetryReading, 'ts'>;
@@ -52,6 +54,7 @@ export class Ingestor {
   private readonly log: Logger;
   private readonly batchSize: number;
   private readonly devices: DeviceCache;
+  private readonly onReading?: IngestorOptions['onReading'];
   private rows: Row[] = [];
   private lastSeen = new Map<string, Date>(); // deviceId -> received time, written on flush
   private latestTs = new Map<string, number>();
@@ -63,6 +66,7 @@ export class Ingestor {
     this.log = opts.logger;
     this.batchSize = opts.batchSize ?? 1000;
     this.devices = opts.devices ?? new DeviceCache();
+    this.onReading = opts.onReading;
     const flushMs = opts.flushMs ?? 500;
     if (flushMs > 0) {
       this.timer = setInterval(() => void this.flush(), flushMs);
@@ -129,6 +133,7 @@ export class Ingestor {
       const q = r.q === 'ok' && isBackfill(ts, receivedAt) ? 'backfilled' : r.q;
       const { ts: _ts, ...fields } = r;
       this.rows.push({ ...fields, ts, meta, q });
+      this.onReading?.(siteId, ts, receivedAt);
     }
     this.lastSeen.set(deviceId, receivedAt);
     await this.updateLatest(deviceId, fresh);

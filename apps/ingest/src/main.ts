@@ -8,6 +8,7 @@ import { initModels } from '@ecomanage/db';
 import { subscriptions } from '@ecomanage/shared';
 import { Ingestor } from './ingestor';
 import { markSilentDevices } from './stale';
+import { RollupScheduler } from './intervals';
 
 const env = z
   .object({
@@ -25,7 +26,8 @@ const main = async () => {
   await mongoose.connect(env.DATABASE_URL);
   await initModels();
   const redis = new Redis(env.REDIS_URL);
-  const ingestor = new Ingestor({ redis, logger: log });
+  const rollups = new RollupScheduler(log);
+  const ingestor = new Ingestor({ redis, logger: log, onReading: (siteId, ts, at) => rollups.markDirty(siteId, ts, at) });
 
   const client = mqtt.connect(env.MQTT_URL, {
     ca: readFileSync(`${env.MQTT_CERT_DIR}/ca.crt`),
@@ -47,11 +49,26 @@ const main = async () => {
   const watcher = setInterval(() => {
     markSilentDevices().catch((err: Error) => log.error({ err: err.message }, 'stale check failed'));
   }, 10_000);
+  // Roll up closed 15-minute intervals (and recompute backfilled ones) after the rows are written.
+  let rolling = false;
+  const roller = setInterval(async () => {
+    if (rolling) return;
+    rolling = true;
+    try {
+      await ingestor.flush();
+      await rollups.tick();
+    } catch (err) {
+      log.error({ err: (err as Error).message }, 'roll-up failed');
+    } finally {
+      rolling = false;
+    }
+  }, 15_000);
 
   setInterval(() => log.info(ingestor.stats, 'ingest stats'), 60_000).unref();
 
   const shutdown = async () => {
     clearInterval(watcher);
+    clearInterval(roller);
     client.end();
     await ingestor.stop();
     await redis.quit();

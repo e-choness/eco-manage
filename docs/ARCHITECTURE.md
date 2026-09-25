@@ -175,3 +175,21 @@ every site (QoS 1, persistent session).
   receive time, and a stale or offline device goes back to `live` (pending devices stay pending).
 - Every 10 s, devices silent for 60 s become `stale` and after 5 min `offline`.
 - Gateway status goes to `gw:{siteId}` and device status to `status:{deviceId}` in Redis.
+
+### 15-minute intervals (`apps/ingest/src/intervals.ts`)
+
+Every 15 s ingest flushes its rows and rolls up each closed interval (30 s grace for readings in
+flight) into `intervals15`, one row per site and quarter hour (upsert):
+
+- Energy per device is the difference of its cumulative counters at the two boundaries. The last
+  reading within 60 s before a boundary is carried forward to it using that reading's power.
+- `grid`/`export` come from the meter's import/export counters, and `demandKw` = import kWh × 4.
+  `pv`, `batt` (discharge minus charge), `ev` and `hp` come from their devices. `bld` is the
+  remainder (grid − export + pv + batt − ev − hp), and `used` = pv − export.
+- If a device has readings but no counter at a boundary, average power × 0.25 h is used and
+  the interval is `estimated`. If the meter is silent for the whole interval, grid comes from
+  the balance using the previous interval's building load (`estimated`).
+- A reading stored for an interval that has already closed (a gateway resend) marks it dirty,
+  and it is recomputed on the next pass; so is the following interval if it was estimated.
+- After a restart it resumes from the last stored interval, or from the site's first reading,
+  catching up at most a week at a time.
