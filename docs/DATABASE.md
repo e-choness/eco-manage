@@ -58,8 +58,9 @@ services share them. Plain types live in `packages/shared/src/models.ts`.
 | `commands`       | siteId, deviceId, recommendationId, alertId, action, params, expiresAt, revertAt, status (created, sent, acked, failed, verified, reverted, cancelled), sentAt, ackedAt, failedAt, error, createdBy | {siteId, status} |
 | `notificationPrefs` | userId, siteId, email, alerts, daily, recs, failures, quietFrom, quietTo (HH:mm or null), escalateMin | {userId, siteId} unique |
 | `ruleConfigs`    | siteId, ruleId (a recommendation rule, or `approval`), on, params, updatedBy | {siteId, ruleId} unique |
+| `fleetVehicles`  | siteId, name, rfid (the charger idTag), capacityKwh, departure (local HH:mm) | {siteId, rfid} unique |
 | `recommendations` | siteId, ruleId (or `manual`), dedupeKey, deviceId, action, params, title, window {start, end}, inputs [{label, value}], checks [{text, pass}], calc, expectedSavingCents, status (proposed, approved, declined, expired, sent, acked, verified, failed, reverted, cancelled), proposedAt, expiresAt, decidedBy, decidedAt, declineReason, commandId, actualSavingCents, createdBy | {siteId, status}, dedupeKey; one open per (siteId, dedupeKey) (unique partial) |
-| `forecasts`      | siteId, kind (pv, load), issuedAt, source, points [{ts, kw}] (48 h, 15 min), weather [{ts, tempC, cloud}] (PV), profiles [{date, label, days}] (load), accuracy {mape, n, evaluatedAt} | {siteId, kind, issuedAt: -1}; expires after 30 days |
+| `forecasts`      | siteId, kind (pv, load), issuedAt, source, points [{ts, kw}] (48 h, 15 min), weather [{ts, tempC, cloud, storm}] (PV), profiles [{date, label, days}] (load), accuracy {mape, n, evaluatedAt} | {siteId, kind, issuedAt: -1}; expires after 30 days |
 | `emails`         | key (unique claim), siteId, userId, kind (alert, escalation, daily, proposal), alertId, to, subject, status (sending, sent), sentAt, messageId | key unique, {siteId, createdAt: -1} |
 | `auditEvents`    | siteId, userId (null for system actions), action, target, before, after, ts | {siteId, ts: -1} |
 

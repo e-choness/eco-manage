@@ -8,6 +8,7 @@ export interface WeatherPoint {
   ts: Date;
   tempC: number;
   cloud: number; // share of clear-sky irradiance that gets through, 0–1
+  storm: boolean; // a severe-weather (thunderstorm) warning
 }
 
 export interface WeatherSource {
@@ -26,7 +27,7 @@ export const simulatedWeather = (seed: number): WeatherSource => ({
 type Fetch = (url: string) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
 interface OpenMeteoHourly {
-  hourly: { time: string[]; temperature_2m: number[]; cloud_cover: number[] };
+  hourly: { time: string[]; temperature_2m: number[]; cloud_cover: number[]; weather_code?: number[] };
 }
 
 /**
@@ -39,7 +40,7 @@ export const openMeteoWeather = (fetchFn: Fetch = fetch as unknown as Fetch, bas
     if (!instants.length) return [];
     const first = Math.min(...instants.map((t) => t.getTime()));
     const pastDays = Math.min(92, Math.max(0, Math.ceil((Date.now() - first) / 86_400_000) + 1));
-    const url = `${baseUrl}?latitude=${site.lat}&longitude=${site.lon}&hourly=temperature_2m,cloud_cover&timezone=UTC&past_days=${pastDays}&forecast_days=3`;
+    const url = `${baseUrl}?latitude=${site.lat}&longitude=${site.lon}&hourly=temperature_2m,cloud_cover,weather_code&timezone=UTC&past_days=${pastDays}&forecast_days=3`;
     const res = await fetchFn(url);
     if (!res.ok) throw new Error(`open-meteo answered ${res.status}`);
     const { hourly } = (await res.json()) as OpenMeteoHourly;
@@ -51,7 +52,9 @@ export const openMeteoWeather = (fetchFn: Fetch = fetch as unknown as Fetch, bas
       const [a, b] = [i - 1, i];
       const w = Math.min(1, Math.max(0, (t - times[a]) / (times[b] - times[a])));
       const lerp = (xs: number[]) => xs[a] + (xs[b] - xs[a]) * w;
-      return { ts, tempC: lerp(hourly.temperature_2m), cloud: cloudFromCover(lerp(hourly.cloud_cover)) };
+      // WMO codes 95–99 are thunderstorms: the nearest hour decides.
+      const code = hourly.weather_code?.[w < 0.5 ? a : b] ?? 0;
+      return { ts, tempC: lerp(hourly.temperature_2m), cloud: cloudFromCover(lerp(hourly.cloud_cover)), storm: code >= 95 };
     });
   },
 });

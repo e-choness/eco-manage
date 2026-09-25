@@ -77,9 +77,9 @@ describe('GET /api/forecast', () => {
     const res = await as('manager', request(app).get('/api/forecast'));
     expect(res.body.issuedAt).toEqual({ pv: issued.toISOString(), load: issued.toISOString() });
     expect(res.body.points).toEqual([
-      { ts: at(0).toISOString(), pvKw: 30, loadKw: 80, netKw: 50, tempC: 24, cloud: 0.91 },
-      { ts: at(1).toISOString(), pvKw: 31, loadKw: 80, netKw: 49, tempC: 24, cloud: 0.91 },
-      { ts: at(2).toISOString(), pvKw: null, loadKw: 80, netKw: null, tempC: null, cloud: null },
+      { ts: at(0).toISOString(), pvKw: 30, loadKw: 80, netKw: 50, tempC: 24, cloud: 0.91, storm: false },
+      { ts: at(1).toISOString(), pvKw: 31, loadKw: 80, netKw: 49, tempC: 24, cloud: 0.91, storm: false },
+      { ts: at(2).toISOString(), pvKw: null, loadKw: 80, netKw: null, tempC: null, cloud: null, storm: null },
     ]);
     expect(res.body.profiles).toEqual([{ date: '2026-09-24', label: 'Thursday open-day profile', days: 6 }]);
     expect(res.body.accuracy).toEqual({ pv: null, load: { mape: 8.4, n: 90, issuedAt: at(-100).toISOString() } });

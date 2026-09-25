@@ -358,6 +358,33 @@ Once per quarter hour (:00, :15, :30, :45 site time; every time zone is a whole 
 - **Proposal emails:** the worker's email job emails the approvers named in the approval settings who have "New proposals" on. Quiet hours apply.
 - **Rules only propose:** nothing in this service talks to a device.
 
+The six App v2 rules (P3-02) live in `src/recs/rules`, with defaults from Settings → Rules (`RULE_DEFAULTS`). Each proposal's params are exactly the device profile's action params, so approving one turns it straight into a command.
+- **Peak shaving** (`force_discharge {kw, until}`):
+  - Triggers when the forecast net load (load − solar) in the next tariff peak period goes over cap − margin.
+  - The window covers the steps that go over. kW = ⌈(peak − cap) / 5⌉ × 5 + margin, at most `maxKw`.
+  - Checks: state of charge at the window end ≥ the minimum for the day class; within the kW limit; new peak ≤ cap.
+  - Saving: (forecast peak − max(month peak, new peak)) × demand rate.
+  - One proposal per battery and tariff peak period.
+- **EV off-peak** (`set_charging_profile`: 0 A now, 32 A from the cheapest price before departure, until departure):
+  - Triggers when a fleet vehicle (`fleetVehicles`, by RFID) is charging in mid or peak hours, and its usual energy (+ buffer) fits the cheap hours before it leaves.
+  - Usual energy is the average of its last 10 sessions started within ±2 h of this one's time of day, from telemetry.
+  - Saving: energy that would have gone in now × (rate now − cheap rate).
+  - One proposal per session.
+- **EV limit near cap** (`limit_current {amps, until}`):
+  - Triggers when the 15-minute projection is within `withinPct` of the cap while EVs charge.
+  - Limits the busiest charger (never below `minA`) for this interval and the next.
+  - It must be decided within 10 minutes.
+- **Heat pump pre-condition** (`sg_schedule`: boost, block, back to normal):
+  - Triggers when a peak period starts within 2 h and the heat pump is running.
+  - Boost `boostMin` before, then block for up to `blockMin`.
+  - Only time limits are used; nothing is claimed about comfort.
+- **Storm reserve** (`set_reserve {pct}`, until the warning ends):
+  - Triggers on a thunderstorm warning in the forecast weather within `leadH`: seeded in the simulated profile, or WMO codes 95–99 from Open-Meteo.
+  - It can be approved any time before the storm, and it has no bill saving.
+- **Zero export at low prices** (`export_limit {pct}` on the largest inverter, at most 4 h):
+  - Triggers when the export rate is at or below `belowCents` and the forecast shows a surplus the battery can't take.
+- Every rule is a pure function of the context. The tests give each rule fixtures for triggering, for no trigger and for a failing check.
+
 ## Live view (P1-08)
 
 ```mermaid

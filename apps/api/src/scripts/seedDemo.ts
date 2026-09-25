@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { DEMO_CALENDAR_INPUT, DEMO_DEVICES, DEMO_SITE, DEMO_SITE_ID, DEMO_USERS, TARIFF_TEMPLATES } from '@ecomanage/shared';
-import { Alert as SiteAlert, Bill, Calendar, Command, Email, Maintenance, NotificationPrefs, Recommendation as SiteRecommendation, RuleConfig, RuleMute, Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, deleteSiteFiles, initModels } from '@ecomanage/db';
+import { Alert as SiteAlert, Bill, Calendar, Command, Email, FleetVehicle, Maintenance, NotificationPrefs, Recommendation as SiteRecommendation, RuleConfig, RuleMute, Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, deleteSiteFiles, initModels } from '@ecomanage/db';
 import User from '../modules/auth/model';
 import Recommendation from '../modules/optimization/model';
 import { generatePasswordHash } from '../utils/password';
@@ -57,6 +57,7 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       Email.deleteMany({ siteId: DEMO_SITE_ID }),
       SiteRecommendation.deleteMany({ siteId: DEMO_SITE_ID }),
       RuleConfig.deleteMany({ siteId: DEMO_SITE_ID }),
+      FleetVehicle.deleteMany({ siteId: DEMO_SITE_ID }),
       RuleMute.deleteMany({ siteId: DEMO_SITE_ID }),
       Command.deleteMany({ siteId: DEMO_SITE_ID }),
       deleteSiteFiles(DEMO_SITE_ID),
@@ -170,6 +171,11 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       }
     );
     await Calendar.create({ siteId: DEMO_SITE_ID, ...DEMO_CALENDAR_INPUT });
+    // The school buses charge on EV chargers 1 and 4 (the simulator's BUS-1 and BUS-2 sessions).
+    await FleetVehicle.create([
+      { siteId: DEMO_SITE_ID, name: 'Bus 1', rfid: 'BUS-1', capacityKwh: 150, departure: '07:00' },
+      { siteId: DEMO_SITE_ID, name: 'Bus 2', rfid: 'BUS-2', capacityKwh: 150, departure: '07:00' },
+    ]);
 
     // Alerts and maintenance notes as App v2 shows them (P2-08). Alerts whose condition no longer
     // holds on the simulator are closed by the rules service as soon as it next evaluates the site.

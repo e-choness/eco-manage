@@ -25,6 +25,15 @@
       },
       "maxDurationMin": 120
     },
+    "sg_schedule": {
+      "description": "SG-Ready modes by time (e.g. boost before a peak, then block during it), then normal",
+      "message": "relays",
+      "params": {
+        "schedule": { "type": "schedule" },
+        "validTo": { "type": "time" }
+      },
+      "maxDurationMin": 240
+    },
     "setpoint_offset": {
       "description": "Shift the flow temperature setpoint",
       "reg": 40020,

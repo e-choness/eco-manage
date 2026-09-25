@@ -103,3 +103,22 @@ describe('weather', () => {
     expect(cloudFromCover(150)).toBeCloseTo(0.25)
   })
 })
+
+describe('thunderstorm warnings', () => {
+  const TZ = 'America/Toronto'
+  const dayAt = (date: string, hourLocal: number) => new Date(Date.parse(`${date}T00:00:00Z`) + (hourLocal + 4) * 3_600_000) // EDT
+
+  it('come on about one summer day in 25, from 15:00 to 19:00', () => {
+    const days = Array.from({ length: 200 }, (_, i) => new Date(Date.parse('2026-04-01T12:00:00Z') + i * 86_400_000).toISOString().slice(0, 10))
+    const stormy = days.filter((d) => weatherAt(dayAt(d, 16), TZ, 42).storm)
+    expect(stormy.length).toBeGreaterThan(2)
+    expect(stormy.length).toBeLessThan(20)
+    const d = stormy[0]
+    expect([12, 14, 15, 18, 19].map((h) => weatherAt(dayAt(d, h), TZ, 42).storm)).toEqual([false, false, true, true, false])
+  })
+
+  it('never come in winter', () => {
+    const winter = Array.from({ length: 90 }, (_, i) => new Date(Date.parse('2026-11-01T21:00:00Z') + i * 86_400_000))
+    expect(winter.some((at) => weatherAt(at, TZ, 42).storm)).toBe(false)
+  })
+})

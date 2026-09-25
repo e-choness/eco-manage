@@ -251,7 +251,7 @@ The signed-in person's email settings for this site (App v2 Settings → Notific
 
 `GET /` returns the latest PV and load forecasts from the current 15-minute step, 48 h ahead (type `ForecastView`):
 
-- `points [{ ts, pvKw, loadKw, netKw, tempC, cloud }]`. `netKw` = load − PV is what the grid and the battery must cover.
+- `points [{ ts, pvKw, loadKw, netKw, tempC, cloud, storm }]` (`storm`: a thunderstorm warning in force). `netKw` = load − PV is what the grid and the battery must cover.
 - `issuedAt { pv, load }` and `source` (the weather source).
 - `profiles [{ date, label, days }]`: which history each day's load comes from, e.g. `Thursday open-day profile`, 6 days.
 - `accuracy { pv, load }`: the latest day-ahead MAPE, `{ mape, n, issuedAt }`, or null.

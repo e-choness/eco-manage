@@ -21,14 +21,15 @@ export const getForecast = async (site: SiteDoc, now = new Date()): Promise<Fore
   const from = Math.floor(now.getTime() / STEP_MS) * STEP_MS;
   const steps = new Map<number, ForecastPoint>();
   const at = (t: number) => {
-    const p = steps.get(t) ?? { ts: new Date(t).toISOString(), pvKw: null, loadKw: null, netKw: null, tempC: null, cloud: null };
+    const p = steps.get(t) ?? { ts: new Date(t).toISOString(), pvKw: null, loadKw: null, netKw: null, tempC: null, cloud: null, storm: null };
     steps.set(t, p);
     return p;
   };
   for (const p of pv?.points ?? []) if (p.ts!.getTime() >= from) at(p.ts!.getTime()).pvKw = p.kw ?? null;
   for (const p of load?.points ?? []) if (p.ts!.getTime() >= from) at(p.ts!.getTime()).loadKw = p.kw ?? null;
   for (const w of pv?.weather ?? [])
-    if (w.ts!.getTime() >= from) Object.assign(at(w.ts!.getTime()), { tempC: w.tempC != null ? Math.round(w.tempC * 10) / 10 : null, cloud: w.cloud != null ? r2(w.cloud) : null });
+    if (w.ts!.getTime() >= from)
+      Object.assign(at(w.ts!.getTime()), { tempC: w.tempC != null ? Math.round(w.tempC * 10) / 10 : null, cloud: w.cloud != null ? r2(w.cloud) : null, storm: w.storm ?? false });
   const points = [...steps.values()]
     .sort((a, b) => a.ts.localeCompare(b.ts))
     .map((p) => ({ ...p, netKw: p.loadKw !== null && p.pvKw !== null ? r2(p.loadKw - p.pvKw) : null }));
