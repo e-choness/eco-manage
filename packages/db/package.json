@@ -1,0 +1,30 @@
+{
+  "name": "@ecomanage/db",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mongoose models for the v2 data model, shared by the API and the services",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@ecomanage/shared": "workspace:*"
+  },
+  "peerDependencies": {
+    "mongoose": "^8.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.13.0",
+    "mongoose": "^8.1.1",
+    "typescript": "~5.6.2",
+    "vitest": "^1.6.1"
+  }
+}

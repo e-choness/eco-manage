@@ -59,6 +59,8 @@ const schema = new Schema<IDevice>(
   { timestamps: true }
 );
 
-const Device = mongoose.model<IDevice>('Device', schema);
+// v1 per-user devices. The v2 Device model (packages/db) owns the `devices` collection; the
+// v2 migration moves v1 documents here until P1-10 removes the v1 modules.
+const Device = mongoose.model<IDevice>('LegacyDevice', schema, 'legacy_devices');
 
 export default Device;

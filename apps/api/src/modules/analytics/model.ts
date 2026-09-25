@@ -14,7 +14,7 @@ const schema = new Schema<IEnergyReading>(
   {
     deviceId: {
       type: Schema.Types.ObjectId,
-      ref: 'Device',
+      ref: 'LegacyDevice',
       required: true,
       index: true,
     },

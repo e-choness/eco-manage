@@ -37,7 +37,7 @@ beforeAll(() => {
   process.env.REFRESH_TOKEN_SECRET = 'contract-refresh';
   token = jwt.sign({ sub: String(userId) }, 'contract-jwt');
   // Loaded by createApp's imports; referenced here so the names are registered.
-  ['User', 'Alert', 'Device', 'EnergyReading', 'FinancialRecord', 'Recommendation', 'Weather'].forEach(model);
+  ['User', 'Alert', 'LegacyDevice', 'EnergyReading', 'FinancialRecord', 'Recommendation', 'Weather'].forEach(model);
 });
 
 beforeEach(() => {
@@ -189,7 +189,7 @@ describe('devices', () => {
   });
 
   it('creates with defaults', async () => {
-    const create = jest.spyOn(model('Device'), 'create').mockResolvedValue({ name: 'PV' } as never);
+    const create = jest.spyOn(model('LegacyDevice'), 'create').mockResolvedValue({ name: 'PV' } as never);
     const res = await authed(request(app).post('/api/devices')).send({ name: 'PV', type: 'solar' });
     expect(res.status).toBe(201);
     expect(create).toHaveBeenCalledWith(
@@ -198,7 +198,7 @@ describe('devices', () => {
   });
 
   it('lists devices', async () => {
-    jest.spyOn(model('Device'), 'find').mockImplementation(() => query([{ name: 'PV' }]) as never);
+    jest.spyOn(model('LegacyDevice'), 'find').mockImplementation(() => query([{ name: 'PV' }]) as never);
     expect((await authed(request(app).get('/api/devices'))).body).toEqual({ devices: [{ name: 'PV' }] });
   });
 });
