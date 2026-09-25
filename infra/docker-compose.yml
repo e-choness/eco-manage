@@ -13,6 +13,7 @@ x-workspace: &workspace
     - /repo/node_modules
     - /repo/apps/api/node_modules
     - /repo/apps/web/node_modules
+    - /repo/packages/shared/node_modules
   environment: &workspace-env
     # Windows bind mounts don't deliver file events reliably, so the watchers poll.
     CHOKIDAR_USEPOLLING: "true"
