@@ -73,6 +73,7 @@ export const loadContext = async (siteId: string, { redis, now, demand, live, pv
       type: d.type,
       status: d.status,
       lastSeenAt: d.lastSeenAt ?? null,
+      addedAt: (d as unknown as { createdAt?: Date }).createdAt ?? null,
       latest: parse<TelemetryReading>(latestRaw[i] ?? null),
     })),
     gateway: gw ? { buffered: gw.buffered ?? 0, oldestBufferedTs: gw.oldestBufferedTs ?? null, receivedAt: gw.receivedAt } : null,

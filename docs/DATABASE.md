@@ -56,6 +56,8 @@ services share them. Plain types live in `packages/shared/src/models.ts`.
 | `ruleMutes`      | siteId, deviceId (null: whole site), ruleId, until, by, alertId, review (a false alarm flags the threshold) | {siteId, ruleId, until} |
 | `maintenance`    | siteId, deviceId, at, by, source (visit, alert), text, alertId | {siteId, deviceId, at: -1} |
 | `commands`       | siteId, deviceId, recommendationId, alertId, action, params, expiresAt, revertAt, status (created, sent, acked, failed, verified, reverted, cancelled), sentAt, ackedAt, failedAt, error, createdBy | {siteId, status} |
+| `notificationPrefs` | userId, siteId, email, alerts, daily, recs, failures, quietFrom, quietTo (HH:mm or null), escalateMin | {userId, siteId} unique |
+| `emails`         | key (unique claim), siteId, userId, kind (alert, escalation, daily), alertId, to, subject, status (sending, sent), sentAt, messageId | key unique, {siteId, createdAt: -1} |
 | `auditEvents`    | siteId, userId (null for system actions), action, target, before, after, ts | {siteId, ts: -1} |
 
 `initModels()` creates the collections and syncs the indexes. The time-series collection has to be

@@ -233,6 +233,20 @@ Body (`tariffInput` in `@ecomanage/shared`): `name`, `validFrom` (local date), `
 - The load forecast (P2-10) reads the calendar.
 - Changes are audited as `calendar.update`.
 
+## Notifications `/api/me/notifications` 🔒 all roles (P2-09)
+
+The signed-in person's email settings for this site (App v2 Settings → Notifications).
+
+| Method | Path | Result |
+| ------ | ---- | ------ |
+| GET | `/notifications` | `{ email, alerts, daily, recs, failures, quietFrom, quietTo, escalateMin }` |
+| PATCH | `/notifications` | Any of those fields → the saved settings; audited as `notifications.update` |
+
+- **Defaults:** email goes to the sign-in address, everything is on, quiet hours are 22:00–06:30, and escalation is after 30 min.
+- **Quiet hours:** `quietFrom`/`quietTo` are local `HH:mm` and are set together; `null` for both turns quiet hours off.
+- **`escalateMin`:** 5 to 1440.
+- **Command failures:** always on for owners and managers. `failures: false` from either answers `422`.
+
 ## Bills `/api/bills` 🔒 (P2-03 to P2-05)
 
 The worker computes one bill per billing period (see ARCHITECTURE, Worker). Money is whole cents.

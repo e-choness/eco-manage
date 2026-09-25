@@ -98,11 +98,15 @@ services:
       <<: *workspace-env
       DATABASE_URL: mongodb://mongodb:27017/ecomanage
       REDIS_URL: redis://redis:6379
+      SMTP_URL: smtp://mailpit:1025
+      APP_URL: http://localhost:5173
     depends_on:
       mongodb:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     restart: unless-stopped
 
   # Alert checks on every reading (P2-07); recommendations follow in Phase 3.
@@ -156,6 +160,15 @@ services:
       timeout: 3s
       retries: 12
       start_period: 5s
+    restart: unless-stopped
+
+  # Catches every email in development (P2-09): web UI and API at http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports:
+      - "8025:8025"
+    environment:
+      MP_MAX_MESSAGES: 2000
     restart: unless-stopped
 
   mongodb:

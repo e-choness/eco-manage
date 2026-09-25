@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { DEMO_CALENDAR_INPUT, DEMO_DEVICES, DEMO_SITE, DEMO_SITE_ID, DEMO_USERS, TARIFF_TEMPLATES } from '@ecomanage/shared';
-import { Alert as SiteAlert, Bill, Calendar, Command, Maintenance, RuleMute, Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, deleteSiteFiles, initModels } from '@ecomanage/db';
+import { Alert as SiteAlert, Bill, Calendar, Command, Email, Maintenance, NotificationPrefs, RuleMute, Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, deleteSiteFiles, initModels } from '@ecomanage/db';
 import User from '../modules/auth/model';
 import Recommendation from '../modules/optimization/model';
 import { generatePasswordHash } from '../utils/password';
@@ -53,6 +53,8 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       Calendar.deleteMany({ siteId: DEMO_SITE_ID }),
       SiteAlert.deleteMany({ siteId: DEMO_SITE_ID }),
       Maintenance.deleteMany({ siteId: DEMO_SITE_ID }),
+      NotificationPrefs.deleteMany({ siteId: DEMO_SITE_ID }),
+      Email.deleteMany({ siteId: DEMO_SITE_ID }),
       RuleMute.deleteMany({ siteId: DEMO_SITE_ID }),
       Command.deleteMany({ siteId: DEMO_SITE_ID }),
       deleteSiteFiles(DEMO_SITE_ID),
