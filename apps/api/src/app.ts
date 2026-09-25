@@ -12,6 +12,8 @@ import optimizationRoutes from './modules/optimization/routes';
 import { siteRoutes } from './modules/site/routes';
 import tariffRoutes from './modules/tariffs/routes';
 import { billsRoutes } from './modules/bills/routes';
+import calendarRoutes from './modules/calendar/routes';
+import type { GatewayLink } from './lib/gatewayLink';
 import type { JobClient } from './lib/jobs';
 import type { SiteEventHub } from './lib/siteEvents';
 
@@ -23,9 +25,11 @@ export interface AppDeps {
   sseHeartbeatMs?: number;
   /** Worker jobs (statements, utility bills); absent without Redis. */
   jobs?: JobClient;
+  /** MQTT to gateways (retained config); absent without a broker. */
+  gateway?: GatewayLink;
 }
 
-export const createApp = ({ env, redis, hub, jobs, logger = defaultLogger, sseHeartbeatMs }: AppDeps): Express => {
+export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogger, sseHeartbeatMs }: AppDeps): Express => {
   const app = express();
   const window = env.RATE_LIMIT_WINDOW_MS;
 
@@ -48,9 +52,10 @@ export const createApp = ({ env, redis, hub, jobs, logger = defaultLogger, sseHe
   app.use('/api/alerts', alertRoutes);
   app.use('/api/devices', devicesRoutes(redis));
   app.use('/api/optimization', optimizationRoutes);
-  app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs }));
+  app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs, gateway }));
   app.use('/api/tariffs', tariffRoutes);
   app.use('/api/bills', billsRoutes(jobs));
+  app.use('/api/calendar', calendarRoutes);
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: 404, message: 'Not found' } });

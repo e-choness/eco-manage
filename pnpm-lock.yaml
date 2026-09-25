@@ -74,6 +74,9 @@ importers:
       mongoose:
         specifier: ^8.1.1
         version: 8.24.4(socks@2.8.10)
+      mqtt:
+        specifier: ^5.10.1
+        version: 5.16.0
       multer:
         specifier: ^2.0.2
         version: 2.4.0

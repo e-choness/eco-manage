@@ -164,6 +164,15 @@ handling as a real one, so the backend can't tell the two apart.
 With seed 42 on 24 Sep 2026, a school day, the uncontrolled 15-minute grid peak is 130 kW at
 15:15, matching the App v2 peak-shaving story.
 
+### Gateway config (P2-06)
+
+The API connects with the `svc-api` certificate. Its ACL may write `site/+/config`. It publishes
+the retained `site/{siteId}/config` message `{ ts, batteryFloorPct }` when the battery floor
+changes in Settings. A gateway gets the message on every (re)subscribe and enforces the floor
+itself: no reserve or command may go below it. The simulator applies it even while its simulated
+uplink is down. If the broker is unreachable, the site is flagged `gatewayConfigPending`, and the
+API sends the config again on its next connect.
+
 ## Ingest (`apps/ingest`)
 
 Subscribes with the `svc-ingest` certificate to telemetry, device status and gateway status for

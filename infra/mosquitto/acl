@@ -9,6 +9,7 @@ topic read site/+/job/+/result
 user svc-api
 topic write site/+/cmd/+
 topic write site/+/job/+
+topic write site/+/config
 topic read site/+/cmd/+/ack
 topic read site/+/job/+/result
 topic read site/+/gw/status

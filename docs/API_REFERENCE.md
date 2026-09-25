@@ -118,7 +118,25 @@ Errors: `400 {"error":"Missing recommendationId"}`, `404 {"error":"Recommendatio
 Each v1 route answers unexpected failures with its own `500` body, for example
 `{"error":"Failed to fetch alerts"}` or `{"message":"Failed to get user"}`.
 
-## Site (v2) `/api/site` 🔒 all roles
+## Site (v2) `/api/site` 🔒
+
+### Settings (P2-06)
+
+| Method | Path | Roles | Body → result |
+| ------ | ---- | ----- | ------------- |
+| GET | `/` | all | `SiteSettings`: id, name, address, tz, lat, lon, currency, billDay, demandCapKw, `pvArrays[]`, `battery { deviceId, usableKwh, maxKw, floorPct }` or null |
+| PATCH | `/` | owner | Any of name, address, tz (IANA), lat, lon, currency (CAD, USD, EUR, GBP, AUD), billDay (1–28), demandCapKw → `SiteSettings` |
+| PUT | `/pv-arrays` | owner, installer | The whole table `[{ id?, name, inverterId, kwp, tiltDeg (0–90), azimuthDeg (0–360, 180 = south) }]` → `SiteSettings`. New arrays get an id; `422` with `details.issues` if an `inverterId` isn't one of the site's inverters |
+| PATCH | `/battery` | owner, installer | Any of usableKwh, maxKw, floorPct (≥ 10) → `SiteSettings` + `gatewaySync: sent \| pending \| unchanged` |
+| GET | `/gateway` | all | `{ id, online (reported in the last 90 s), fw, uptimeS, buffered, oldestBufferedTs, clockOffsetMs, lastSeenAt, bufferDays: 7, batteryFloorPct, configPending }` |
+
+- Validation errors answer `400 { error: { code, message, details: { issues: [{ path, message }] } } }`.
+- Usable capacity and maximum power are stored on the battery device. The floor is stored on the
+  site and published to the gateway as the retained `site/{siteId}/config` message
+  (`{ ts, batteryFloorPct }`). If the broker can't be reached, `gatewaySync` is `pending`, and the
+  API sends the config again when it reconnects.
+- Every change is audited: `site.update` records only the changed fields, and there are also `site.pv-arrays` and `site.battery`.
+
 
 ### `GET /snapshot`
 Everything the live view needs on load (type `SiteSnapshot` in `@ecomanage/shared`):
@@ -174,6 +192,21 @@ Body (`tariffInput` in `@ecomanage/shared`): `name`, `validFrom` (local date), `
 - `validFrom` may not be before the start of the current billing period, so a closed bill never
   changes. Rates are cents per kWh (fractions allowed); money totals are whole cents.
 - The version in force on a day is the one with the latest `validFrom` on or before it.
+
+## Calendar `/api/calendar` 🔒 (P2-06)
+
+| Method | Path | Roles | Result |
+| ------ | ---- | ----- | ------ |
+| GET | `/` | all | `{ terms[], daysOff[], open, close, weekends, updatedAt }` |
+| PUT | `/` | owner, manager | Replaces the calendar with the same shape (without `updatedAt`) |
+
+- `terms` and `daysOff` are `[{ name, start, end }]` in local dates, with start ≤ end. They are stored in start order.
+- `open` and `close` are the weekday opening hours (`HH:mm`, open before close).
+- `weekends` is `closed` or `open`.
+- A site without a calendar answers with an empty one (weekends closed, 08:00–17:00).
+- A day is in use if it is in a term, is not a day off, and is not a weekend (unless weekends are open). The shared helper is `calendarDayType`.
+- The load forecast (P2-10) reads the calendar.
+- Changes are audited as `calendar.update`.
 
 ## Bills `/api/bills` 🔒 (P2-03 to P2-05)
 

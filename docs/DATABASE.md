@@ -41,7 +41,8 @@ services share them. Plain types live in `packages/shared/src/models.ts`.
 
 | Collection       | Key fields | Indexes |
 | ---------------- | ---------- | ------- |
-| `sites`          | name, address, tz, lat, lon, currency, billDay (1–28), demandCapKw, gatewayId | — |
+| `sites`          | name, address, tz, lat, lon, currency, billDay (1–28), demandCapKw, gatewayId, pvArrays [{id, name, inverterId, kwp, tiltDeg, azimuthDeg}], batteryFloorPct (≥ 10, enforced by the gateway), gatewayConfigPending | — |
+| `calendars`      | siteId, terms [{name, start, end}], daysOff [{name, start, end}], open, close (HH:mm), weekends (closed, open), updatedBy | siteId unique |
 | `memberships`    | userId, siteId, role (owner, manager, installer), until | {userId, siteId} unique, siteId |
 | `invites`        | siteId, email, role, until, tokenHash, expiresAt, acceptedAt | tokenHash |
 | `devices`        | siteId, type (pv, battery, meter, submeter, ev, heatpump, gateway), name, profileId, address, role, status (pending, live, stale, offline), ratedKw, capacityKwh, lastSeenAt, commissionedAt/By | siteId |

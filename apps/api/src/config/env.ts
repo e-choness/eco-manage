@@ -23,6 +23,9 @@ const schema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
+  // MQTT to gateways (svc-api certificate). Without it, gateway config is queued as pending.
+  MQTT_URL: z.string().optional(),
+  MQTT_CERT_DIR: z.string().default('/repo/infra/mosquitto/certs'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

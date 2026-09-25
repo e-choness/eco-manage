@@ -12,3 +12,4 @@ export * from './api/devices';
 export * from './tariff';
 export * from './billing';
 export * from './jobs';
+export * from './api/settings';

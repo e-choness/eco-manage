@@ -1,7 +1,7 @@
 # Testing
 
-All suites run inside the dev container. As of P2-05: **api 254, web 49, ingest 27, simulator 21,
-shared 64, profiles 12, db 10, worker 25**, all passing. Lint and typecheck also pass. The api,
+All suites run inside the dev container. As of P2-06: **api 277, web 49, ingest 27, simulator 23,
+shared 83, profiles 12, db 10, worker 17**, all passing. Lint and typecheck also pass. The api,
 ingest, db and worker suites need the compose MongoDB (and Redis for api/ingest).
 
 ```bash

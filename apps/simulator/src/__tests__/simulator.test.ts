@@ -253,6 +253,32 @@ describe('commands', () => {
   })
 })
 
+describe('gateway config (P2-06)', () => {
+  const t0 = new Date('2026-09-24T18:00:00Z')
+  it('takes the battery floor from the retained config and keeps the reserve above it', () => {
+    const { engine, gateway } = makeSite(42, t0)
+    expect(engine.batteryState()).toMatchObject({ floorPct: 10, reservePct: 20 })
+    gateway.handleMessage(topics.gatewayConfig(DEMO_SITE_ID), { ts: t0.toISOString(), batteryFloorPct: 30 })
+    expect(engine.batteryState()).toMatchObject({ floorPct: 30, reservePct: 30 })
+    // A reserve command can't go below the new floor
+    gateway.handleMessage(topics.command(DEMO_SITE_ID, 'r1'), {
+      deviceId: dev('bat').id,
+      action: 'set_reserve',
+      params: { pct: 15 },
+      expiresAt: new Date(t0.getTime() + 60_000).toISOString(),
+      revertAt: null,
+    })
+    expect(engine.batteryState().reservePct).toBe(30)
+  })
+
+  it('ignores config for other sites and malformed config', () => {
+    const { engine, gateway } = makeSite(42, t0)
+    gateway.handleMessage(topics.gatewayConfig('650000000000000000000099'), { ts: t0.toISOString(), batteryFloorPct: 30 })
+    gateway.handleMessage(topics.gatewayConfig(DEMO_SITE_ID), { batteryFloorPct: 'lots' })
+    expect(engine.batteryState().floorPct).toBe(10)
+  })
+})
+
 describe('jobs', () => {
   it('scan finds the kitchen sub-meter, commission makes it report', () => {
     const { gateway, sent, run } = makeSite(42, new Date('2026-09-24T16:30:00Z'))

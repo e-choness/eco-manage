@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   commandMessage,
+  gatewayConfigMessage,
   jobMessage,
   parseTopic,
   topics,
@@ -170,12 +171,25 @@ export class Gateway {
     this.publish(topics.commandAck(this.siteId, commandId), { ok, ts: this.engine.now.toISOString(), ...(error ? { error } : {}) });
   }
 
-  /** Handles a message the gateway is subscribed to (commands and jobs for its site). */
+  /** Handles a message the gateway is subscribed to (commands, jobs and config for its site). */
   handleMessage(topic: string, payload: unknown): void {
+    if (this.handleConfig(topic, payload)) return;
     const t = parseTopic(topic);
     if (!t || t.siteId !== this.siteId || !this.isOnline()) return;
     if (t.kind === 'command') this.handleCommand(t.commandId, payload);
     if (t.kind === 'job') this.handleJob(t.jobId, payload);
+  }
+
+  /**
+   * Retained config from the cloud. Applied even while the simulated uplink is down: a real
+   * gateway would get the retained message as soon as it reconnects.
+   */
+  handleConfig(topic: string, payload: unknown): boolean {
+    const t = parseTopic(topic);
+    if (t?.kind !== 'gatewayConfig' || t.siteId !== this.siteId) return false;
+    const parsed = gatewayConfigMessage.safeParse(payload);
+    if (parsed.success) this.engine.setFloor(parsed.data.batteryFloorPct);
+    return parsed.success;
   }
 
   private handleCommand(commandId: string, payload: unknown): void {

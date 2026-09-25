@@ -40,10 +40,13 @@ services:
       <<: *workspace-env
       DATABASE_URL: mongodb://mongodb:27017/ecomanage
       REDIS_URL: redis://redis:6379
+      MQTT_URL: mqtts://mosquitto:8883
     depends_on:
       mongodb:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      mosquitto:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/ping"]

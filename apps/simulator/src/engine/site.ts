@@ -97,7 +97,7 @@ export class SiteEngine {
   readonly seed: number;
   readonly devices: Map<string, DemoDevice>;
   private readonly cal: SchoolCalendar;
-  private readonly battery: BatteryConfig;
+  private battery: BatteryConfig;
   private readonly lat: number;
   private readonly lon: number;
 
@@ -490,6 +490,12 @@ export class SiteEngine {
 
   batteryState() {
     return { ...this.battery, socPct: this.soc, reservePct: this.reserve };
+  }
+
+  /** Hardware minimum reserve from the site config (P2-06). The reserve never sits below it. */
+  setFloor(pct: number): void {
+    this.battery = { ...this.battery, floorPct: pct };
+    this.reserve = Math.max(this.reserve, pct);
   }
 
   // ---- control ------------------------------------------------------------------------------------

@@ -19,6 +19,20 @@ const siteSchema = new Schema(
     billDay: { type: Number, default: 1, min: 1, max: 28 },
     demandCapKw: { type: Number, default: null },
     gatewayId: { type: String, default: null },
+    // Settings → Site (P2-06). Arrays feed the PV forecast; the battery's capacity and power live
+    // on its device, the floor here (the gateway enforces it).
+    pvArrays: {
+      type: [
+        new Schema(
+          { id: String, name: String, inverterId: String, kwp: Number, tiltDeg: Number, azimuthDeg: Number },
+          { _id: false }
+        ),
+      ],
+      default: [],
+    },
+    batteryFloorPct: { type: Number, default: 10 },
+    // Set when the gateway config could not be published; resent when the API reconnects.
+    gatewayConfigPending: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
@@ -178,6 +192,26 @@ intervalSchema.index({ siteId: 1, start: 1 }, { unique: true });
 export type Interval15Doc = InferSchemaType<typeof intervalSchema> & { _id: Types.ObjectId };
 export const Interval15 = mongoose.model('Interval15', intervalSchema, 'intervals15');
 
+// ---- calendar ------------------------------------------------------------------------------------
+
+// One per site (Settings → Calendar). The load forecast and peak-shaving rules read it.
+const dateRangeSchema = new Schema({ name: String, start: String, end: String }, { _id: false });
+const calendarSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    terms: { type: [dateRangeSchema], default: [] },
+    daysOff: { type: [dateRangeSchema], default: [] },
+    open: { type: String, default: '08:00' }, // local HH:mm, weekdays
+    close: { type: String, default: '17:00' },
+    weekends: { type: String, enum: ['closed', 'open'], default: 'closed' },
+    updatedBy: { type: ObjectId, ref: 'User', default: null },
+  },
+  { timestamps: true }
+);
+calendarSchema.index({ siteId: 1 }, { unique: true });
+export type CalendarDoc = InferSchemaType<typeof calendarSchema> & { _id: Types.ObjectId };
+export const Calendar = mongoose.model('Calendar', calendarSchema, 'calendars');
+
 // ---- tariffs ------------------------------------------------------------------------------------
 
 // Versioned: saving creates version n+1 from its validFrom date; earlier versions are never edited
@@ -296,7 +330,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, AuditEvent] as const;
+export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {
