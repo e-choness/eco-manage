@@ -52,7 +52,7 @@ export const refresh = handle({ status: 500, body: { message: 'Refresh failed' }
 });
 
 export const me = handle({ status: 500, body: { message: 'Failed to get user' } }, async (req, res) => {
-  res.status(200).json(currentUser(req).toJSON());
+  res.status(200).json(await authService.profile(currentUser(req)));
 });
 
 export const changePassword = handle({ status: 500, body: { message: 'Failed to change password' } }, async (req, res) => {

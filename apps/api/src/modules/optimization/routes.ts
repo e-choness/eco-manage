@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { requireUser } from '../../middleware/auth';
+import { requireRole } from '../../middleware/roles';
 import * as optimization from './controller';
 
 const router: Router = Router();
 
-router.get('/recommendations', requireUser, optimization.recommendations);
-router.post('/accept', requireUser, optimization.accept);
-router.post('/dismiss', requireUser, optimization.dismiss);
+router.get('/recommendations', ...requireRole('owner', 'manager', 'installer'), optimization.recommendations);
+router.post('/accept', ...requireRole('owner', 'manager'), optimization.accept);
+router.post('/dismiss', ...requireRole('owner', 'manager'), optimization.dismiss);
 
 export default router;

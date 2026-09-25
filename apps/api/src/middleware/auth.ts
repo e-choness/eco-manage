@@ -2,9 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import UserService from '../modules/auth/userService';
 import { verifyAccessToken } from '../utils/auth';
 import { IUser } from '../modules/auth/model';
+import type { MembershipDoc, SiteDoc } from '@ecomanage/db';
 
 export interface AuthenticatedRequest extends Request {
   user?: IUser;
+  // Set by requireRole: the site this request acts on and the caller's membership of it.
+  site?: SiteDoc;
+  membership?: MembershipDoc;
 }
 
 // 401 for a missing, invalid or expired access token (the client then refreshes).

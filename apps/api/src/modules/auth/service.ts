@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import UserService, { CreateUserInput } from './userService';
 import { IUser } from './model';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../utils/auth';
+import { listMemberships } from '../site/service';
 
 export interface Session {
   user: IUser;
@@ -67,3 +68,9 @@ export const changePassword = async (user: IUser, currentPassword: string, newPa
 
 export const updateProfile = (userId: string, name: string | undefined): Promise<IUser | null> =>
   UserService.update(userId, { name });
+
+/** The signed-in user with the sites they can access and their role on each (GET /auth/me). */
+export const profile = async (user: IUser) => ({
+  ...user.toJSON(),
+  memberships: await listMemberships(String(user._id)),
+});

@@ -24,7 +24,7 @@ const userDoc = {
 
 const query = <T>(result: T) => {
   const q: Record<string, unknown> = {};
-  for (const m of ['sort', 'populate', 'limit', 'lean']) q[m] = jest.fn(() => q);
+  for (const m of ['sort', 'populate', 'limit', 'lean', 'select']) q[m] = jest.fn(() => q);
   q.exec = jest.fn().mockResolvedValue(result);
   q.then = (resolve: (v: T) => unknown, reject: (e: unknown) => unknown) => Promise.resolve(result).then(resolve, reject);
   return q;
@@ -40,8 +40,19 @@ beforeAll(() => {
   ['User', 'Alert', 'LegacyDevice', 'EnergyReading', 'FinancialRecord', 'Recommendation', 'Weather'].forEach(model);
 });
 
+// Site access (P1-04): the caller is a member of one site with this role.
+const siteId = new mongoose.Types.ObjectId();
+let role = 'owner';
+
 beforeEach(() => {
+  role = 'owner';
   jest.spyOn(model('User'), 'findOne').mockImplementation(() => query(userDoc) as never);
+  jest
+    .spyOn(model('Membership'), 'findOne')
+    .mockImplementation(() => query({ _id: new mongoose.Types.ObjectId(), userId, siteId, role, until: null }) as never);
+  jest.spyOn(model('Membership'), 'find').mockImplementation(() => query([{ userId, siteId, role, until: null }]) as never);
+  jest.spyOn(model('Site'), 'findById').mockImplementation(() => query({ _id: siteId, name: 'Site' }) as never);
+  jest.spyOn(model('Site'), 'find').mockImplementation(() => query([{ _id: siteId, name: 'Site' }]) as never);
 });
 
 const authed = (req: request.Test) => req.set('Authorization', `Bearer ${token}`);
@@ -115,7 +126,12 @@ describe('auth', () => {
   it('me returns the user without secrets', async () => {
     const res = await authed(request(app).get('/api/auth/me'));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ _id: String(userId), email: 'demo@ecomanage.io', name: 'Demo' });
+    expect(res.body).toEqual({
+      _id: String(userId),
+      email: 'demo@ecomanage.io',
+      name: 'Demo',
+      memberships: [{ siteId: String(siteId), siteName: 'Site', role: 'owner', until: null }],
+    });
   });
 
   it('password change validates input', async () => {
@@ -178,6 +194,11 @@ describe('alerts', () => {
 });
 
 describe('devices', () => {
+  // Device writes are installer-only (P1-04).
+  beforeEach(() => {
+    role = 'installer';
+  });
+
   it('validates required fields and type', async () => {
     const missing = await authed(request(app).post('/api/devices')).send({ name: 'x' });
     expect(missing.status).toBe(400);

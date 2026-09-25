@@ -13,6 +13,7 @@ import EnergyReading from '../../modules/analytics/model';
 import Recommendation from '../../modules/optimization/model';
 import * as dashboard from '../../modules/dashboard/service';
 import { generatePasswordHash } from '../../utils/password';
+import { Membership, Site } from '@ecomanage/db';
 
 const NOW = new Date('2026-09-24T12:30:00Z');
 const at = (iso: string) => new Date(iso);
@@ -185,16 +186,29 @@ describe('routes', () => {
   let app: ReturnType<typeof createApp>;
   let token: string;
   const other = new mongoose.Types.ObjectId();
+  const installerSite = new mongoose.Types.ObjectId();
+  const managerSite = new mongoose.Types.ObjectId();
 
   beforeAll(async () => {
     process.env.JWT_SECRET = 'p005-jwt';
     process.env.REFRESH_TOKEN_SECRET = 'p005-refresh';
     await User.create({ _id: userId, email: 'p005@example.com', password: await generatePasswordHash('pw123456') });
     token = jwt.sign({ sub: String(userId) }, 'p005-jwt');
+    // v1 data is keyed by user; since P1-04 the caller also needs a role. Device writes are
+    // installer-only and decisions are owner/manager, so the user has one site for each.
+    await Site.create([
+      { _id: installerSite, name: 'Installer site' },
+      { _id: managerSite, name: 'Manager site' },
+    ]);
+    await Membership.create([
+      { userId, siteId: installerSite, role: 'installer' },
+      { userId, siteId: managerSite, role: 'manager' },
+    ]);
     app = createApp({ env: { CORS_ORIGINS: [], RATE_LIMIT_WINDOW_MS: 60_000, RATE_LIMIT_MAX: 1e6, AUTH_RATE_LIMIT_MAX: 1e6 } });
   });
 
-  const authed = (r: request.Test) => r.set('Authorization', `Bearer ${token}`);
+  const authed = (r: request.Test, site = installerSite) =>
+    r.set('Authorization', `Bearer ${token}`).set('X-Site-Id', String(site));
 
   it('PUT /api/devices/:id updates the caller’s device', async () => {
     const res = await authed(request(app).put(`/api/devices/${ids.solarA}`)).send({ name: 'Roof east', maxOutput: 6 });
@@ -227,11 +241,11 @@ describe('routes', () => {
       difficulty: 'easy',
       category: 'c',
     });
-    const res = await authed(request(app).post('/api/optimization/dismiss')).send({ recommendationId: String(rec._id) });
+    const res = await authed(request(app).post('/api/optimization/dismiss'), managerSite).send({ recommendationId: String(rec._id) });
     expect(res.status).toBe(200);
     expect((await Recommendation.findById(rec._id))?.status).toBe('dismissed');
 
-    const list = await authed(request(app).get('/api/optimization/recommendations'));
+    const list = await authed(request(app).get('/api/optimization/recommendations'), managerSite);
     expect(list.body.recommendations.map((r: { _id: string }) => r._id)).not.toContain(String(rec._id));
   });
 

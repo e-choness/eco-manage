@@ -5,6 +5,19 @@ Base URL: `http://localhost:3000` (the web dev server proxies `/api` there).
 - JSON in, JSON out.
 - 🔒 marks endpoints that need `Authorization: Bearer <accessToken>`. Without a token they
   return `401 {"message":"Unauthorized"}`; with a bad or expired one, `401 {"error":"Invalid or expired token"}`.
+- **Roles (P1-04).** Every site route checks the caller's membership on the server
+  (`requireRole`). The site is the one named in the `X-Site-Id` header, or else the caller's
+  oldest active membership. Expired memberships (`until` in the past) count as none. No access
+  or the wrong role: `403 {"error":{"code":403,"message":"…"}}`.
+
+  | Endpoints | Roles |
+  | --------- | ----- |
+  | dashboard, analytics, alerts, `GET /devices`, `GET /optimization/recommendations` | owner, manager, installer |
+  | financial, `POST /optimization/accept`, `POST /optimization/dismiss` | owner, manager |
+  | `POST/PUT/DELETE /devices` | installer |
+  | `/auth/me`, `/auth/password`, `/auth/profile` | any signed-in user |
+
+  v1 data is still stored per user; the role only decides access.
 - Rate limits per client IP per minute: 300 on `/api/*`, and 10 on login, register and refresh.
   Over the limit: `429 {"error":{"code":429,"message":"Too many requests, try again later."}}`.
 - Unknown routes: `404 {"error":{"code":404,"message":"Not found"}}`.
@@ -45,7 +58,7 @@ No body. Reads the `em_rt` cookie, rotates it, and returns a new access token.
 Revokes the session that owns the `em_rt` cookie and clears the cookie. Always `200 {"message":"User logged out successfully."}`.
 
 ### 🔒 `GET /me`
-`200` user fields.
+`200` user fields plus `memberships: [{ siteId, siteName, role, until }]` (active ones only).
 
 ### 🔒 `PUT /password`
 Body `{ currentPassword, newPassword }`.
