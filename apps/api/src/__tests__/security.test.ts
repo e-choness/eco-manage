@@ -6,10 +6,10 @@ import mongoose from 'mongoose';
 import { Writable } from 'stream';
 import { createApp } from '../app';
 import { createLogger } from '../config/logger';
-import UserService from '../services/userService';
+import UserService from '../modules/auth/userService';
 import { generateRefreshToken } from '../utils/auth';
 
-jest.mock('../services/userService');
+jest.mock('../modules/auth/userService');
 const mockUserService = UserService as jest.Mocked<typeof UserService>;
 
 const env = {

@@ -4,7 +4,7 @@
  * Tests for Recommendation schema validation
  */
 
-import Recommendation from '../../models/Recommendation';
+import Recommendation from '../../modules/optimization/model';
 
 describe('Recommendation Model', () => {
   it('should have userId as a required ObjectId field', () => {

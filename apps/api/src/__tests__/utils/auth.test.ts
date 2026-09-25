@@ -6,7 +6,7 @@
 
 import jwt from 'jsonwebtoken';
 import { generateAccessToken, generateRefreshToken, verifyAccessToken, verifyRefreshToken, TokenPayload } from '../../utils/auth';
-import { IUser } from '../../models/User';
+import { IUser } from '../../modules/auth/model';
 import mongoose from 'mongoose';
 
 // Mock jwt module

@@ -2,9 +2,9 @@
  * Optimization Routes Tests
  */
 
-import Recommendation from '../../models/Recommendation';
+import Recommendation from '../../modules/optimization/model';
 
-jest.mock('../../models/Recommendation');
+jest.mock('../../modules/optimization/model');
 
 const mockRecommendation = Recommendation as jest.Mocked<typeof Recommendation>;
 

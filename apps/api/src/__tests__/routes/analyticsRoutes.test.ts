@@ -5,11 +5,11 @@
 // Mock external dependencies first
 jest.mock('openai');
 jest.mock('@anthropic-ai/sdk');
-jest.mock('../../models/EnergyReading');
-jest.mock('../../services/llmService');
+jest.mock('../../modules/analytics/model');
+jest.mock('../../modules/analytics/llmService');
 
-import EnergyReading from '../../models/EnergyReading';
-import { sendLLMRequest } from '../../services/llmService';
+import EnergyReading from '../../modules/analytics/model';
+import { sendLLMRequest } from '../../modules/analytics/llmService';
 
 const mockEnergyReading = EnergyReading as jest.Mocked<typeof EnergyReading>;
 const mockSendLLMRequest = sendLLMRequest as jest.MockedFunction<typeof sendLLMRequest>;

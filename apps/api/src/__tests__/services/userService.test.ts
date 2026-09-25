@@ -5,15 +5,15 @@
  */
 
 import mongoose from 'mongoose';
-import UserService from '../../services/userService';
+import UserService from '../../modules/auth/userService';
 import * as passwordUtils from '../../utils/password';
 
 // Mock User model
-jest.mock('../../models/User');
+jest.mock('../../modules/auth/model');
 // Mock password utilities
 jest.mock('../../utils/password');
 
-import User from '../../models/User';
+import User from '../../modules/auth/model';
 
 const mockUser = User as unknown as {
   findOne: jest.Mock;

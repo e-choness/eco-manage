@@ -2,11 +2,11 @@
  * Dashboard Routes Tests
  */
 
-import EnergyReading from '../../models/EnergyReading';
-import Device from '../../models/Device';
+import EnergyReading from '../../modules/analytics/model';
+import Device from '../../modules/devices/model';
 
-jest.mock('../../models/EnergyReading');
-jest.mock('../../models/Device');
+jest.mock('../../modules/analytics/model');
+jest.mock('../../modules/devices/model');
 
 const mockEnergyReading = EnergyReading as jest.Mocked<typeof EnergyReading>;
 const mockDevice = Device as jest.Mocked<typeof Device>;

@@ -4,7 +4,7 @@
  * Tests for FinancialRecord schema validation
  */
 
-import FinancialRecord from '../../models/FinancialRecord';
+import FinancialRecord from '../../modules/financial/model';
 
 describe('FinancialRecord Model', () => {
   it('should have userId as a required ObjectId field', () => {

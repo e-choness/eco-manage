@@ -2,9 +2,9 @@
  * Alert Routes Tests
  */
 
-import Alert from '../../models/Alert';
+import Alert from '../../modules/alerts/model';
 
-jest.mock('../../models/Alert');
+jest.mock('../../modules/alerts/model');
 
 const mockAlert = Alert as jest.Mocked<typeof Alert>;
 

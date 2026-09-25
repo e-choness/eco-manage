@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import User from '../models/User';
-import Device from '../models/Device';
-import EnergyReading, { IEnergyReading } from '../models/EnergyReading';
-import Alert from '../models/Alert';
-import FinancialRecord, { IFinancialRecord } from '../models/FinancialRecord';
-import Recommendation from '../models/Recommendation';
-import Weather from '../models/Weather';
+import User from '../modules/auth/model';
+import Device from '../modules/devices/model';
+import EnergyReading, { IEnergyReading } from '../modules/analytics/model';
+import Alert from '../modules/alerts/model';
+import FinancialRecord, { IFinancialRecord } from '../modules/financial/model';
+import Recommendation from '../modules/optimization/model';
+import Weather from '../modules/dashboard/model';
 import { generatePasswordHash } from '../utils/password';
 
 dotenv.config();

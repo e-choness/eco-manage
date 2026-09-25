@@ -4,7 +4,7 @@
  * Tests for EnergyReading schema validation
  */
 
-import EnergyReading from '../../models/EnergyReading';
+import EnergyReading from '../../modules/analytics/model';
 
 describe('EnergyReading Model', () => {
   it('should have deviceId as a required ObjectId field', () => {

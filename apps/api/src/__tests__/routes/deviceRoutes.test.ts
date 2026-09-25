@@ -2,9 +2,9 @@
  * Device Routes Tests
  */
 
-import Device from '../../models/Device';
+import Device from '../../modules/devices/model';
 
-jest.mock('../../models/Device');
+jest.mock('../../modules/devices/model');
 
 const mockDevice = Device as jest.Mocked<typeof Device>;
 

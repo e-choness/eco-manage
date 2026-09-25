@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { isPasswordHash } from '../utils/password';
+import { isPasswordHash } from '../../utils/password';
 import { randomUUID } from 'crypto';
 
 export interface IUser extends Document {
