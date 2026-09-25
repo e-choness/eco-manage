@@ -412,6 +412,51 @@ commandSchema.index({ siteId: 1, status: 1 });
 export type CommandDoc = InferSchemaType<typeof commandSchema> & { _id: Types.ObjectId };
 export const Command = mongoose.model('Command', commandSchema, 'commands');
 
+// ---- notifications -------------------------------------------------------------------------------
+
+// Settings → Notifications (P2-09): per person and site. No document means the defaults.
+const notificationPrefsSchema = new Schema(
+  {
+    userId: { type: ObjectId, ref: 'User', required: true },
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    email: { type: String, required: true },
+    alerts: { type: Boolean, default: true },
+    daily: { type: Boolean, default: true },
+    recs: { type: Boolean, default: true },
+    failures: { type: Boolean, default: true },
+    quietFrom: { type: String, default: '22:00' },
+    quietTo: { type: String, default: '06:30' },
+    escalateMin: { type: Number, default: 30 },
+  },
+  { timestamps: true }
+);
+notificationPrefsSchema.index({ userId: 1, siteId: 1 }, { unique: true });
+export type NotificationPrefsDoc = InferSchemaType<typeof notificationPrefsSchema> & { _id: Types.ObjectId };
+export const NotificationPrefs = mongoose.model('NotificationPrefs', notificationPrefsSchema, 'notificationPrefs');
+
+// Every email sent. The unique key is claimed before sending, so a restart or a second worker
+// never sends the same email twice: `alert:{alertId}:{userId}`, `escalation:{alertId}:{userId}`,
+// `daily:{siteId}:{date}:{userId}`.
+const emailSchema = new Schema(
+  {
+    key: { type: String, required: true },
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    userId: { type: ObjectId, ref: 'User', default: null },
+    kind: { type: String, enum: ['alert', 'escalation', 'daily'], required: true },
+    alertId: { type: ObjectId, ref: 'Alert', default: null },
+    to: { type: String, required: true },
+    subject: { type: String, required: true },
+    status: { type: String, enum: ['sending', 'sent'], default: 'sending' },
+    sentAt: { type: Date, default: null },
+    messageId: { type: String, default: null },
+  },
+  { timestamps: true }
+);
+emailSchema.index({ key: 1 }, { unique: true });
+emailSchema.index({ siteId: 1, createdAt: -1 });
+export type EmailDoc = InferSchemaType<typeof emailSchema> & { _id: Types.ObjectId };
+export const Email = mongoose.model('Email', emailSchema, 'emails');
+
 // ---- audit ------------------------------------------------------------------------------------
 
 const auditSchema = new Schema(
@@ -430,7 +475,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, AuditEvent] as const;
+export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

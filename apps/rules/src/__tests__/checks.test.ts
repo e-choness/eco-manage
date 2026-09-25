@@ -26,6 +26,7 @@ const device = (id: string, type: string, extra: Partial<DeviceState> = {}): Dev
   type,
   status: 'live',
   lastSeenAt: ago(5_000),
+  addedAt: ago(30 * 24 * 60 * MIN),
   latest: null,
   ...extra,
 })
@@ -50,13 +51,18 @@ describe('device silent', () => {
           device('ev3', 'ev', { lastSeenAt: ago(6 * MIN) }),
           device('invA', 'pv', { lastSeenAt: ago(4 * MIN) }),
           device('new', 'submeter', { status: 'pending', lastSeenAt: ago(60 * MIN) }),
-          device('never', 'ev', { lastSeenAt: null }),
+          device('never', 'ev', { lastSeenAt: null, addedAt: ago(20 * MIN) }),
+          device('just-added', 'ev', { lastSeenAt: null, addedAt: ago(2 * MIN) }),
+          device('unknown', 'ev', { lastSeenAt: null, addedAt: null }),
           device('gw', 'gateway', { lastSeenAt: ago(60 * MIN) }),
         ],
       })
     )
-    expect(r.findings).toEqual([{ ruleId: 'device-silent', deviceId: 'ev3', detail: 'EV3: no data for 6 min' }])
-    expect(r.evaluated).toEqual([alertKey('device-silent', 'ev3'), alertKey('device-silent', 'invA')])
+    expect(r.findings).toEqual([
+      { ruleId: 'device-silent', deviceId: 'ev3', detail: 'EV3: no data for 6 min' },
+      { ruleId: 'device-silent', deviceId: 'never', detail: 'NEVER: no data since it was added 20 min ago' },
+    ])
+    expect(r.evaluated).toEqual(['ev3', 'invA', 'never', 'just-added'].map((id) => alertKey('device-silent', id)))
   })
 })
 

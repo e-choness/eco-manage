@@ -5,6 +5,8 @@ export const QUEUES = {
   billing: 'billing',
   /** On demand: statement PDFs, utility bill extraction. */
   documents: 'documents',
+  /** Repeating: alert emails, escalation, daily summaries (P2-09). */
+  email: 'email',
 } as const;
 
 export interface StatementJob {

@@ -92,6 +92,7 @@ const site = (start: string) => {
         type: d.type,
         status: 'live',
         lastSeenAt: latest.get(d.id) ? new Date(latest.get(d.id)!.reading.ts) : null,
+        addedAt: null,
         latest: latest.get(d.id)?.reading ?? null,
       })),
       gateway: gw,

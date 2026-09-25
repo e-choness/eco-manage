@@ -16,6 +16,7 @@ export interface DeviceState {
   type: string;
   status: string;
   lastSeenAt: Date | null;
+  addedAt: Date | null; // when the device record was created
   latest: TelemetryReading | null;
 }
 
@@ -55,14 +56,20 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 const result = (): CheckResult => ({ findings: [], evaluated: [] });
 const add = (r: CheckResult, f: Finding) => r.findings.push(f);
 
-/** A device that reported before and has been silent for over 5 minutes. */
+/**
+ * A device silent for over 5 minutes: since its last reading, or since it was added if it has
+ * never reported (a commissioned device that never comes up is just as silent).
+ */
 export const deviceSilent = (ctx: SiteContext): CheckResult => {
   const r = result();
   for (const d of ctx.devices) {
-    if (d.type === 'gateway' || d.status === 'pending' || !d.lastSeenAt) continue;
+    const since = d.lastSeenAt ?? d.addedAt;
+    if (d.type === 'gateway' || d.status === 'pending' || !since) continue;
     r.evaluated.push(alertKey('device-silent', d.id));
-    const silentMs = ctx.now.getTime() - d.lastSeenAt.getTime();
-    if (silentMs > L.silentMs) add(r, { ruleId: 'device-silent', deviceId: d.id, detail: `${d.name}: no data for ${minutes(silentMs)} min` });
+    const silentMs = ctx.now.getTime() - since.getTime();
+    if (silentMs <= L.silentMs) continue;
+    const detail = d.lastSeenAt ? `${d.name}: no data for ${minutes(silentMs)} min` : `${d.name}: no data since it was added ${minutes(silentMs)} min ago`;
+    add(r, { ruleId: 'device-silent', deviceId: d.id, detail });
   }
   return r;
 };

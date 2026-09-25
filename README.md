@@ -52,6 +52,7 @@ docker compose up -d
 | Redis     | localhost:6379          |
 | MQTT (TLS)| localhost:18883         |
 | Simulator | http://localhost:4100/sim/state |
+| Mailpit (emails) | http://localhost:8025 |
 
 Load the demo accounts and the demo site (this **resets** them, including the site's telemetry):
 

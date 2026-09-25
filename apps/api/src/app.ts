@@ -13,6 +13,7 @@ import { siteRoutes } from './modules/site/routes';
 import tariffRoutes from './modules/tariffs/routes';
 import { billsRoutes } from './modules/bills/routes';
 import calendarRoutes from './modules/calendar/routes';
+import notificationRoutes from './modules/notifications/routes';
 import type { GatewayLink } from './lib/gatewayLink';
 import type { JobClient } from './lib/jobs';
 import type { SiteEventHub } from './lib/siteEvents';
@@ -56,6 +57,7 @@ export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogg
   app.use('/api/tariffs', tariffRoutes);
   app.use('/api/bills', billsRoutes(jobs));
   app.use('/api/calendar', calendarRoutes);
+  app.use('/api/me', notificationRoutes);
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: 404, message: 'Not found' } });

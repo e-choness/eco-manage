@@ -66,6 +66,8 @@ const ROUTES: Record<string, Access> = {
   'post /api/bills/:period/utility-bill': OWNER,
   'get /api/calendar/': ALL,
   'put /api/calendar/': PLANNERS,
+  'get /api/me/notifications': ALL,
+  'patch /api/me/notifications': ALL,
 };
 
 interface Layer {

@@ -20,7 +20,11 @@ graph LR
 | `mongodb`    | `mongo:7`              | Data store                                |
 | `redis`      | `redis:7-alpine`       | Rate-limit store                          |
 | `mosquitto`  | `eclipse-mosquitto:2`  | MQTT broker, TLS with client certificates, ACL per identity |
+| `ingest`     | `Dockerfile.dev`       | MQTT → telemetry, latest values, 15-minute intervals, live events, command acks |
+| `worker`     | `Dockerfile.dev`       | BullMQ jobs: interval costs, bills, statements, utility bills, emails |
+| `rules`      | `Dockerfile.dev`       | Alert checks on every reading |
 | `simulator`  | `Dockerfile.dev`       | Simulated demo site acting as its gateway over MQTT/TLS; control API on :4100 |
+| `mailpit`    | `axllent/mailpit`      | Catches every email in development; UI on :8025 |
 | `mqtt-certs` | `alpine`               | One-shot: generates the dev CA and certificates into `infra/mosquitto/certs` (gitignored) |
 | `mongo-seed` | `Dockerfile.dev`       | One-shot demo data reset (profile `tools`, run on demand) |
 
@@ -252,6 +256,20 @@ The `documents` queue (P2-05) runs on demand, two at a time:
   owner can type the total in. A job for a file that a newer upload replaced does nothing.
   Recomputing a bill keeps `diffCents` in step with our total.
 
+The `email` queue (P2-09) runs every 30 s and sends through SMTP (Mailpit in development):
+
+- **Alerts:** each new warning or failure (not `info`) goes to every current member who wants it.
+  - Warnings wait until that person's quiet hours end (site time).
+  - Command failures always send, and always to owners and managers.
+  - A paused (snoozed) alert sends nothing.
+  - Alerts older than 24 h aren't emailed.
+- **Escalation:** an alert still `open` (not acknowledged) after the owner's `escalateMin` is emailed to the owner once.
+- **Daily summary:** in the hour after 07:00 site time, once per site and day. It covers yesterday's energy cost, grid kWh, peak demand, and solar and battery savings (computed with the shared bill maths), plus open alerts.
+- **Sending once:** each email's key is first claimed in `emails` (unique), then the mail is sent and marked `sent`. A failed send drops the claim so the next pass retries, and a restart or a second worker never sends twice. Keys:
+  - `alert:{alertId}:{userId}`
+  - `escalation:{alertId}:{userId}`
+  - `daily:{siteId}:{date}:{userId}`
+
 ## Rules (`apps/rules`, P2-07)
 
 The alert engine. It subscribes to `site:*:events` in Redis. Each reading ingest publishes marks
@@ -270,7 +288,7 @@ Each check returns findings and the (rule, device) pairs it could judge.
 
 | Rule | Condition | Clears |
 | ---- | --------- | ------ |
-| `device-silent` | a device that has reported is silent over 5 min | it reports again |
+| `device-silent` | a device silent over 5 min, counted from its last reading, or from when it was added if it never reported | it reports again |
 | `pv-underperform` | an inverter under 90% of expected for the last 24 daylight buckets (2 h) | 12 buckets (1 h of daylight) within 5% of expected |
 | `battery-below-reserve` | a fresh reading shows SoC more than 0.5 points under the reserve | SoC at the reserve |
 | `demand-near-cap` | this interval's projected demand at 90% of the cap or more | under 85% |
