@@ -1,0 +1,50 @@
+{
+  "id": "sg-ready-heatpump@1",
+  "vendor": "Generic",
+  "model": "Air-to-water heat pump, SG-Ready relays + vendor Modbus",
+  "protocol": "sg-ready",
+  "deviceTypes": ["heatpump"],
+  "fields": ["p_kw", "e_in_kwh", "state", "fault", "sg_mode", "supply_c", "return_c", "outdoor_c"],
+  "read": [
+    { "field": "p_kw", "message": "submeter", "mult": -1 },
+    { "field": "e_in_kwh", "message": "submeter" },
+    { "field": "sg_mode", "message": "relays" },
+    { "field": "state", "reg": 30001, "type": "enum16" },
+    { "field": "fault", "reg": 30002, "type": "bitfield16" },
+    { "field": "supply_c", "reg": 30010, "type": "int16", "mult": 0.1 },
+    { "field": "return_c", "reg": 30011, "type": "int16", "mult": 0.1 },
+    { "field": "outdoor_c", "reg": 30012, "type": "int16", "mult": 0.1 }
+  ],
+  "write": {
+    "sg_mode": {
+      "description": "SG-Ready mode: 1 block, 2 normal, 3 boost, 4 force",
+      "message": "relays",
+      "params": {
+        "mode": { "type": "integer", "min": 1, "max": 4 },
+        "until": { "type": "time" }
+      },
+      "maxDurationMin": 120
+    },
+    "setpoint_offset": {
+      "description": "Shift the flow temperature setpoint",
+      "reg": 40020,
+      "params": {
+        "offsetC": { "type": "number", "unit": "°C", "min": -3, "max": 3 },
+        "until": { "type": "time" }
+      },
+      "maxDurationMin": 120
+    }
+  },
+  "states": { "0": "off", "1": "idle", "2": "heating", "3": "cooling", "4": "defrost", "5": "fault" },
+  "faults": {
+    "bit0": "High pressure",
+    "bit1": "Low pressure",
+    "bit2": "Compressor overload",
+    "bit3": "Flow switch",
+    "bit4": "Sensor fault"
+  },
+  "fixes": [],
+  "pollMs": 5000,
+  "version": 1,
+  "reviewed": true
+}

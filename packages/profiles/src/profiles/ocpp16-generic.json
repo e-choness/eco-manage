@@ -1,0 +1,67 @@
+{
+  "id": "ocpp16-generic@1",
+  "vendor": "Generic",
+  "model": "AC charger, OCPP 1.6J (the gateway is the local CSMS)",
+  "protocol": "ocpp-1.6j",
+  "deviceTypes": ["ev"],
+  "fields": ["p_kw", "e_in_kwh", "state", "fault", "session", "limit_a", "soc_pct"],
+  "read": [
+    { "field": "p_kw", "message": "MeterValues", "measurand": "Power.Active.Import", "mult": -0.001 },
+    { "field": "e_in_kwh", "message": "MeterValues", "measurand": "Energy.Active.Import.Register", "mult": 0.001 },
+    { "field": "soc_pct", "message": "MeterValues", "measurand": "SoC" },
+    { "field": "state", "message": "StatusNotification" },
+    { "field": "fault", "message": "StatusNotification" },
+    { "field": "session", "message": "StartTransaction" },
+    { "field": "limit_a", "message": "SetChargingProfile" }
+  ],
+  "write": {
+    "set_charging_profile": {
+      "description": "SetChargingProfile (TxProfile): current limit schedule until validTo",
+      "message": "SetChargingProfile",
+      "params": {
+        "schedule": { "type": "schedule" },
+        "validTo": { "type": "time" }
+      },
+      "maxDurationMin": 1440
+    },
+    "limit_current": {
+      "description": "Limit the charging current until the end time",
+      "message": "SetChargingProfile",
+      "params": {
+        "amps": { "type": "number", "unit": "A", "min": 6, "max": 32 },
+        "until": { "type": "time" }
+      },
+      "maxDurationMin": 240
+    },
+    "remote_start": { "description": "RemoteStartTransaction", "message": "RemoteStartTransaction", "params": {} },
+    "remote_stop": { "description": "RemoteStopTransaction", "message": "RemoteStopTransaction", "params": {} },
+    "change_availability": {
+      "description": "ChangeAvailability (operative / inoperative)",
+      "message": "ChangeAvailability",
+      "params": { "operative": { "type": "boolean" } }
+    },
+    "reset": { "description": "Reset (soft)", "message": "Reset", "params": {} }
+  },
+  "states": {
+    "Available": "available",
+    "Preparing": "preparing",
+    "Charging": "charging",
+    "SuspendedEV": "suspended by vehicle",
+    "SuspendedEVSE": "suspended by charger",
+    "Finishing": "finishing",
+    "Faulted": "fault",
+    "Unavailable": "unavailable"
+  },
+  "faults": {
+    "ConnectorLockFailure": "Connector lock failure",
+    "GroundFailure": "Ground failure",
+    "HighTemperature": "High temperature",
+    "OverCurrentFailure": "Over current",
+    "PowerMeterFailure": "Power meter failure",
+    "EVCommunicationError": "Vehicle communication error"
+  },
+  "fixes": [{ "id": "soft-reset", "label": "Remote restart (OCPP soft reset)", "action": "reset" }],
+  "pollMs": 5000,
+  "version": 1,
+  "reviewed": true
+}

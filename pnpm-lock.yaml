@@ -35,6 +35,9 @@ importers:
       '@ecomanage/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@ecomanage/profiles':
+        specifier: workspace:*
+        version: link:../../packages/profiles
       '@ecomanage/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -338,6 +341,25 @@ importers:
       mongoose:
         specifier: ^8.1.1
         version: 8.24.4
+      typescript:
+        specifier: ~5.6.2
+        version: 5.6.3
+      vitest:
+        specifier: ^1.6.1
+        version: 1.6.1(@types/node@22.20.4)(@vitest/ui@1.6.1)(jsdom@23.2.0)
+
+  packages/profiles:
+    dependencies:
+      '@ecomanage/shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      eslint:
+        specifier: ^9.13.0
+        version: 9.39.5(jiti@1.21.7)
       typescript:
         specifier: ~5.6.2
         version: 5.6.3

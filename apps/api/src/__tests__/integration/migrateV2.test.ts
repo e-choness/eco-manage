@@ -3,7 +3,7 @@
  * and is idempotent. Runs against a copy of the seed data in a real MongoDB.
  */
 import mongoose from 'mongoose';
-import { AuditEvent, Device, Membership, Site } from '@ecomanage/db';
+import { AuditEvent, Device, DeviceProfile, Membership, Site } from '@ecomanage/db';
 import { DEMO_DEVICES, DEMO_SITE_ID, DEMO_USERS } from '@ecomanage/shared';
 import { connectTestDb, disconnectTestDb } from './db';
 import { migrateToV2 } from '../../scripts/migrateV2';
@@ -42,7 +42,8 @@ describe('migrating a v1 database', () => {
 
   it('creates one site and owner membership per user, and moves v1 devices', async () => {
     const summary = await migrateToV2();
-    expect(summary).toEqual({ legacyDevicesMoved: 2, sitesCreated: 3 });
+    expect(summary).toEqual({ legacyDevicesMoved: 2, sitesCreated: 3, profiles: 6 });
+    expect(await DeviceProfile.countDocuments()).toBe(6);
 
     const memberships = await Membership.find().lean();
     expect(memberships).toHaveLength(3);
@@ -59,7 +60,8 @@ describe('migrating a v1 database', () => {
 
   it('changes nothing when run again', async () => {
     const summary = await migrateToV2();
-    expect(summary).toEqual({ legacyDevicesMoved: 0, sitesCreated: 0 });
+    expect(summary).toEqual({ legacyDevicesMoved: 0, sitesCreated: 0, profiles: 6 });
+    expect(await DeviceProfile.countDocuments()).toBe(6);
     expect(await Site.countDocuments()).toBe(3);
     expect(await Membership.countDocuments()).toBe(3);
     expect(await db().collection('legacy_devices').countDocuments()).toBe(2);

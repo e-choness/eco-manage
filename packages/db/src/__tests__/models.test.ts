@@ -68,7 +68,7 @@ describe('constraints', () => {
   })
 
   it('keeps device profile ids unique', async () => {
-    const p = { id: 'test@1', vendor: 'v', model: 'm', protocol: 'modbus-tcp', deviceType: 'pv' }
+    const p = { id: 'test@1', vendor: 'v', model: 'm', protocol: 'modbus-tcp', deviceTypes: ['pv'] }
     await DeviceProfile.create(p)
     await expect(DeviceProfile.create(p)).rejects.toMatchObject({ code: 11000 })
   })

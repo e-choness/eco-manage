@@ -1,0 +1,73 @@
+{
+  "id": "sunspec-storage-802@2",
+  "vendor": "SunSpec",
+  "model": "Hybrid inverter with LFP battery (models 802/803)",
+  "protocol": "modbus-tcp",
+  "deviceTypes": ["battery"],
+  "fields": ["p_kw", "e_in_kwh", "e_out_kwh", "soc_pct", "soh_pct", "reserve_pct", "usable_kwh", "state", "fault", "t_c"],
+  "read": [
+    { "field": "p_kw", "reg": 40170, "type": "int16", "scaleReg": 40171, "mult": 0.001 },
+    { "field": "soc_pct", "reg": 40152, "type": "uint16", "scaleReg": 40162 },
+    { "field": "soh_pct", "reg": 40154, "type": "uint16", "scaleReg": 40162 },
+    { "field": "reserve_pct", "reg": 40153, "type": "uint16", "scaleReg": 40162 },
+    { "field": "usable_kwh", "reg": 40149, "type": "uint16", "scaleReg": 40160, "mult": 0.001 },
+    { "field": "e_in_kwh", "reg": 40180, "type": "acc64", "mult": 0.001 },
+    { "field": "e_out_kwh", "reg": 40184, "type": "acc64", "mult": 0.001 },
+    { "field": "t_c", "reg": 40166, "type": "int16", "scaleReg": 40167 },
+    { "field": "state", "reg": 40156, "type": "enum16" },
+    { "field": "fault", "reg": 40158, "type": "bitfield32" }
+  ],
+  "write": {
+    "set_reserve": {
+      "description": "Minimum state of charge kept for backup",
+      "reg": 40153,
+      "params": { "pct": { "type": "number", "unit": "%", "min": 10, "max": 100 } }
+    },
+    "force_discharge": {
+      "description": "Discharge at a fixed power until the end time, then return to self-consumption",
+      "reg": 40172,
+      "revertReg": 40176,
+      "params": {
+        "kw": { "type": "number", "unit": "kW", "min": 0, "max": 60 },
+        "until": { "type": "time" }
+      },
+      "maxDurationMin": 360
+    },
+    "force_charge": {
+      "description": "Charge at a fixed power until the end time",
+      "reg": 40174,
+      "revertReg": 40176,
+      "params": {
+        "kw": { "type": "number", "unit": "kW", "min": 0, "max": 60 },
+        "until": { "type": "time" }
+      },
+      "maxDurationMin": 360
+    },
+    "peak_shave_target": {
+      "description": "Discharge whenever site import would exceed the target",
+      "reg": 40178,
+      "params": { "kw": { "type": "number", "unit": "kW", "min": 0, "max": 1000 } },
+      "maxDurationMin": 720
+    },
+    "grid_charge": {
+      "description": "Allow charging from the grid",
+      "reg": 40179,
+      "params": { "enabled": { "type": "boolean" } }
+    },
+    "restart": { "description": "Restart the battery inverter's control board", "reg": 40190, "params": {} }
+  },
+  "states": { "1": "off", "2": "standby", "3": "charging", "4": "discharging", "5": "idle", "6": "fault" },
+  "faults": {
+    "bit0": "Cell over voltage",
+    "bit1": "Cell under voltage",
+    "bit2": "Over temperature",
+    "bit3": "Under temperature",
+    "bit4": "Contactor fault",
+    "bit5": "Isolation fault",
+    "bit6": "BMS communication lost"
+  },
+  "fixes": [{ "id": "restart", "label": "Remote restart (control board)", "action": "restart" }],
+  "pollMs": 5000,
+  "version": 2,
+  "reviewed": true
+}
