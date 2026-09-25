@@ -1,0 +1,154 @@
+# Development stack. Run from the repo root (`docker compose up -d`; the root compose file
+# includes this one) or with `docker compose -f infra/docker-compose.yml`.
+name: ecomanage
+
+x-workspace: &workspace
+  build:
+    context: ..
+    dockerfile: Dockerfile.dev
+  image: ecomanage-dev
+  working_dir: /repo
+  volumes:
+    - ..:/repo
+    - /repo/node_modules
+    - /repo/apps/api/node_modules
+    - /repo/apps/web/node_modules
+  environment: &workspace-env
+    # Windows bind mounts don't deliver file events reliably, so the watchers poll.
+    CHOKIDAR_USEPOLLING: "true"
+    CHOKIDAR_INTERVAL: "1000"
+
+x-api-env: &api-env
+  env_file:
+    - path: ../apps/api/.env.example
+    - path: ../apps/api/.env
+      required: false
+
+services:
+  api:
+    <<: [*workspace, *api-env]
+    command: ["pnpm", "--filter", "@ecomanage/api", "dev"]
+    ports:
+      - "3000:3000"
+    environment:
+      <<: *workspace-env
+      DATABASE_URL: mongodb://mongodb:27017/ecomanage
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+
+  web:
+    <<: *workspace
+    command: ["pnpm", "--filter", "@ecomanage/web", "dev"]
+    ports:
+      - "5173:5173"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  mqtt-certs:
+    image: alpine:3.20
+    command: ["sh", "/gen-certs.sh"]
+    environment:
+      # Space-separated site ids that get a gateway certificate (CN = site id).
+      GATEWAY_SITES: ${GATEWAY_SITES:-650000000000000000000001}
+    volumes:
+      - ./mosquitto/gen-certs.sh:/gen-certs.sh:ro
+      - ./mosquitto/certs:/certs
+    restart: "no"
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      # 8883 falls in a Windows reserved port range on some hosts, so the host side is 18883.
+      - "${MQTT_HOST_PORT:-18883}:8883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/acl:/mosquitto/config/acl:ro
+      - ./mosquitto/certs:/mosquitto/certs:ro
+      - mosquitto_data:/mosquitto/data
+    depends_on:
+      mqtt-certs:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - mosquitto_sub
+        - -h
+        - localhost
+        - -p
+        - "8883"
+        - --cafile
+        - /mosquitto/certs/ca.crt
+        - --cert
+        - /mosquitto/certs/svc-health.crt
+        - --key
+        - /mosquitto/certs/svc-health.key
+        - -t
+        - $$SYS/broker/uptime
+        - -C
+        - "1"
+        - -W
+        - "3"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  # One-shot: resets the demo accounts and data. Not started by `up`; run it with
+  # `docker compose run --rm mongo-seed`.
+  mongo-seed:
+    <<: [*workspace, *api-env]
+    command: ["pnpm", "--filter", "@ecomanage/api", "seed"]
+    profiles: ["tools"]
+    environment:
+      <<: *workspace-env
+      DATABASE_URL: mongodb://mongodb:27017/ecomanage
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  mongo_data:
+  mosquitto_data:

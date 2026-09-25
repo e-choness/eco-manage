@@ -13,7 +13,7 @@ Work follows the phased plan in the design handoff (`IMPLEMENTATION_PLAN.md`).
   with a PR title starting with the ID.
 - **Gates.** `pnpm -r build`, `lint`, `typecheck` and `test` must pass (see [TESTING.md](./TESTING.md)).
 - **Show the acceptance criteria.** Put test output or a screenshot in the PR description.
-- **Bugs outside the task's scope** go into `bugs/NNN-short-name.md`: what, impact, suggested fix.
+- **Bugs outside the task's scope** go into `bugs/NNN-short-name.md` (gitignored, local only): what, impact, suggested fix.
   Don't fix them in the same PR.
 
 ## Code rules

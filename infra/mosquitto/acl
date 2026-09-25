@@ -1,0 +1,20 @@
+# Cloud services
+user svc-ingest
+topic read site/+/dev/+/telemetry
+topic read site/+/dev/+/status
+topic read site/+/gw/status
+topic read site/+/cmd/+/ack
+topic read site/+/job/+/result
+
+user svc-api
+topic write site/+/cmd/+
+topic write site/+/job/+
+topic read site/+/cmd/+/ack
+topic read site/+/job/+/result
+topic read site/+/gw/status
+
+user svc-health
+topic read $SYS/#
+
+# Gateways: the certificate CN is the site id, so a gateway can only reach its own site.
+pattern readwrite site/%u/#

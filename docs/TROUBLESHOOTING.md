@@ -44,20 +44,21 @@ to `/api/auth`. Check that:
 - the browser keeps cookies for `localhost`;
 - `CORS_ORIGINS` includes the page origin if you call the API from somewhere else.
 
-### My data disappeared after `docker compose up`
+### Port 8883 is not available
 
-`docker compose up` also runs `mongo-seed`, which deletes and recreates the demo accounts and their
-data. Start only the services you need to keep your data: `docker compose up -d api web mongodb redis`.
+On some Windows hosts 8883 sits in a reserved port range, so the broker is published on
+`localhost:18883` (override with `MQTT_HOST_PORT`). Containers use `mosquitto:8883`.
+
+### Code changes are not picked up
+
+Watchers poll (`CHOKIDAR_USEPOLLING`) because Windows bind mounts don’t deliver file events
+reliably. Allow about a second for a change to register.
 
 ### A web test hangs until the timeout
 
 A page effect that lists `toast` as a dependency loops forever when a test's `useToast` mock
 returns a new function on each render. Hoist a single `vi.fn()` (see TESTING.md). Recharts pages
 also need the `ResizeObserver` stub in `setup.ts`.
-
-### `node dist/server.js` fails with `ERR_MODULE_NOT_FOUND`
-
-Known issue, `bugs/002`: the compiled API uses extensionless ESM imports. Use `pnpm dev` (tsx).
 
 ### Git warns "LF will be replaced by CRLF"
 

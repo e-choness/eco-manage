@@ -54,9 +54,15 @@ docker compose up -d
 | API       | http://localhost:3000   |
 | MongoDB   | localhost:27017         |
 | Redis     | localhost:6379          |
+| MQTT (TLS)| localhost:18883         |
 
-`docker compose up` also runs `mongo-seed` once, which **resets** the demo accounts and a year of
-hourly demo readings. Sign in with:
+Load the demo accounts and a year of hourly demo readings (this **resets** them):
+
+```bash
+docker compose run --rm mongo-seed
+```
+
+Sign in with:
 
 ```
 demo@ecomanage.io / Demo1234!
@@ -72,9 +78,9 @@ apps/
   api/        Express + Mongoose API (modules/<name>/{routes,controller,service,model}.ts)
   web/        React 18 + Vite + Tailwind + shadcn/ui client
 packages/     shared workspace packages (none yet; P1-02 adds packages/shared)
-e2e/          Playwright suite (outdated, see bugs/003)
+infra/        docker-compose.yml (the root compose file includes it), Mosquitto config and ACL
+e2e/          Playwright suite (outdated; replaced in P1-12)
 docs/         architecture, API, database, testing and ops notes
-bugs/         issues found during the v2 work, for review
 ```
 
 The repo is a pnpm workspace. Shared TypeScript settings live in `tsconfig.base.json` and lint
