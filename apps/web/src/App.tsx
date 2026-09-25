@@ -8,6 +8,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute"
 import { DashboardLayout } from "./components/DashboardLayout"
 import { Dashboard } from "./pages/Dashboard"
 import { Monitoring } from "./pages/Monitoring"
+import { Live } from "./pages/Live"
 import { Analytics } from "./pages/Analytics"
 import { Optimization } from "./pages/Optimization"
 import { Alerts } from "./pages/Alerts"
@@ -26,6 +27,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
+              <Route path="live" element={<Live />} />
               <Route path="monitoring" element={<Monitoring />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="optimization" element={<Optimization />} />

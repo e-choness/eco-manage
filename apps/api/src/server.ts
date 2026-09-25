@@ -4,6 +4,7 @@ import { connectDB } from './config/database';
 import { loadEnv } from './config/env';
 import { logger } from './config/logger';
 import { createApp } from './app';
+import { SiteEventHub } from './lib/siteEvents';
 
 dotenv.config();
 
@@ -26,7 +27,10 @@ process.on('unhandledRejection', (err: unknown) => {
   logger.error({ err: { message: error.message, stack: error.stack } }, 'unhandled rejection');
 });
 
-const app = createApp({ env, redis });
+// Live events from ingest, forwarded to SSE clients (needs Redis).
+const hub = redis ? new SiteEventHub(redis) : undefined;
+
+const app = createApp({ env, redis, hub });
 
 const server = app.listen(env.PORT, () => {
   logger.info(`Server running at http://localhost:${env.PORT}`);
@@ -34,6 +38,7 @@ const server = app.listen(env.PORT, () => {
 
 process.on('SIGINT', () => {
   logger.info('Graceful shutdown initiated...');
+  void hub?.close();
   redis?.disconnect();
   server.close(() => process.exit(0));
 });

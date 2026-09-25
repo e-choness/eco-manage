@@ -19,6 +19,8 @@ export default defineConfig({
     },
     allowedHosts: [
       'localhost',
+      // compose service name, used by containers such as the E2E runner
+      'web',
       '.pythagora.ai'
     ],
     watch: {

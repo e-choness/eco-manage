@@ -12,7 +12,7 @@ import {
   telemetryMessage,
   type TelemetryReading,
 } from '@ecomanage/shared';
-import { DeviceCache } from './devices';
+import { DeviceCache, type KnownDevice } from './devices';
 
 // Redis keys written by ingest (read by the API's snapshot and SSE):
 export const keys = {
@@ -40,6 +40,8 @@ export interface IngestorOptions {
   devices?: DeviceCache;
   /** Called for each stored reading, so closed intervals that get late data are recomputed. */
   onReading?: (siteId: string, ts: Date, receivedAt: Date) => void;
+  /** Called when a device has a new newest reading (drives the live stream). */
+  onLatest?: (siteId: string, device: KnownDevice, reading: TelemetryReading) => void;
 }
 
 type Row = { ts: Date; meta: { siteId: mongoose.Types.ObjectId; deviceId: mongoose.Types.ObjectId } } & Omit<TelemetryReading, 'ts'>;
@@ -55,6 +57,7 @@ export class Ingestor {
   private readonly batchSize: number;
   private readonly devices: DeviceCache;
   private readonly onReading?: IngestorOptions['onReading'];
+  private readonly onLatest?: IngestorOptions['onLatest'];
   private rows: Row[] = [];
   private lastSeen = new Map<string, Date>(); // deviceId -> received time, written on flush
   private latestTs = new Map<string, number>();
@@ -67,6 +70,7 @@ export class Ingestor {
     this.batchSize = opts.batchSize ?? 1000;
     this.devices = opts.devices ?? new DeviceCache();
     this.onReading = opts.onReading;
+    this.onLatest = opts.onLatest;
     const flushMs = opts.flushMs ?? 500;
     if (flushMs > 0) {
       this.timer = setInterval(() => void this.flush(), flushMs);
@@ -136,16 +140,17 @@ export class Ingestor {
       this.onReading?.(siteId, ts, receivedAt);
     }
     this.lastSeen.set(deviceId, receivedAt);
-    await this.updateLatest(deviceId, fresh);
+    await this.updateLatest(siteId, device, fresh);
     if (this.rows.length >= this.batchSize) await this.flush();
   }
 
-  private async updateLatest(deviceId: string, readings: TelemetryReading[]): Promise<void> {
+  private async updateLatest(siteId: string, device: KnownDevice, readings: TelemetryReading[]): Promise<void> {
     const newest = readings.reduce((a, b) => (Date.parse(b.ts) > Date.parse(a.ts) ? b : a));
     const newestMs = Date.parse(newest.ts);
-    if (newestMs <= (this.latestTs.get(deviceId) ?? -Infinity)) return;
-    this.latestTs.set(deviceId, newestMs);
-    await this.redis.set(keys.latest(deviceId), JSON.stringify(newest));
+    if (newestMs <= (this.latestTs.get(device.id) ?? -Infinity)) return;
+    this.latestTs.set(device.id, newestMs);
+    await this.redis.set(keys.latest(device.id), JSON.stringify(newest));
+    this.onLatest?.(siteId, device, newest);
   }
 
   /** Writes waiting rows and last-seen times. Flushes run one after another. */

@@ -170,3 +170,37 @@ install cost in a later phase. With no records, every field is `0`.
 
 Each v1 route answers unexpected failures with its own `500` body, for example
 `{"error":"Failed to fetch alerts"}` or `{"message":"Failed to get user"}`.
+
+## Site (v2) `/api/site` 🔒 all roles
+
+### `GET /snapshot`
+Everything the live view needs on load (type `SiteSnapshot` in `@ecomanage/shared`):
+
+- `site`: id, name, tz, currency, demandCapKw, billDay
+- `devices[]`: id, name, type, status, profileId, ratedKw, capacityKwh, lastSeenAt, and `latest`
+  (the newest reading, standard fields, site sign convention)
+- `flows`: kW per source/consumer from readings under 60 s old: `pv`, `battery` (+ discharge),
+  `grid` (+ import, `null` if the meter is stale), `ev`, `heatpump` (negative = consuming),
+  `building` (calculated remainder, `null` without the meter), and `stale` device ids
+- `battery`: socPct, reservePct, usableKwh, pKw, minutesLeft ((SoC − reserve) × usable × SoH ÷ kW;
+  `null` unless discharging)
+- `demand`: current 15-minute interval: `soFarKw` (meter import since the interval start),
+  `projectedKw` (if the current power holds), `quality` (`estimated` without a meter reading
+  near the start)
+- `monthPeak`: highest `intervals15.demandKw` in the current billing period
+- `gateway`: online (reported within 90 s), buffered, fw
+
+`503` if the API runs without Redis.
+
+### `GET /stream`
+Server-sent events. Send the access token in `Authorization`: `EventSource` can't, so the web
+client reads the stream with `fetch`. Events:
+
+| event       | data |
+| ----------- | ---- |
+| `snapshot`  | a `SiteSnapshot`, always first |
+| `telemetry` | `{ type, deviceId, reading }`, at most one per device every 5 s |
+| `demand`    | `{ type, demand: { intervalStart, soFarKw, projectedKw }, quality }` |
+
+A `: heartbeat` comment is sent every 20 s. Events published while the snapshot is being built are
+held back and sent right after it.

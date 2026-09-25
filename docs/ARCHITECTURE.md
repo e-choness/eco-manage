@@ -193,3 +193,27 @@ flight) into `intervals15`, one row per site and quarter hour (upsert):
   and it is recomputed on the next pass; so is the following interval if it was estimated.
 - After a restart it resumes from the last stored interval, or from the site's first reading,
   catching up at most a week at a time.
+
+## Live view (P1-08)
+
+```mermaid
+sequenceDiagram
+    participant GW as Simulator / gateway
+    participant B as Mosquitto
+    participant I as Ingest
+    participant R as Redis
+    participant A as API (any instance)
+    participant W as Browser
+    GW->>B: site/{site}/dev/{dev}/telemetry
+    B->>I: (svc-ingest)
+    I->>R: SET latest:{dev}, PUBLISH site:{site}:events (≤ 1 per device per 5 s, trailing)
+    W->>A: GET /api/site/stream (fetch + Bearer)
+    A->>W: event: snapshot
+    R-->>A: message
+    A->>W: event: telemetry / demand
+```
+
+The browser applies each event to the cached snapshot (react-query) with `applySiteEvent`, which
+reuses the shared `siteFlows` / `batteryLive` functions, so its numbers match the API's.
+Measured through the web dev server's proxy: telemetry reaches the browser about 0.66 s after
+the simulator stamps it.
