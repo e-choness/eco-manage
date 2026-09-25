@@ -1,24 +1,35 @@
 {
-  "name": "EcoManage",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "postinstall": "concurrently -n \"client,server\" \"npm run client-install\" \"npm run server-install\"",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "client": "cd client && npm run dev",
-    "client-install": "cd client && npm install",
-    "server": "cd server && npm run dev",
-    "server-install": "cd server && npm install",
-    "start": "concurrently -n \"client,server\" \"npm run client\" \"npm run server\"",
-    "debug": "concurrently -n \"client,server\" \"npm run client\" \"cross-env NODE_OPTIONS=--inspect-brk=9229 npm run server\""
+  "name": "ecomanage",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
   },
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "concurrently": "^9.1.0"
+  "scripts": {
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "api": "pnpm --filter @ecomanage/api dev",
+    "web": "pnpm --filter @ecomanage/web dev",
+    "dev": "pnpm -r --parallel dev",
+    "seed": "pnpm --filter @ecomanage/api seed",
+    "server": "pnpm api",
+    "client": "pnpm web",
+    "start": "pnpm dev",
+    "server-install": "pnpm install",
+    "client-install": "pnpm install"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3"
-  }
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.14",
+    "globals": "^15.11.0",
+    "typescript": "~5.6.2",
+    "typescript-eslint": "^8.11.0"
+  },
+  "license": "ISC"
 }

@@ -1,0 +1,13 @@
+# Dev image for the whole pnpm workspace. Source is bind-mounted by docker-compose;
+# node_modules live in the image and are kept out of the bind mount by volumes.
+FROM node:20-alpine
+
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+WORKDIR /repo
+
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+RUN pnpm install --frozen-lockfile=false
+
+COPY . .
