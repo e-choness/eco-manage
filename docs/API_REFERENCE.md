@@ -12,9 +12,9 @@ Base URL: `http://localhost:3000` (the web dev server proxies `/api` there).
 
   | Endpoints | Roles |
   | --------- | ----- |
-  | dashboard, analytics, alerts, `GET /devices`, `GET /optimization/recommendations` | owner, manager, installer |
+  | dashboard, analytics, alerts, device reads, site, `GET /optimization/recommendations` | owner, manager, installer |
   | financial, `POST /optimization/accept`, `POST /optimization/dismiss` | owner, manager |
-  | `POST/PUT/DELETE /devices` | installer |
+  | `POST/PATCH/DELETE /devices` | installer |
   | `/auth/me`, `/auth/password`, `/auth/profile` | any signed-in user |
 
   v1 data is still stored per user; the role only decides access.
@@ -115,23 +115,27 @@ All readings at the latest hour that isn't in the future.
 ### `GET /consumption`
 `200 {"period","data":[{"date":"2026-09-01","consumption":5}]}`
 
-## Devices `/api/devices` 🔒
+## Devices `/api/devices` 🔒 (v2, P1-09)
 
-| Method | Path   | Body                                        | Success            |
-| ------ | ------ | ------------------------------------------- | ------------------ |
-| GET    | `/`    | —                                           | `200 {"devices":[…]}` newest first |
-| POST   | `/`    | `{ name, type, maxOutput? }`                | `201` device (status `online`, efficiency 90, maxOutput default 5) |
-| PUT    | `/:id` | at least one of `{ name, maxOutput, status }`, nothing else | `200` updated device |
-| DELETE | `/:id` | —                                           | `204`              |
+Scoped to the caller's site. Errors are `{ "error": { "code", "message" } }`. Writes are
+installer-only and each one writes an audit event with before and after.
 
-`type` is one of `solar | wind | battery | grid`, and `status` one of
-`online | offline | charging | maintenance`.
+| Method | Path | Roles | Result |
+| ------ | ---- | ----- | ------ |
+| GET | `/` | all | `{ items: DeviceView[] }`: device fields plus `latest` reading and its `quality` |
+| GET | `/:id` | all | `DeviceDetail`: adds `profile` (model, protocol, pollMs, write actions, fixes) and `commissionedBy` |
+| GET | `/:id/telemetry?from&to&res` | all | `{ points, res, capped }`; see below |
+| POST | `/` | installer | `201` new device, `status: "pending"` (after a scan). Body: type, name, profileId?, address?, role?, ratedKw?, capacityKwh? |
+| PATCH | `/:id` | installer | rename / re-role / re-address / replace profile or ratings (name, profileId, address, role, ratedKw, capacityKwh only) |
+| DELETE | `/:id` | installer | `204`. Telemetry is kept until it expires (13 months) |
 
-Errors:
-- `400 {"error":"Missing required fields: name, type"}`
-- `400 {"error":"Invalid device type. Must be: solar, wind, battery, or grid"}`
-- `400 {"error":"Invalid device update"}` (unknown field, bad status, negative maxOutput, empty body)
-- `404 {"error":"Device not found"}` (unknown or malformed id, or another user's device)
+- A `profileId` must exist and support the device type, or the request gets `400`. Unknown or
+  malformed ids, and devices of another site, get `404`.
+- **Telemetry:** `from`/`to` are ISO date-times (default: the last 24 h). `res` is `raw`,
+  `1m`, `5m`, `15m` or `h` (default `h`). Each point has `ts` (bucket start), `p_kw`
+  (average), `min_kw`, `max_kw`, `n` and `estimated`. If the resolution would give more than
+  400 points, the next coarser one is used and `capped` is `true`. Over 400 hourly points
+  (16 days) gets `400`.
 
 ## Alerts `/api/alerts` 🔒
 

@@ -2,8 +2,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getDashboardOverview, getEnergyFlow } from "@/api/dashboard"
-import { getDevices } from "@/api/devices"
-import type { DashboardOverview, Device, EnergyFlow } from "@/api/types"
+import type { DashboardOverview, EnergyFlow } from "@/api/types"
 import { useToast } from "@/hooks/useToast"
 import {
   Sun,
@@ -14,7 +13,6 @@ import {
   Cloud
 } from "lucide-react"
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram"
-import { DeviceStatusGrid } from "@/components/DeviceStatusGrid"
 
 
 const formatChange = (pct: number | null) =>
@@ -23,22 +21,16 @@ const formatChange = (pct: number | null) =>
 export function Dashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardOverview | null>(null)
   const [energyFlow, setEnergyFlow] = useState<EnergyFlow | null>(null)
-  const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [overviewData, flowData, devicesData] = await Promise.all([
-          getDashboardOverview(),
-          getEnergyFlow(),
-          getDevices()
-        ])
+        const [overviewData, flowData] = await Promise.all([getDashboardOverview(), getEnergyFlow()])
 
         setDashboardData(overviewData)
         setEnergyFlow(flowData)
-        setDevices(Array.isArray(devicesData.devices) ? devicesData.devices : [])
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
         toast({
@@ -178,16 +170,6 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Device Status */}
-      <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle>Device Status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DeviceStatusGrid devices={devices} />
-        </CardContent>
-      </Card>
     </div>
   )
 }

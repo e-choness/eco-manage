@@ -1,11 +1,10 @@
+import type { DeviceDetail, DeviceView, TelemetrySeries } from '@ecomanage/shared';
 import api, { errorMessage } from './api';
-import type { Device } from './types';
 
-// Description: Get all devices
+// Description: Devices on the current site
 // Endpoint: GET /api/devices
-// Request: {}
-// Response: { devices: Array<{ _id: string, name: string, type: string, status: string, currentOutput: number, maxOutput: number, efficiency: number, lastMaintenance: string }> }
-export const getDevices = async (): Promise<{ devices: Device[] }> => {
+// Response: { items: DeviceView[] }
+export const getDevices = async (): Promise<{ items: DeviceView[] }> => {
   try {
     const response = await api.get('/api/devices');
     return response.data;
@@ -14,13 +13,22 @@ export const getDevices = async (): Promise<{ devices: Device[] }> => {
   }
 };
 
-// Description: Add a new device
-// Endpoint: POST /api/devices
-// Request: { name: string, type: string, maxOutput: number }
-// Response: { _id: string, name: string, type: string, status: string, maxOutput: number, efficiency: number }
-export const addDevice = async (data: { name: string; type: string; maxOutput: number }): Promise<Device> => {
+// Description: One device with profile and commissioning details
+// Endpoint: GET /api/devices/:id
+export const getDevice = async (id: string): Promise<DeviceDetail> => {
   try {
-    const response = await api.post('/api/devices', data);
+    const response = await api.get(`/api/devices/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(errorMessage(error));
+  }
+};
+
+// Description: Power over time, averaged per bucket (default: last 24 h, hourly)
+// Endpoint: GET /api/devices/:id/telemetry?from&to&res
+export const getDeviceTelemetry = async (id: string, params: { from?: string; to?: string; res?: string } = {}): Promise<TelemetrySeries> => {
+  try {
+    const response = await api.get(`/api/devices/${id}/telemetry`, { params });
     return response.data;
   } catch (error) {
     throw new Error(errorMessage(error));

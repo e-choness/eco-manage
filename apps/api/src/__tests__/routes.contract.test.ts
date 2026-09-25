@@ -79,8 +79,6 @@ describe('authentication guard', () => {
     ['get', '/api/analytics/consumption'],
     ['get', '/api/alerts'],
     ['put', '/api/alerts/read'],
-    ['get', '/api/devices'],
-    ['post', '/api/devices'],
     ['get', '/api/financial/overview'],
     ['get', '/api/financial/history'],
     ['get', '/api/optimization/recommendations'],
@@ -193,36 +191,7 @@ describe('alerts', () => {
   });
 });
 
-describe('devices', () => {
-  // Device writes are installer-only (P1-04).
-  beforeEach(() => {
-    role = 'installer';
-  });
-
-  it('validates required fields and type', async () => {
-    const missing = await authed(request(app).post('/api/devices')).send({ name: 'x' });
-    expect(missing.status).toBe(400);
-    expect(missing.body).toEqual({ error: 'Missing required fields: name, type' });
-
-    const badType = await authed(request(app).post('/api/devices')).send({ name: 'x', type: 'nuclear' });
-    expect(badType.status).toBe(400);
-    expect(badType.body).toEqual({ error: 'Invalid device type. Must be: solar, wind, battery, or grid' });
-  });
-
-  it('creates with defaults', async () => {
-    const create = jest.spyOn(model('LegacyDevice'), 'create').mockResolvedValue({ name: 'PV' } as never);
-    const res = await authed(request(app).post('/api/devices')).send({ name: 'PV', type: 'solar' });
-    expect(res.status).toBe(201);
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'PV', type: 'solar', maxOutput: 5, status: 'online', efficiency: 90 })
-    );
-  });
-
-  it('lists devices', async () => {
-    jest.spyOn(model('LegacyDevice'), 'find').mockImplementation(() => query([{ name: 'PV' }]) as never);
-    expect((await authed(request(app).get('/api/devices'))).body).toEqual({ devices: [{ name: 'PV' }] });
-  });
-});
+// v2 devices (P1-09) are covered in integration/devices.test.ts.
 
 describe('optimization', () => {
   it('lists open recommendations', async () => {

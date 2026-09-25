@@ -8,3 +8,4 @@ export * from './api/auth';
 export * from './demo';
 export * from './live';
 export * from './api/site';
+export * from './api/devices';

@@ -13,7 +13,7 @@ import { createApp } from '../../app';
 import User from '../../modules/auth/model';
 import { generatePasswordHash } from '../../utils/password';
 
-type Method = 'get' | 'post' | 'put' | 'delete';
+type Method = 'get' | 'post' | 'put' | 'patch' | 'delete';
 type Access = 'public' | 'user' | readonly Role[];
 
 const ALL: readonly Role[] = ['owner', 'manager', 'installer'];
@@ -39,7 +39,9 @@ const ROUTES: Record<string, Access> = {
   'put /api/alerts/read': ALL,
   'get /api/devices/': ALL,
   'post /api/devices/': INSTALLER,
-  'put /api/devices/:id': INSTALLER,
+  'get /api/devices/:id': ALL,
+  'get /api/devices/:id/telemetry': ALL,
+  'patch /api/devices/:id': INSTALLER,
   'delete /api/devices/:id': INSTALLER,
   'get /api/financial/overview': MONEY,
   'get /api/financial/history': MONEY,
