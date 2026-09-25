@@ -12,6 +12,7 @@ COPY packages/shared/package.json packages/shared/
 COPY packages/db/package.json packages/db/
 COPY packages/profiles/package.json packages/profiles/
 COPY apps/simulator/package.json apps/simulator/
+COPY apps/ingest/package.json apps/ingest/
 RUN pnpm install --frozen-lockfile=false
 
 COPY . .

@@ -158,3 +158,20 @@ handling as a real one, so the backend can't tell the two apart.
 
 With seed 42 on 24 Sep 2026, a school day, the uncontrolled 15-minute grid peak is 130 kW at
 15:15, matching the App v2 peak-shaving story.
+
+## Ingest (`apps/ingest`)
+
+Subscribes with the `svc-ingest` certificate to telemetry, device status and gateway status for
+every site (QoS 1, persistent session).
+
+- Telemetry is checked against the zod schema, then against the device record: it must exist and
+  belong to the site in the topic, and every field must be declared by its profile. Rejections
+  are counted and logged.
+- Duplicates are dropped on `(deviceId, ts)` with Redis `SET NX` markers kept for 8 days (longer
+  than the 7-day gateway buffer).
+- Readings more than 15 minutes old on arrival get `q: "backfilled"`.
+- Rows are written to the `telemetry` time series in batches, every 500 ms or at 1000 rows.
+  `latest:{deviceId}` in Redis holds the newest reading. The device's `lastSeenAt` is the
+  receive time, and a stale or offline device goes back to `live` (pending devices stay pending).
+- Every 10 s, devices silent for 60 s become `stale` and after 5 min `offline`.
+- Gateway status goes to `gw:{siteId}` and device status to `status:{deviceId}` in Redis.
