@@ -168,9 +168,12 @@ const intervalSchema = new Schema(
     creditCents: { type: Number, default: 0 },
     quality: { type: String, enum: QUALITY, default: 'ok' },
     tariffVersion: { type: Number, default: null },
+    // Set when the worker has priced this interval; ingest clears it when it recomputes one.
+    costedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
+intervalSchema.index({ costedAt: 1 });
 intervalSchema.index({ siteId: 1, start: 1 }, { unique: true });
 export type Interval15Doc = InferSchemaType<typeof intervalSchema> & { _id: Types.ObjectId };
 export const Interval15 = mongoose.model('Interval15', intervalSchema, 'intervals15');
@@ -203,6 +206,44 @@ tariffSchema.index({ siteId: 1, version: 1 }, { unique: true });
 export type TariffDoc = InferSchemaType<typeof tariffSchema> & { _id: Types.ObjectId };
 export const Tariff = mongoose.model('Tariff', tariffSchema, 'tariffs');
 
+// ---- bills -------------------------------------------------------------------------------------
+
+// One per site and billing period (plan §2). Lines are whole cents; totalCents = energy lines +
+// demand + fixed - export credit. Recomputed while the period is open and when late data arrives.
+const billSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    period: { type: String, required: true }, // YYYY-MM of the period start (site time)
+    start: { type: Date, required: true },
+    end: { type: Date, required: true },
+    inProgress: { type: Boolean, default: true },
+    lines: {
+      energyPkCents: { type: Number, default: 0 },
+      energyMdCents: { type: Number, default: 0 },
+      energyOpCents: { type: Number, default: 0 },
+      demandCents: { type: Number, default: 0 },
+      fixedCents: { type: Number, default: 0 },
+      exportCreditCents: { type: Number, default: 0 },
+    },
+    energyKwh: { pk: Number, md: Number, op: Number, export: Number },
+    totalCents: { type: Number, default: 0 },
+    peakKw: { type: Number, default: 0 },
+    peakAt: { type: Date, default: null },
+    tariffVersion: { type: Number, default: null }, // version for demand and fixed charges
+    tariffVersions: { type: [Number], default: [] }, // every version used for energy
+    intervals: { type: Number, default: 0 },
+    estimatedShare: { type: Number, default: 0 },
+    unpricedIntervals: { type: Number, default: 0 }, // days with no tariff in force
+    savedCents: { type: Number, default: null }, // P2-04
+    utility: { totalCents: Number, fileId: String, parsedAt: Date }, // P2-05
+    computedAt: { type: Date, default: null },
+  },
+  { timestamps: true }
+);
+billSchema.index({ siteId: 1, period: 1 }, { unique: true });
+export type BillDoc = InferSchemaType<typeof billSchema> & { _id: Types.ObjectId };
+export const Bill = mongoose.model('Bill', billSchema, 'bills');
+
 // ---- audit ------------------------------------------------------------------------------------
 
 const auditSchema = new Schema(
@@ -221,7 +262,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, AuditEvent] as const;
+export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

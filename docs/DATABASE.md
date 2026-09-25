@@ -47,7 +47,9 @@ services share them. Plain types live in `packages/shared/src/models.ts`.
 | `devices`        | siteId, type (pv, battery, meter, submeter, ev, heatpump, gateway), name, profileId, address, role, status (pending, live, stale, offline), ratedKw, capacityKwh, lastSeenAt, commissionedAt/By | siteId |
 | `deviceProfiles` | id ("vendor-model@version"), vendor, model, protocol, deviceType, read[], write, states, faults, fixes, pollMs, reviewed | id unique |
 | `telemetry`      | **time series**: ts, meta {siteId, deviceId}, p_kw and the standard fields, q (ok, stale, estimated, backfilled). Expires after 13 months | meta.deviceId+ts, meta.siteId+ts |
-| `intervals15`    | siteId, start (UTC), pv, used, batt, grid, export, bld, hp, ev (kWh), demandKw, costCents, creditCents, quality, tariffVersion | {siteId, start} unique |
+| `intervals15`    | siteId, start (UTC), pv, used, batt, grid, export, bld, hp, ev (kWh), demandKw, costCents {pk, md, op}, creditCents, quality, tariffVersion, costedAt (null until the worker prices it) | {siteId, start} unique, costedAt |
+| `tariffs`        | siteId, version, validFrom (local date), name, seasons, periods, demandRateCents, demandIntervalMin (15, 30), exportRateCents, fixedCents, holidays, createdBy | {siteId, version} unique |
+| `bills`          | siteId, period (YYYY-MM), start, end, inProgress, lines {energyPk/Md/Op, demand, fixed, exportCredit}Cents, energyKwh, totalCents, peakKw, peakAt, tariffVersion, tariffVersions, intervals, estimatedShare, unpricedIntervals, savedCents (P2-04), utility (P2-05), computedAt | {siteId, period} unique |
 | `auditEvents`    | siteId, userId (null for system actions), action, target, before, after, ts | {siteId, ts: -1} |
 
 `initModels()` creates the collections and syncs the indexes. The time-series collection has to be

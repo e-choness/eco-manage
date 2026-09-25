@@ -199,6 +199,27 @@ flight) into `intervals15`, one row per site and quarter hour (upsert):
 - After a restart it resumes from the last stored interval, or from the site's first reading,
   catching up at most a week at a time.
 
+- Every write clears `costedAt`, so the worker prices the interval again.
+
+## Worker (`apps/worker`, P2-03)
+
+BullMQ on the compose Redis, queue `billing`, one job at a time:
+
+- `cost-intervals`, every 60 s: prices each interval whose `costedAt` is null with the tariff
+  version valid on its local date (`touSplit` of `grid` into `costCents.pk/md/op`, and
+  `creditCents` = export × export rate), then recomputes the bill of each billing period it
+  touched. An interval that ingest rewrote in the meantime stays pending (the update matches on
+  `updatedAt`).
+- `nightly-bills`, hourly at :05: for each site whose local time is 01:xx, recomputes the bills
+  for the current and previous periods.
+
+A bill (`bills`, one per site and period) is
+`Σ energy × the version in force on each day + peak demand × demand rate + fixed fee − export credit`.
+Energy lines are summed from exact values and rounded once per line, not per interval. Demand and
+the fixed fee use the version in force on the period's last day (today, for an open period);
+`peakKw` is the highest 15- or 30-minute demand (`periodPeak`). The bill also stores which
+versions priced it, the share of `estimated` intervals and any intervals no tariff covers.
+
 ## Live view (P1-08)
 
 ```mermaid

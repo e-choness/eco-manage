@@ -180,7 +180,8 @@ export const rollUp = async (siteId: string, start: Date): Promise<IntervalValue
   const previous = await Interval15.findOne({ siteId, start: new Date(start.getTime() - INTERVAL_MS) }).select('bld').lean();
   const values = await computeInterval(siteId, start, previous);
   if (!values) return null;
-  await Interval15.updateOne({ siteId, start }, { $set: values }, { upsert: true });
+  // Clearing costedAt tells the worker to price the interval again (P2-03).
+  await Interval15.updateOne({ siteId, start }, { $set: { ...values, costedAt: null } }, { upsert: true });
   return values;
 };
 
