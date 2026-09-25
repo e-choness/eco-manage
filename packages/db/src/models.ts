@@ -457,6 +457,32 @@ emailSchema.index({ siteId: 1, createdAt: -1 });
 export type EmailDoc = InferSchemaType<typeof emailSchema> & { _id: Types.ObjectId };
 export const Email = mongoose.model('Email', emailSchema, 'emails');
 
+// ---- forecasts -----------------------------------------------------------------------------------
+
+// PV and load forecasts for the next 48 h in 15-minute steps (P2-10), issued every hour by the
+// worker. The weather used goes with the PV forecast; accuracy is filled in a day later.
+const forecastSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    kind: { type: String, enum: ['pv', 'load'], required: true },
+    issuedAt: { type: Date, required: true },
+    source: { type: String, required: true }, // weather source: simulated | open-meteo
+    points: { type: [new Schema({ ts: Date, kw: Number }, { _id: false })], default: [] },
+    weather: { type: [new Schema({ ts: Date, tempC: Number, cloud: Number }, { _id: false })], default: [] },
+    // Load: which history each day was built from, e.g. "Thursday school-day profile (6 days)".
+    profiles: { type: [new Schema({ date: String, label: String, days: Number }, { _id: false })], default: [] },
+    accuracy: {
+      type: new Schema({ mape: Number, n: Number, evaluatedAt: Date }, { _id: false }),
+      default: null,
+    },
+  },
+  { timestamps: true }
+);
+forecastSchema.index({ siteId: 1, kind: 1, issuedAt: -1 });
+forecastSchema.index({ issuedAt: 1 }, { expireAfterSeconds: 30 * 24 * 3600 });
+export type ForecastDoc = InferSchemaType<typeof forecastSchema> & { _id: Types.ObjectId };
+export const Forecast = mongoose.model('Forecast', forecastSchema, 'forecasts');
+
 // ---- audit ------------------------------------------------------------------------------------
 
 const auditSchema = new Schema(
@@ -475,7 +501,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, AuditEvent] as const;
+export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

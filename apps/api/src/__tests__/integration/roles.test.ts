@@ -68,6 +68,7 @@ const ROUTES: Record<string, Access> = {
   'put /api/calendar/': PLANNERS,
   'get /api/me/notifications': ALL,
   'patch /api/me/notifications': ALL,
+  'get /api/forecast/': ALL,
 };
 
 interface Layer {

@@ -1,8 +1,9 @@
-import { siteDate, siteMinuteOfDay } from '@ecomanage/shared';
+import { siteDate, siteMinuteOfDay } from './time';
 import { hashRandom } from './random';
 
 // Seeded weather profile: one cloud factor and temperature offset per local day, with a diurnal
-// temperature curve. The forecast worker (P2-10) uses the same profile for the simulated site.
+// temperature curve. The simulator and the forecast worker (P2-10, WEATHER_PROVIDER=simulated)
+// both use it, so forecasts for the simulated site are made from the weather it will get.
 
 export interface Weather {
   cloud: number; // share of clear-sky irradiance that reaches the panels, 0.15–1
@@ -23,4 +24,13 @@ export const weatherAt = (at: Date, tz: string, seed: number): Weather => {
   const minute = siteMinuteOfDay(at, tz);
   const diurnal = 6 * Math.cos((2 * Math.PI * (minute - 15 * 60)) / 1440);
   return { cloud, tempC: MONTHLY_MEAN_C[month] + offset + diurnal };
+};
+
+/**
+ * Share of clear-sky irradiance that gets through a given cloud cover (Kasten–Czeplak), so a
+ * weather service's cloud cover feeds the same PV model as the simulated profile.
+ */
+export const cloudFromCover = (coverPct: number): number => {
+  const c = Math.min(100, Math.max(0, coverPct)) / 100;
+  return 1 - 0.75 * Math.pow(c, 3.4);
 };

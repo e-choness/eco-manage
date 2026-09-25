@@ -7,6 +7,8 @@ export const QUEUES = {
   documents: 'documents',
   /** Repeating: alert emails, escalation, daily summaries (P2-09). */
   email: 'email',
+  /** Hourly PV and load forecasts, and on demand after calendar or array changes (P2-10). */
+  forecast: 'forecast',
 } as const;
 
 export interface StatementJob {
