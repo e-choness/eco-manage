@@ -16,6 +16,7 @@ x-workspace: &workspace
     - /repo/packages/shared/node_modules
     - /repo/packages/db/node_modules
     - /repo/packages/profiles/node_modules
+    - /repo/apps/simulator/node_modules
   environment: &workspace-env
     # Windows bind mounts don't deliver file events reliably, so the watchers poll.
     CHOKIDAR_USEPOLLING: "true"
@@ -64,6 +65,29 @@ services:
       timeout: 3s
       retries: 12
       start_period: 5s
+
+  # Simulated Maple Grove School site: behaves exactly like its gateway over MQTT/TLS.
+  # Speed and seed: SIM_SPEED (1–60), SIM_SEED. Control API: http://localhost:4100/sim/state
+  simulator:
+    <<: *workspace
+    command: ["pnpm", "--filter", "@ecomanage/simulator", "dev"]
+    ports:
+      - "4100:4100"
+    environment:
+      <<: *workspace-env
+      SIM_SPEED: ${SIM_SPEED:-1}
+      SIM_SEED: ${SIM_SEED:-42}
+      MQTT_URL: mqtts://mosquitto:8883
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4100/sim/state"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
 
   mongodb:
     image: mongo:7

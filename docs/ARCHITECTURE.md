@@ -20,6 +20,7 @@ graph LR
 | `mongodb`    | `mongo:7`              | Data store                                |
 | `redis`      | `redis:7-alpine`       | Rate-limit store                          |
 | `mosquitto`  | `eclipse-mosquitto:2`  | MQTT broker, TLS with client certificates, ACL per identity |
+| `simulator`  | `Dockerfile.dev`       | Simulated demo site acting as its gateway over MQTT/TLS; control API on :4100 |
 | `mqtt-certs` | `alpine`               | One-shot: generates the dev CA and certificates into `infra/mosquitto/certs` (gitignored) |
 | `mongo-seed` | `Dockerfile.dev`       | One-shot demo data reset (profile `tools`, run on demand) |
 
@@ -134,3 +135,26 @@ means importing.
 | Data        | MongoDB 7, Redis 7                                             |
 | Tests       | Jest + ts-jest + supertest (API), Vitest + Testing Library + MSW (web) |
 | Tooling     | pnpm 9 workspace, ESLint 9 flat config, Docker Compose         |
+
+## Simulator (`apps/simulator`)
+
+A stand-in for the site gateway (spec §7). It uses the same MQTT topics, certificate and command
+handling as a real one, so the backend can't tell the two apart.
+
+- `engine/`: deterministic physics per seed. Clear-sky solar for the site's latitude times a
+  seeded daily cloud factor; school load profile from the calendar (terms, days off, opening
+  hours); heat pump driven by temperature and SG-Ready mode; EV sessions (buses, staff cars)
+  honouring current limits and schedules; battery with round-trip losses in self-consumption
+  mode unless commanded. The grid meter is the remainder. Every device integrates its own
+  energy counters.
+- `gateway.ts`: publishes each device every 5 simulated seconds (once per real second above
+  5×); buffers while the gateway is "offline" and resends in order in `{items}` batches; checks
+  command expiry and profile write limits before acking; answers scan, commission and restart jobs.
+- Faults (`POST /sim/faults {type, device?, minutes?}`): `device-offline`, `meter-gap`,
+  `gateway-offline`, `command-rejected`, `output-drop`. A `reset` or `restart` command brings an
+  offline device back. `DELETE /sim/faults` clears them, `POST /sim/clock {speed}` changes the
+  speed (1–60), `GET /sim/state` shows time, weather, battery and faults.
+- Start options: `--speed`, `--seed`, `--start` (or `SIM_SPEED`, `SIM_SEED`, `SIM_START`).
+
+With seed 42 on 24 Sep 2026, a school day, the uncontrolled 15-minute grid peak is 130 kW at
+15:15, matching the App v2 peak-shaving story.
