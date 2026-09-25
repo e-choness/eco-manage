@@ -37,10 +37,10 @@ middleware/            auth.ts (requireUser), security.ts (CORS, helmet, rate li
 lib/http.ts            handle() wrapper, HttpError, parse() for zod, currentUser/userIdOf
 utils/                 JWT, bcrypt and cookie helpers
 modules/<name>/        routes.ts → controller.ts → service.ts → model.ts
-scripts/               seed.ts, seedReadings.ts (hourly demo data generator)
+scripts/               seed.ts / seedDemo.ts (demo data), migrate.ts / migrateV2.ts
 ```
 
-Modules: `health`, `auth`, `dashboard`, `analytics`, `alerts`, `devices`, `financial`,
+Modules: `health`, `auth`, `site`, `devices`, `alerts`,
 `optimization`.
 
 ### Layering rules
@@ -109,21 +109,21 @@ the v2 shape: 404 for unknown routes, 429 for rate limits, 500 for unhandled err
 api/            axios wrappers per module, types.ts (response shapes), api.ts (token + refresh)
 contexts/       AuthContext: session restore, login/register/logout, user
 components/     layout, header (alert badge), energy flow diagram, shadcn/ui in ui/
-pages/          Landing, Login, Register, Dashboard, Monitoring, Analytics, Optimization,
-                Alerts, Financial, Settings
+pages/          Landing, Login, Register, Live (home), Monitoring (devices), Optimization,
+                Alerts, Settings
 lib/            utils, alertEvents (header refresh + 30 s poll interval)
 ```
 
-Routes: `/`, `/login`, `/register`, and `/dashboard` with the children `monitoring`, `analytics`,
-`optimization`, `alerts`, `financial` and `settings`. `ProtectedRoute` waits for the session
+Routes: `/`, `/login`, `/register`, and `/dashboard` (the live view) with the children
+`monitoring`, `optimization`, `alerts` and `settings`. `ProtectedRoute` waits for the session
 restore before redirecting.
 
 ## Data
 
-See [DATABASE.md](./DATABASE.md). Readings are hourly kWh values in `energyreadings`. Production
-comes from solar and wind devices; site consumption is metered on the grid meter device. The
-dashboard computes grid flow as consumption − production − battery discharge, where positive
-means importing.
+See [DATABASE.md](./DATABASE.md). Devices report power in the site sign convention (positive into
+the switchboard: PV, battery discharge, grid import; loads negative) plus cumulative energy
+counters. Readings land in the `telemetry` time series, and the 15-minute `intervals15` roll-up
+holds energy per source and consumer, the building remainder and demand.
 
 ## Tech stack
 

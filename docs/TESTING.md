@@ -1,7 +1,8 @@
 # Testing
 
-All suites run inside the dev container. As of v2 Phase 0: **API 344 tests in 22 files, web 50
-tests in 5 files**, all passing. Lint and typecheck also pass.
+All suites run inside the dev container. As of P1-10: **api 222, web 49, ingest 25, simulator 18,
+shared 37, profiles 12, db 10**, all passing. Lint and typecheck also pass. The api, ingest and db
+suites need the compose MongoDB (and Redis for api/ingest).
 
 ```bash
 docker compose up -d mongodb redis          # the API integration tests need MongoDB
@@ -23,14 +24,13 @@ docker compose run --rm api pnpm --filter @ecomanage/api test:coverage   # 55% g
 | Suite                                  | What it checks                                                    |
 | -------------------------------------- | ----------------------------------------------------------------- |
 | `routes.contract.test.ts`              | Every v1 endpoint through `createApp()`: status codes, bodies, auth guard. Models are stubbed via `mongoose.model(name)` |
-| `integration/p0-05-bugfixes.test.ts`   | Dashboard numbers, energy flow, query counts, device PUT/DELETE, dismiss, insight removal, against a **real MongoDB** |
+| `integration/*.test.ts`                | Against a **real MongoDB** (and Redis): role matrix over every route, migration, site snapshot and SSE stream, v2 devices, P0-05 fixes still in use |
 | `security.test.ts`                     | Refresh cookie flags and rotation, logout revocation, 429 limits, CORS, helmet, no credentials in logs |
 | `middleware/auth.test.ts`              | `requireUser`: 401 cases, and DB errors passed to the error handler |
 | `routes/authRoutes.test.ts`            | Auth routes with a mocked user service                            |
 | `services/userService.test.ts`, `utils/*` | User service, JWT and bcrypt helpers                           |
-| `scripts/seedReadings.test.ts`         | Demo data generator: nothing in the future, consumption on the grid meter |
 | `config/database.test.ts`              | Connection handling                                               |
-| `models/*`, other `routes/*`, `scripts/seed.test.ts` | Mostly exercise their own mocks rather than app code; the contract and integration suites are the ones that protect behaviour |
+| `models/*`, other `routes/*` | Mostly exercise their own mocks rather than app code; the contract and integration suites are the ones that protect behaviour |
 
 ### Integration tests
 
@@ -51,7 +51,8 @@ docker compose run --rm --no-deps api pnpm --filter @ecomanage/web test:watch
 | -------------------------------------- | --------------------------------------------------------------- |
 | `AuthContext.test.tsx`                 | Session restore from the cookie, in-memory token, refresh-and-retry on 401, logout |
 | `pages/Login.test.tsx`, `Register.test.tsx` | Forms, validation, loading states                          |
-| `pages/p0-05-bugfixes.test.tsx`        | Dashboard labels and change %, grid import/export, dismiss saved, no LLM button |
+| `pages/Live.test.tsx`, `Monitoring.test.tsx` | Live view from snapshot + stream (reducer, SSE parser), devices list and detail |
+| `pages/p0-05-bugfixes.test.tsx`        | Dismissing a recommendation is saved |
 | `components/DashboardHeader.test.tsx`  | Alert poll never faster than 30 s, refresh on the alerts-changed event |
 
 `src/__tests__/setup.ts` starts an MSW server (base `http://localhost:3000`), mocks `localStorage`

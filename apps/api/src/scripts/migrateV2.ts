@@ -7,11 +7,12 @@ export interface MigrationSummary {
   legacyDevicesMoved: number;
   sitesCreated: number;
   profiles: number;
+  legacyDropped: string[];
 }
 
 /**
  * v1 kept per-user devices in `devices`. v2 uses that name for site devices, so v1 documents
- * (they have a userId and no siteId) move to `legacy_devices` until P1-10 deletes them.
+ * (they have a userId and no siteId) move to `legacy_devices`, which `--drop-legacy` removes with the other retired collections.
  */
 const moveLegacyDevices = async (): Promise<number> => {
   const db = mongoose.connection.db;
@@ -56,11 +57,28 @@ const syncProfiles = async (): Promise<number> => {
   return profiles.length;
 };
 
-/** Brings a v1 database up to the v2 model. Safe to run any number of times. */
-export const migrateToV2 = async (): Promise<MigrationSummary> => {
+// v1 collections replaced by the v2 model (P1-10): readings by telemetry, weather by forecasts,
+// financial records by intervals x tariff, per-user devices by site devices.
+export const LEGACY_COLLECTIONS = ['energyreadings', 'weathers', 'financialrecords', 'legacy_devices'] as const;
+
+const dropLegacyCollections = async (): Promise<string[]> => {
+  const db = mongoose.connection.db;
+  if (!db) throw new Error('Not connected');
+  const existing = new Set((await db.listCollections({}, { nameOnly: true }).toArray()).map((c) => c.name));
+  const dropped = LEGACY_COLLECTIONS.filter((c) => existing.has(c));
+  for (const c of dropped) await db.dropCollection(c);
+  return dropped;
+};
+
+/**
+ * Brings a v1 database up to the v2 model. Safe to run any number of times. With dropLegacy the
+ * retired v1 collections are deleted; nothing in them is carried over.
+ */
+export const migrateToV2 = async ({ dropLegacy = false } = {}): Promise<MigrationSummary> => {
   const legacyDevicesMoved = await moveLegacyDevices();
   await initModels();
   const sitesCreated = await createSitesForUsers();
   const profiles = await syncProfiles();
-  return { legacyDevicesMoved, sitesCreated, profiles };
+  const legacyDropped = dropLegacy ? await dropLegacyCollections() : [];
+  return { legacyDevicesMoved, sitesCreated, profiles, legacyDropped };
 };

@@ -42,7 +42,7 @@ describe('migrating a v1 database', () => {
 
   it('creates one site and owner membership per user, and moves v1 devices', async () => {
     const summary = await migrateToV2();
-    expect(summary).toEqual({ legacyDevicesMoved: 2, sitesCreated: 3, profiles: 6 });
+    expect(summary).toEqual({ legacyDevicesMoved: 2, sitesCreated: 3, profiles: 6, legacyDropped: [] });
     expect(await DeviceProfile.countDocuments()).toBe(6);
 
     const memberships = await Membership.find().lean();
@@ -60,12 +60,22 @@ describe('migrating a v1 database', () => {
 
   it('changes nothing when run again', async () => {
     const summary = await migrateToV2();
-    expect(summary).toEqual({ legacyDevicesMoved: 0, sitesCreated: 0, profiles: 6 });
+    expect(summary).toEqual({ legacyDevicesMoved: 0, sitesCreated: 0, profiles: 6, legacyDropped: [] });
     expect(await DeviceProfile.countDocuments()).toBe(6);
     expect(await Site.countDocuments()).toBe(3);
     expect(await Membership.countDocuments()).toBe(3);
     expect(await db().collection('legacy_devices').countDocuments()).toBe(2);
     expect(await AuditEvent.countDocuments()).toBe(3);
+  });
+
+  it('drops the retired v1 collections only when asked', async () => {
+    await db().collection('energyreadings').insertOne({ value: 1 });
+    await db().collection('weathers').insertOne({ condition: 'sunny' });
+    expect((await migrateToV2()).legacyDropped).toEqual([]);
+    expect((await migrateToV2({ dropLegacy: true })).legacyDropped.sort()).toEqual(['energyreadings', 'legacy_devices', 'weathers']);
+    const names = (await db().listCollections().toArray()).map((c) => c.name);
+    expect(names).not.toContain('energyreadings');
+    expect((await migrateToV2({ dropLegacy: true })).legacyDropped).toEqual([]);
   });
 
   it('only adds sites for users who have none', async () => {
@@ -78,7 +88,7 @@ describe('migrating a v1 database', () => {
 describe('the demo seed', () => {
   beforeAll(async () => {
     await mongoose.connection.dropDatabase();
-    await seedDemoData(() => {}, new Date('2026-09-24T16:40:00Z'));
+    await seedDemoData(() => {});
   });
 
   it('builds the demo site with its devices and three members', async () => {
@@ -109,7 +119,7 @@ describe('the demo seed', () => {
   });
 
   it('can be run again without leftovers', async () => {
-    await seedDemoData(() => {}, new Date('2026-09-24T16:40:00Z'));
+    await seedDemoData(() => {});
     expect(await Site.countDocuments()).toBe(3);
     expect(await Membership.countDocuments()).toBe(5);
     expect(await Device.countDocuments()).toBe(DEMO_DEVICES.length);

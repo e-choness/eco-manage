@@ -37,7 +37,7 @@ beforeAll(() => {
   process.env.REFRESH_TOKEN_SECRET = 'contract-refresh';
   token = jwt.sign({ sub: String(userId) }, 'contract-jwt');
   // Loaded by createApp's imports; referenced here so the names are registered.
-  ['User', 'Alert', 'LegacyDevice', 'EnergyReading', 'FinancialRecord', 'Recommendation', 'Weather'].forEach(model);
+  ['User', 'Alert', 'Recommendation'].forEach(model);
 });
 
 // Site access (P1-04): the caller is a member of one site with this role.
@@ -73,14 +73,8 @@ describe('authentication guard', () => {
     ['get', '/api/auth/me'],
     ['put', '/api/auth/password'],
     ['put', '/api/auth/profile'],
-    ['get', '/api/dashboard/overview'],
-    ['get', '/api/dashboard/energy-flow'],
-    ['get', '/api/analytics/production'],
-    ['get', '/api/analytics/consumption'],
     ['get', '/api/alerts'],
     ['put', '/api/alerts/read'],
-    ['get', '/api/financial/overview'],
-    ['get', '/api/financial/history'],
     ['get', '/api/optimization/recommendations'],
     ['post', '/api/optimization/accept'],
   ] as const)('%s %s needs a token', async (method, path) => {
@@ -215,74 +209,4 @@ describe('optimization', () => {
   });
 });
 
-describe('financial', () => {
-  it('overview with no records is all zeros', async () => {
-    jest.spyOn(model('FinancialRecord'), 'find').mockImplementation(() => query([]) as never);
-    const res = await authed(request(app).get('/api/financial/overview'));
-    expect(res.body).toEqual({ totalSavings: 0, monthlyRevenue: 0, roi: 0, paybackPeriod: 0, maintenanceCosts: 0 });
-  });
-
-  it('overview and history compute from records', async () => {
-    const records = [
-      { _id: 'f1', date: '2026-08-01T00:00:00.000Z', savings: 100, revenue: 50, costs: 10, category: 'm' },
-      { _id: 'f2', date: '2026-07-01T00:00:00.000Z', savings: 200, revenue: 30.555, costs: 20, category: 'm' },
-    ];
-    jest.spyOn(model('FinancialRecord'), 'find').mockImplementation(() => query(records) as never);
-
-    const overview = await authed(request(app).get('/api/financial/overview?period=6months'));
-    expect(overview.body).toEqual({
-      totalSavings: 300,
-      monthlyRevenue: 40.28,
-      roi: 3.51,
-      paybackPeriod: 4.38,
-      maintenanceCosts: 30,
-    });
-
-    const history = await authed(request(app).get('/api/financial/history?period=6months'));
-    expect(history.body.period).toBe('6months');
-    expect(history.body.data[1]).toEqual({
-      id: 'f2',
-      date: '2026-07-01T00:00:00.000Z',
-      savings: 200,
-      revenue: 30.55,
-      costs: 20,
-      category: 'm',
-    });
-  });
-});
-
-describe('analytics', () => {
-  it('groups production by day and source', async () => {
-    const readings = [
-      { timestamp: new Date('2026-09-01T10:00:00Z'), value: 2, deviceId: { type: 'solar' } },
-      { timestamp: new Date('2026-09-01T11:00:00Z'), value: 3, deviceId: { type: 'wind' } },
-      { timestamp: new Date('2026-09-02T10:00:00Z'), value: 1.234, deviceId: null },
-    ];
-    jest.spyOn(model('EnergyReading'), 'find').mockImplementation(() => query(readings) as never);
-    const res = await authed(request(app).get('/api/analytics/production?period=week'));
-    expect(res.body).toEqual({
-      period: 'week',
-      data: [
-        { date: '2026-09-01', solar: 2, wind: 3, total: 5 },
-        { date: '2026-09-02', solar: 0, wind: 0, total: 1.23 },
-      ],
-    });
-  });
-
-  it('sums consumption by day with the default period', async () => {
-    const readings = [
-      { timestamp: new Date('2026-09-01T10:00:00Z'), value: 2 },
-      { timestamp: new Date('2026-09-01T11:00:00Z'), value: 3 },
-    ];
-    jest.spyOn(model('EnergyReading'), 'find').mockImplementation(() => query(readings) as never);
-    const res = await authed(request(app).get('/api/analytics/consumption'));
-    expect(res.body).toEqual({ period: 'month', data: [{ date: '2026-09-01', consumption: 5 }] });
-  });
-
-  it('insight endpoint was removed (P0-05)', async () => {
-    const res = await authed(request(app).post('/api/analytics/insight')).send({ data: 'x' });
-    expect(res.status).toBe(404);
-  });
-});
-
-// Dashboard numbers are covered against a real database in integration/p0-05-bugfixes.test.ts.
+// Financial, analytics and dashboard left with the v1 data model (P1-10).

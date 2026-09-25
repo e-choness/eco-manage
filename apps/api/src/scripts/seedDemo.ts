@@ -2,13 +2,8 @@ import mongoose from 'mongoose';
 import { DEMO_DEVICES, DEMO_SITE, DEMO_SITE_ID, DEMO_USERS } from '@ecomanage/shared';
 import { Device as SiteDevice, Interval15, Membership, Site, Telemetry, initModels } from '@ecomanage/db';
 import User from '../modules/auth/model';
-import Device from '../modules/devices/model';
-import EnergyReading from '../modules/analytics/model';
-import { buildSeedReadings } from './seedReadings';
 import Alert from '../modules/alerts/model';
-import FinancialRecord, { IFinancialRecord } from '../modules/financial/model';
 import Recommendation from '../modules/optimization/model';
-import Weather from '../modules/dashboard/model';
 import { generatePasswordHash } from '../utils/password';
 import { migrateToV2 } from './migrateV2';
 
@@ -25,14 +20,13 @@ const DEMO_ACCOUNTS = [
 
 export interface SeedSummary {
   users: number;
-  legacyReadings: number;
   siteDevices: number;
 }
 
 type Log = (message: string) => void;
 
-// Resets the demo accounts, their v1 data and the v2 demo site. Expects an open connection.
-export async function seedDemoData(log: Log = () => {}, now = new Date()): Promise<SeedSummary> {
+// Resets the demo accounts, their alerts and recommendations, and the v2 demo site. Expects an open connection.
+export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
     log('🌱 Starting database seeding...');
     await initModels();
 
@@ -42,11 +36,7 @@ export async function seedDemoData(log: Log = () => {}, now = new Date()): Promi
       if (existingUser) {
         log(`🔄 Clearing existing demo data for ${account.email}...`);
         await Alert.deleteMany({ userId: existingUser._id });
-        await Device.deleteMany({ userId: existingUser._id });
-        await EnergyReading.deleteMany({ userId: existingUser._id });
-        await FinancialRecord.deleteMany({ userId: existingUser._id });
         await Recommendation.deleteMany({ userId: existingUser._id });
-        await Weather.deleteMany({ userId: existingUser._id });
         const memberships = await Membership.find({ userId: existingUser._id });
         const ownSites = memberships.filter((m) => m.role === 'owner' && String(m.siteId) !== DEMO_SITE_ID).map((m) => m.siteId);
         await Site.deleteMany({ _id: { $in: ownSites } });
@@ -73,84 +63,7 @@ export async function seedDemoData(log: Log = () => {}, now = new Date()): Promi
     });
     log(`✅ Created user: ${DEMO_EMAIL}`);
 
-    // 2. Create 5 devices
-    log('\n🔌 Creating devices...');
-
-    // Calculate current solar output based on time of day (peaks at noon)
-    const hour = now.getHours();
-    const solarFraction = hour >= 6 && hour <= 18
-      ? Math.sin(((hour - 6) / 12) * Math.PI) * 0.8 + 0.2
-      : 0;
-
-    // Wind is relatively constant with some random variation
-    const windFraction = 0.6 + Math.random() * 0.3;
-
-    const devices = await Device.create([
-      {
-        userId: demoUser._id,
-        name: 'Solar Panel A',
-        type: 'solar',
-        status: 'online',
-        currentOutput: solarFraction * 5.5 * 0.6, // 60% of Solar B
-        maxOutput: 5.5,
-        efficiency: 95,
-        lastMaintenance: new Date(),
-      },
-      {
-        userId: demoUser._id,
-        name: 'Solar Panel B',
-        type: 'solar',
-        status: 'online',
-        currentOutput: solarFraction * 5.5,
-        maxOutput: 5.5,
-        efficiency: 92,
-        lastMaintenance: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-      },
-      {
-        userId: demoUser._id,
-        name: 'Wind Turbine 1',
-        type: 'wind',
-        status: 'online',
-        currentOutput: windFraction * 10.0,
-        maxOutput: 10.0,
-        efficiency: 85,
-        lastMaintenance: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-      },
-      {
-        userId: demoUser._id,
-        name: 'Battery Storage',
-        type: 'battery',
-        status: 'charging',
-        currentOutput: 8.0, // Half charged
-        maxOutput: 15.0,
-        efficiency: 97,
-        lastMaintenance: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-      },
-      {
-        userId: demoUser._id,
-        name: 'Grid Meter',
-        type: 'grid',
-        status: 'online',
-        currentOutput: 0,
-        maxOutput: 50.0,
-        efficiency: 100,
-        lastMaintenance: new Date(),
-      },
-    ]);
-    log(`✅ Created ${devices.length} devices`);
-
-    // 3. Generate 365 days of hourly energy readings up to now
-    log('\n⚡ Generating energy readings (365 days × 24 hours)...');
-    const energyReadings = buildSeedReadings(demoUser._id as mongoose.Types.ObjectId, {
-      solarA: devices[0]._id as mongoose.Types.ObjectId,
-      solarB: devices[1]._id as mongoose.Types.ObjectId,
-      wind: devices[2]._id as mongoose.Types.ObjectId,
-      gridMeter: devices[4]._id as mongoose.Types.ObjectId,
-    }, now);
-    await EnergyReading.insertMany(energyReadings);
-    log(`✅ Created ${energyReadings.length} energy readings`);
-
-    // 4. Create 4 alerts
+    // 2. Create 4 alerts
     log('\n🚨 Creating alerts...');
     const alerts = await Alert.create([
       {
@@ -192,35 +105,7 @@ export async function seedDemoData(log: Log = () => {}, now = new Date()): Promi
     ]);
     log(`✅ Created ${alerts.length} alerts`);
 
-    // 5. Create 24 months of financial records
-    log('\n💰 Creating financial records (24 months)...');
-    const financialRecords: Partial<IFinancialRecord>[] = [];
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-
-    for (let offset = 23; offset >= 0; offset--) {
-      const date = new Date(currentYear, currentDate.getMonth() - offset, 1);
-
-      // Realistic financial metrics with seasonal variation
-      const seasonalFactor = 0.6 + 0.4 * Math.sin((offset / 12) * Math.PI);
-      const savings = Math.round((150 + Math.random() * 100) * seasonalFactor * 100) / 100;
-      const revenue = Math.round((200 + Math.random() * 150) * seasonalFactor * 100) / 100;
-      const costs = Math.round((50 + Math.random() * 30) * 100) / 100;
-
-      financialRecords.push({
-        userId: demoUser._id,
-        date,
-        savings,
-        revenue,
-        costs,
-        category: 'Solar & Wind Energy',
-      });
-    }
-
-    await FinancialRecord.insertMany(financialRecords);
-    log(`✅ Created ${financialRecords.length} financial records`);
-
-    // 6. Create 4 recommendations
+    // 3. Create 4 recommendations
     log('\n💡 Creating recommendations...');
     const recommendations = await Recommendation.create([
       {
@@ -270,19 +155,7 @@ export async function seedDemoData(log: Log = () => {}, now = new Date()): Promi
     ]);
     log(`✅ Created ${recommendations.length} recommendations`);
 
-    // 7. Create weather data
-    log('\n🌤️ Creating weather data...');
-    const weather = await Weather.create({
-      userId: demoUser._id,
-      condition: 'sunny',
-      temperature: 22,
-      humidity: 65,
-      windSpeed: 8,
-      uvIndex: 6,
-    });
-    log(`✅ Created weather data: ${weather.condition}, ${weather.temperature}°C`);
-
-    // 8. Other demo accounts (v2 members of the demo site, and two users with their own sites)
+    // 4. Other demo accounts (v2 members of the demo site, and two users with their own sites)
     log('👥 Creating additional demo accounts...');
     const others = new Map<string, mongoose.Types.ObjectId>();
     for (const account of DEMO_ACCOUNTS.slice(1)) {
@@ -292,7 +165,7 @@ export async function seedDemoData(log: Log = () => {}, now = new Date()): Promi
       log(`✅ Created user: ${account.email} (${account.name})`);
     }
 
-    // 9. v2 demo site (Maple Grove School) with its devices and memberships
+    // 5. v2 demo site (Maple Grove School) with its devices and memberships
     log('🏫 Creating the demo site...');
     await Site.create({ _id: DEMO_SITE_ID, ...DEMO_SITE });
     const userIdOf = (email: string) => (email === DEMO_EMAIL ? (demoUser._id as mongoose.Types.ObjectId) : others.get(email));
@@ -318,7 +191,7 @@ export async function seedDemoData(log: Log = () => {}, now = new Date()): Promi
     );
     log(`✅ Created ${DEMO_SITE.name} with ${DEMO_DEVICES.length} devices`);
 
-    const migration = await migrateToV2();
+    const migration = await migrateToV2({ dropLegacy: true });
     log(`✅ Migration: ${migration.sitesCreated} sites created for users without one`);
 
     log('🚀 Ready to use! Login with any of the demo credentials below:');
@@ -326,5 +199,5 @@ export async function seedDemoData(log: Log = () => {}, now = new Date()): Promi
       log(`   ${account.email} / ${account.password} (${account.name})`);
     }
 
-    return { users: DEMO_ACCOUNTS.length, legacyReadings: energyReadings.length, siteDevices: DEMO_DEVICES.length };
+    return { users: DEMO_ACCOUNTS.length, siteDevices: DEMO_DEVICES.length };
 }
