@@ -151,3 +151,26 @@ client reads the stream with `fetch`. Events:
 
 A `: heartbeat` comment is sent every 20 s. Events published while the snapshot is being built are
 held back and sent right after it.
+
+## Tariffs `/api/tariffs` 🔒 (P2-01)
+
+| Method | Path | Roles | Result |
+| ------ | ---- | ----- | ------ |
+| GET | `/` | owner, manager | `{ items: Tariff[] (newest first), current: version in force today }` |
+| GET | `/templates` | owner | `{ items: [{ id, name, tariff }] }`: Commercial TOU-D and Flat |
+| POST | `/` | owner | `201` new version (previous + 1). Body below |
+
+Body (`tariffInput` in `@ecomanage/shared`): `name`, `validFrom` (local date), `seasons[]`
+(`{ id, name, fromMonth, toMonth }`, where a range may wrap the year end, e.g. Nov–Mar), `periods[]`
+(`{ name, season: id | "all", days: weekdays | weekends | all, start, end, rateCents }`),
+`demandRateCents` (per kW per billing period), `demandIntervalMin` (15 or 30), `exportRateCents`,
+`fixedCents` (per period) and `holidays` (`{ dates[], treatAs: weekend | weekday }`).
+
+- Times are local `HH:mm`. An end at or before the start means midnight: `00:00`–`00:00` is the
+  whole day. Periods don't wrap past midnight, so an overnight rate is written as two periods.
+- Every month and day type must be covered exactly once. Otherwise:
+  `422 { error: { code: 422, message, details: { issues: [{ kind: gap | overlap | unknown-season |
+  season-overlap | valid-from, message, months?, days?, from?, to? }] } } }`.
+- `validFrom` may not be before the start of the current billing period, so a closed bill never
+  changes. Rates are cents per kWh (fractions allowed); money totals are whole cents.
+- The version in force on a day is the one with the latest `validFrom` on or before it.

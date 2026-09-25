@@ -175,6 +175,34 @@ intervalSchema.index({ siteId: 1, start: 1 }, { unique: true });
 export type Interval15Doc = InferSchemaType<typeof intervalSchema> & { _id: Types.ObjectId };
 export const Interval15 = mongoose.model('Interval15', intervalSchema, 'intervals15');
 
+// ---- tariffs ------------------------------------------------------------------------------------
+
+// Versioned: saving creates version n+1 from its validFrom date; earlier versions are never edited
+// (validation and pricing are in packages/shared/src/tariff.ts).
+const tariffSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    version: { type: Number, required: true, min: 1 },
+    validFrom: { type: String, required: true }, // local date YYYY-MM-DD in the site's zone
+    name: { type: String, required: true },
+    seasons: { type: [{ id: String, name: String, fromMonth: Number, toMonth: Number, _id: false }], default: [] },
+    periods: {
+      type: [{ name: String, season: String, days: String, start: String, end: String, rateCents: Number, _id: false }],
+      required: true,
+    },
+    demandRateCents: { type: Number, required: true },
+    demandIntervalMin: { type: Number, enum: [15, 30], required: true },
+    exportRateCents: { type: Number, required: true },
+    fixedCents: { type: Number, required: true },
+    holidays: { dates: { type: [String], default: [] }, treatAs: { type: String, enum: ['weekend', 'weekday'], default: 'weekend' } },
+    createdBy: { type: ObjectId, ref: 'User', default: null },
+  },
+  { timestamps: true }
+);
+tariffSchema.index({ siteId: 1, version: 1 }, { unique: true });
+export type TariffDoc = InferSchemaType<typeof tariffSchema> & { _id: Types.ObjectId };
+export const Tariff = mongoose.model('Tariff', tariffSchema, 'tariffs');
+
 // ---- audit ------------------------------------------------------------------------------------
 
 const auditSchema = new Schema(
@@ -193,7 +221,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, AuditEvent] as const;
+export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

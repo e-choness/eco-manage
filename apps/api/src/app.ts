@@ -10,6 +10,7 @@ import alertRoutes from './modules/alerts/routes';
 import { devicesRoutes } from './modules/devices/routes';
 import optimizationRoutes from './modules/optimization/routes';
 import { siteRoutes } from './modules/site/routes';
+import tariffRoutes from './modules/tariffs/routes';
 import type { SiteEventHub } from './lib/siteEvents';
 
 export interface AppDeps {
@@ -44,6 +45,7 @@ export const createApp = ({ env, redis, hub, logger = defaultLogger, sseHeartbea
   app.use('/api/devices', devicesRoutes(redis));
   app.use('/api/optimization', optimizationRoutes);
   app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs }));
+  app.use('/api/tariffs', tariffRoutes);
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: 404, message: 'Not found' } });
