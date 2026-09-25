@@ -43,7 +43,7 @@ export function LandingPage() {
     {
       name: "Sarah Johnson",
       role: "Homeowner",
-      content: "EnergyHub helped me reduce my electricity bills by 60% and track my solar panel performance effortlessly.",
+      content: "EcoManage helped me reduce my electricity bills by 60% and track my solar panel performance effortlessly.",
       rating: 5
     },
     {
@@ -113,7 +113,7 @@ export function LandingPage() {
                 <Wind className="h-4 w-4 text-blue-500" />
                 <Battery className="h-5 w-5 text-green-500" />
               </div>
-              <h1 className="text-xl font-bold text-slate-900">EnergyHub</h1>
+              <h1 className="text-xl font-bold text-slate-900">EcoManage</h1>
             </div>
             <div className="flex items-center gap-4">
               <Button variant="ghost" onClick={() => navigate('/login')}>
@@ -286,7 +286,7 @@ export function LandingPage() {
               Ready to Optimize Your Energy Future?
             </h2>
             <p className="text-xl text-blue-100 mb-8">
-              Join thousands of users who are already saving money and reducing their carbon footprint with EnergyHub.
+              Join thousands of users who are already saving money and reducing their carbon footprint with EcoManage.
             </p>
             <div className="flex items-center justify-center gap-4">
               <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50" onClick={() => navigate('/register')}>
@@ -307,7 +307,7 @@ export function LandingPage() {
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <Sun className="h-6 w-6 text-yellow-500" />
-                <h3 className="text-xl font-bold">EnergyHub</h3>
+                <h3 className="text-xl font-bold">EcoManage</h3>
               </div>
               <p className="text-slate-400">
                 Empowering the future of renewable energy management with intelligent monitoring and optimization.
@@ -342,7 +342,7 @@ export function LandingPage() {
             </div>
           </div>
           <div className="border-t border-slate-800 mt-8 pt-8 text-center text-slate-400">
-            <p>&copy; 2024 EnergyHub. All rights reserved.</p>
+            <p>&copy; 2024 EcoManage. All rights reserved.</p>
           </div>
         </div>
       </footer>
