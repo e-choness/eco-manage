@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { DEMO_DEVICES, DEMO_SITE, DEMO_SITE_ID, DEMO_USERS, TARIFF_TEMPLATES } from '@ecomanage/shared';
-import { Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, initModels } from '@ecomanage/db';
+import { Bill, Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, initModels } from '@ecomanage/db';
 import User from '../modules/auth/model';
 import Alert from '../modules/alerts/model';
 import Recommendation from '../modules/optimization/model';
@@ -51,6 +51,7 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       Telemetry.deleteMany({ 'meta.siteId': new mongoose.Types.ObjectId(DEMO_SITE_ID) }),
       Interval15.deleteMany({ siteId: DEMO_SITE_ID }),
       Tariff.deleteMany({ siteId: DEMO_SITE_ID }),
+      Bill.deleteMany({ siteId: DEMO_SITE_ID }),
     ]);
     log('✅ Cleared existing demo data');
 

@@ -18,6 +18,7 @@ x-workspace: &workspace
     - /repo/packages/profiles/node_modules
     - /repo/apps/simulator/node_modules
     - /repo/apps/ingest/node_modules
+    - /repo/apps/worker/node_modules
   environment: &workspace-env
     # Windows bind mounts don't deliver file events reliably, so the watchers poll.
     CHOKIDAR_USEPOLLING: "true"
@@ -85,6 +86,21 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # BullMQ jobs: prices new intervals every minute and keeps the bills up to date.
+  worker:
+    <<: *workspace
+    command: ["pnpm", "--filter", "@ecomanage/worker", "dev"]
+    environment:
+      <<: *workspace-env
+      DATABASE_URL: mongodb://mongodb:27017/ecomanage
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   # Simulated Maple Grove School site: behaves exactly like its gateway over MQTT/TLS.
   # Speed and seed: SIM_SPEED (1–60), SIM_SEED. Control API: http://localhost:4100/sim/state
   simulator:
@@ -103,6 +119,7 @@ services:
       - /repo/packages/profiles/node_modules
       - /repo/apps/simulator/node_modules
       - /repo/apps/ingest/node_modules
+      - /repo/apps/worker/node_modules
       - simulator_state:/state
     environment:
       <<: *workspace-env
