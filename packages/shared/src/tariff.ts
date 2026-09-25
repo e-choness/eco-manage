@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DateTime } from 'luxon';
 
 // Tariffs (plan §2, P2-01/P2-02). Periods are written in site-local wall-clock time. A period
 // applies to a season (a month range, possibly wrapping the year end) or all year, and to
@@ -152,6 +153,86 @@ export const validateTariff = (t: Pick<TariffInput, 'seasons' | 'periods'>): Tar
     issues.push({ ...issue, months: monthRanges(months), message });
   }
   return issues;
+};
+
+// ---- pricing (P2-02) ---------------------------------------------------------------------------
+
+/** Weekday or weekend in the site's zone; holidays follow the tariff's rule. */
+export const dayTypeAt = (at: Date, tz: string, holidays: TariffInput['holidays']): DayType => {
+  const local = DateTime.fromJSDate(at, { zone: tz });
+  if (holidays.dates.includes(local.toISODate() as string)) return holidays.treatAs;
+  return local.weekday >= 6 ? 'weekend' : 'weekday';
+};
+
+/** The period in force at an instant. Throws if the tariff has a gap there (validate first). */
+export const periodAt = (t: Pick<TariffInput, 'seasons' | 'periods' | 'holidays'>, at: Date, tz: string): Period => {
+  const local = DateTime.fromJSDate(at, { zone: tz });
+  const minute = local.hour * 60 + local.minute;
+  const dayType = dayTypeAt(at, tz, t.holidays);
+  const p = t.periods.find((x) => {
+    if (!periodApplies(x, t.seasons, local.month, dayType)) return false;
+    const [a, b] = range(x);
+    return minute >= a && minute < b;
+  });
+  if (!p) throw new Error(`No tariff period at ${local.toISO()}`);
+  return p;
+};
+
+/** Energy price at an instant, cents per kWh. */
+export const priceAt = (t: Pick<TariffInput, 'seasons' | 'periods' | 'holidays'>, at: Date, tz: string): number => periodAt(t, at, tz).rateCents;
+
+export interface TouShare {
+  period: string;
+  kwh: number;
+  cents: number; // unrounded
+}
+
+/**
+ * Splits energy used evenly over [start, end) across the periods it falls in (P2-02 "TOU split of
+ * an interval"). Works minute by minute, so period boundaries inside the interval and DST changes
+ * are handled; a 15-minute interval normally lands in one period.
+ */
+export const touSplit = (t: Pick<TariffInput, 'seasons' | 'periods' | 'holidays'>, start: Date, end: Date, kwh: number, tz: string): TouShare[] => {
+  const minutes = Math.round((end.getTime() - start.getTime()) / 60_000);
+  if (minutes <= 0) return [];
+  const byPeriod = new Map<string, TouShare>();
+  const perMinute = kwh / minutes;
+  for (let i = 0; i < minutes; i++) {
+    const p = periodAt(t, new Date(start.getTime() + i * 60_000), tz);
+    const share = byPeriod.get(p.name) ?? { period: p.name, kwh: 0, cents: 0 };
+    share.kwh += perMinute;
+    share.cents += perMinute * p.rateCents;
+    byPeriod.set(p.name, share);
+  }
+  return [...byPeriod.values()];
+};
+
+/** Demand charge for a billing period: highest demand × rate, whole cents. */
+export const demandChargeCents = (t: Pick<TariffInput, 'demandRateCents'>, peakKw: number): number =>
+  Math.round(Math.max(0, peakKw) * t.demandRateCents);
+
+/**
+ * Highest demand in a billing period from its 15-minute intervals. With a 30-minute demand
+ * interval, the two quarter hours of each half hour (aligned to :00 and :30) are averaged first.
+ */
+export const periodPeak = (
+  intervals: { start: Date; demandKw: number }[],
+  demandIntervalMin: 15 | 30
+): { kw: number; at: Date } | null => {
+  if (intervals.length === 0) return null;
+  let buckets = intervals.map((i) => ({ at: i.start, kw: i.demandKw }));
+  if (demandIntervalMin === 30) {
+    const halves = new Map<number, { at: Date; sum: number; n: number }>();
+    for (const i of intervals) {
+      const key = Math.floor(i.start.getTime() / 1_800_000);
+      const h = halves.get(key) ?? { at: new Date(key * 1_800_000), sum: 0, n: 0 };
+      h.sum += i.demandKw;
+      h.n++;
+      halves.set(key, h);
+    }
+    buckets = [...halves.values()].map((h) => ({ at: h.at, kw: h.sum / h.n }));
+  }
+  return buckets.reduce((best, b) => (b.kw > best.kw ? b : best));
 };
 
 // ---- versions -------------------------------------------------------------------------------
