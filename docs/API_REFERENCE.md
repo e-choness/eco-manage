@@ -166,6 +166,8 @@ client reads the stream with `fetch`. Events:
 | `snapshot`  | a `SiteSnapshot`, always first |
 | `telemetry` | `{ type, deviceId, reading }`, at most one per device every 5 s |
 | `demand`    | `{ type, demand: { intervalStart, soFarKw, projectedKw }, quality }` |
+| `device`    | `{ type, deviceId, status }` when a device goes live, stale or offline |
+| `alert`     | `{ type, alert: AlertView }` when an alert opens, resolves or counts a repeat (P2-07) |
 
 A `: heartbeat` comment is sent every 20 s. Events published while the snapshot is being built are
 held back and sent right after it.

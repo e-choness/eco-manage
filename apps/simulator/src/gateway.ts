@@ -42,6 +42,7 @@ export const SCAN_FINDS = {
 } as const;
 
 const BATCH_MAX = 500;
+const FLUSH_MAX = 500; // one batch per tick
 const FW = '1.4.2';
 
 export class Gateway {
@@ -50,6 +51,7 @@ export class Gateway {
   private readonly buffer: { deviceKey: string; reading: TelemetryReading }[] = [];
   private readonly lastPublished = new Map<string, number>();
   private readonly startedAt: number;
+  private wasOffline = false;
 
   constructor(
     private readonly engine: SiteEngine,
@@ -110,7 +112,14 @@ export class Gateway {
   /** Publishes a reading for every device that is due, or buffers it while offline. */
   tick(): void {
     this.expireFaults();
-    // Back online: resend what was kept first, so readings arrive in time order.
+    if (this.isOnline() && this.wasOffline) {
+      // Back online: say so (with the backlog) before anything else, like a real gateway.
+      this.wasOffline = false;
+      this.publishGatewayStatus();
+    }
+    if (!this.isOnline()) this.wasOffline = true;
+    // Resend what was kept first, a batch per tick; new readings queue behind it (FIFO), so
+    // everything arrives in time order.
     if (this.isOnline() && this.buffer.length > 0) this.flush();
     const now = this.engine.now.getTime();
     for (const d of this.engine.devices.values()) {
@@ -119,15 +128,19 @@ export class Gateway {
       const reading = this.engine.reading(d.key);
       if (!reading) continue;
       this.lastPublished.set(d.key, now);
-      if (this.isOnline()) this.publish(topics.telemetry(this.siteId, d.id), reading);
+      if (this.isOnline() && this.buffer.length === 0) this.publish(topics.telemetry(this.siteId, d.id), reading);
       else this.buffer.push({ deviceKey: d.key, reading });
     }
   }
 
-  /** Resends buffered readings in order, grouped per device in batches. */
+  /**
+   * Resends buffered readings in order, grouped per device in batches. Like a real gateway on a
+   * slow uplink it drains one batch (FLUSH_MAX readings) per tick, so a long outage takes a while to
+   * catch up and the status messages meanwhile show the backlog (the gateway-buffer alert).
+   */
   private flush(): void {
     const byDevice = new Map<string, TelemetryReading[]>();
-    for (const { deviceKey, reading } of this.buffer.splice(0)) {
+    for (const { deviceKey, reading } of this.buffer.splice(0, FLUSH_MAX)) {
       const list = byDevice.get(deviceKey) ?? [];
       list.push(reading);
       byDevice.set(deviceKey, list);

@@ -1,3 +1,4 @@
+import type { AlertView } from './alerts';
 import { buildingKw, type DeviceType } from './signs';
 import type { TelemetryReading } from './mqtt';
 
@@ -112,4 +113,5 @@ export const siteEventsChannel = (siteId: string) => `site:${siteId}:events`;
 export type SiteEvent =
   | { type: 'telemetry'; deviceId: string; reading: TelemetryReading }
   | { type: 'demand'; demand: DemandNow; quality: 'ok' | 'estimated' }
-  | { type: 'device'; deviceId: string; status: string };
+  | { type: 'device'; deviceId: string; status: string }
+  | { type: 'alert'; alert: AlertView };

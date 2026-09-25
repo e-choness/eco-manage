@@ -1,5 +1,5 @@
 import mongoose, { InferSchemaType, Schema, Types } from 'mongoose';
-import { DEVICE_STATUSES, DEVICE_TYPES, QUALITY, ROLES } from '@ecomanage/shared';
+import { ALERT_RULE_IDS, ALERT_SEVERITIES, ALERT_STATES, DEVICE_STATUSES, DEVICE_TYPES, QUALITY, ROLES } from '@ecomanage/shared';
 
 // v2 data model (plan §2). Models are registered on the default mongoose connection; the app that
 // imports them owns connecting. Collection names are given explicitly so they match the plan.
@@ -312,6 +312,84 @@ billSchema.index({ siteId: 1, period: 1 }, { unique: true });
 export type BillDoc = InferSchemaType<typeof billSchema> & { _id: Types.ObjectId };
 export const Bill = mongoose.model('Bill', billSchema, 'bills');
 
+// ---- alerts, mutes, commands --------------------------------------------------------------------
+
+// Opened and auto-resolved by apps/rules (P2-07); acked, snoozed and resolved by people (P2-08).
+// At most one alert per (site, device, rule) is open or acked at a time.
+const alertSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    deviceId: { type: String, default: null },
+    ruleId: { type: String, enum: ALERT_RULE_IDS, required: true },
+    severity: { type: String, enum: ALERT_SEVERITIES, required: true },
+    title: { type: String, required: true },
+    detail: { type: String, default: '' },
+    state: { type: String, enum: ALERT_STATES, default: 'open' },
+    condition: { type: String, enum: ['active', 'cleared'], default: 'active' },
+    openedAt: { type: Date, required: true },
+    lastSeenAt: { type: Date, required: true },
+    count: { type: Number, default: 1 }, // occurrences while open (event rules)
+    eventKeys: { type: [String], default: [] }, // last occurrences seen (event rules)
+    ackBy: { type: ObjectId, ref: 'User', default: null },
+    ackAt: { type: Date, default: null },
+    snoozedUntil: { type: Date, default: null },
+    resolvedAt: { type: Date, default: null },
+    resolution: {
+      type: new Schema({ cause: String, note: String, by: { type: ObjectId, ref: 'User' }, auto: Boolean }, { _id: false }),
+      default: null,
+    },
+  },
+  { timestamps: true }
+);
+alertSchema.index({ siteId: 1, deviceId: 1, ruleId: 1, state: 1 });
+// Enforces one live alert per (site, device, rule) even with two rules processes.
+alertSchema.index(
+  { siteId: 1, deviceId: 1, ruleId: 1 },
+  { unique: true, partialFilterExpression: { state: { $in: ['open', 'ack'] } }, name: 'one_live_alert' }
+);
+alertSchema.index({ siteId: 1, openedAt: -1 });
+export type AlertDoc = InferSchemaType<typeof alertSchema> & { _id: Types.ObjectId };
+export const Alert = mongoose.model('Alert', alertSchema, 'alerts');
+
+// A false alarm mutes its rule for the device for 7 days (P2-08). deviceId null mutes site-wide.
+const ruleMuteSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    deviceId: { type: String, default: null },
+    ruleId: { type: String, required: true },
+    until: { type: Date, required: true },
+    by: { type: ObjectId, ref: 'User', default: null },
+  },
+  { timestamps: true }
+);
+ruleMuteSchema.index({ siteId: 1, ruleId: 1, until: 1 });
+export type RuleMuteDoc = InferSchemaType<typeof ruleMuteSchema> & { _id: Types.ObjectId };
+export const RuleMute = mongoose.model('RuleMute', ruleMuteSchema, 'ruleMutes');
+
+// Device commands (plan §2). Created from approved recommendations or installer diagnostics
+// (P3-04); the rules service watches acks and failures (P2-07).
+const commandSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    deviceId: { type: String, required: true },
+    recommendationId: { type: ObjectId, ref: 'Recommendation', default: null },
+    action: { type: String, required: true },
+    params: { type: Schema.Types.Mixed, default: {} },
+    expiresAt: { type: Date, required: true },
+    revertAt: { type: Date, default: null },
+    status: { type: String, enum: ['created', 'sent', 'acked', 'failed', 'verified', 'reverted', 'cancelled'], default: 'created' },
+    sentAt: { type: Date, default: null },
+    ackedAt: { type: Date, default: null },
+    failedAt: { type: Date, default: null },
+    error: { type: String, default: null },
+    createdBy: { type: ObjectId, ref: 'User', default: null },
+  },
+  { timestamps: true }
+);
+commandSchema.index({ siteId: 1, status: 1 });
+export type CommandDoc = InferSchemaType<typeof commandSchema> & { _id: Types.ObjectId };
+export const Command = mongoose.model('Command', commandSchema, 'commands');
+
 // ---- audit ------------------------------------------------------------------------------------
 
 const auditSchema = new Schema(
@@ -330,7 +408,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, AuditEvent] as const;
+export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Command, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

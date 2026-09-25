@@ -5,25 +5,28 @@ import User from '../modules/auth/model';
 
 export interface MigrationSummary {
   legacyDevicesMoved: number;
+  legacyAlertsMoved: number;
   sitesCreated: number;
   profiles: number;
   legacyDropped: string[];
 }
 
 /**
- * v1 kept per-user devices in `devices`. v2 uses that name for site devices, so v1 documents
- * (they have a userId and no siteId) move to `legacy_devices`, which `--drop-legacy` removes with the other retired collections.
+ * v1 kept per-user documents in collections whose names v2 now uses for site data. v1 documents
+ * (they have a userId and no siteId) move to `legacy_<name>`:
+ * - `devices`: `--drop-legacy` removes `legacy_devices` with the other retired collections.
+ * - `alerts`: the v1 alerts routes read `legacy_alerts` until P2-08 replaces them.
  */
-const moveLegacyDevices = async (): Promise<number> => {
+const moveLegacy = async (from: 'devices' | 'alerts'): Promise<number> => {
   const db = mongoose.connection.db;
   if (!db) throw new Error('Not connected');
-  const devices = db.collection('devices');
-  const legacy = await devices.find({ userId: { $exists: true }, siteId: { $exists: false } }).toArray();
+  const source = db.collection(from);
+  const legacy = await source.find({ userId: { $exists: true }, siteId: { $exists: false } }).toArray();
   if (legacy.length === 0) return 0;
-  await db.collection('legacy_devices').insertMany(legacy, { ordered: false }).catch((err: { code?: number }) => {
+  await db.collection(`legacy_${from}`).insertMany(legacy, { ordered: false }).catch((err: { code?: number }) => {
     if (err.code !== 11000) throw err; // already copied by an earlier, interrupted run
   });
-  await devices.deleteMany({ _id: { $in: legacy.map((d) => d._id) } });
+  await source.deleteMany({ _id: { $in: legacy.map((d) => d._id) } });
   return legacy.length;
 };
 
@@ -75,10 +78,11 @@ const dropLegacyCollections = async (): Promise<string[]> => {
  * retired v1 collections are deleted; nothing in them is carried over.
  */
 export const migrateToV2 = async ({ dropLegacy = false } = {}): Promise<MigrationSummary> => {
-  const legacyDevicesMoved = await moveLegacyDevices();
+  const legacyDevicesMoved = await moveLegacy('devices');
+  const legacyAlertsMoved = await moveLegacy('alerts');
   await initModels();
   const sitesCreated = await createSitesForUsers();
   const profiles = await syncProfiles();
   const legacyDropped = dropLegacy ? await dropLegacyCollections() : [];
-  return { legacyDevicesMoved, sitesCreated, profiles, legacyDropped };
+  return { legacyDevicesMoved, legacyAlertsMoved, sitesCreated, profiles, legacyDropped };
 };
