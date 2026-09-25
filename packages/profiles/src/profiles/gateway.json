@@ -1,0 +1,18 @@
+{
+  "id": "gateway@1",
+  "vendor": "EcoManage",
+  "model": "Edge gateway agent",
+  "protocol": "mqtt",
+  "deviceTypes": ["gateway"],
+  "fields": ["t_c", "state"],
+  "read": [],
+  "write": {
+    "restart": { "description": "Restart the gateway service (installer diagnostic)", "params": {} }
+  },
+  "states": {},
+  "faults": {},
+  "fixes": [{ "id": "restart", "label": "Restart the gateway service", "action": "restart" }],
+  "pollMs": 30000,
+  "version": 1,
+  "reviewed": true
+}

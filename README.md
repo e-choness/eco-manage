@@ -55,6 +55,7 @@ docker compose up -d
 | MongoDB   | localhost:27017         |
 | Redis     | localhost:6379          |
 | MQTT (TLS)| localhost:18883         |
+| Simulator | http://localhost:4100/sim/state |
 
 Load the demo accounts and a year of hourly demo readings (this **resets** them):
 
@@ -75,6 +76,7 @@ clone works with no setup. Put real secrets in `apps/api/.env`.
 
 ```
 apps/
+  simulator/  simulated site + gateway (MQTT topics, commands, jobs, fault injection)
   api/        Express + Mongoose API (modules/<name>/{routes,controller,service,model}.ts)
   web/        React 18 + Vite + Tailwind + shadcn/ui client
 packages/     shared workspace packages (none yet; P1-02 adds packages/shared)

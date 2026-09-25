@@ -20,6 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "@ecomanage/db": "workspace:*",
+    "@ecomanage/profiles": "workspace:*",
     "@ecomanage/shared": "workspace:*",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

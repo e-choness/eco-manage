@@ -1,0 +1,53 @@
+{
+  "id": "sunspec-inverter@3",
+  "vendor": "SunSpec",
+  "model": "Three-phase string inverter (models 1, 103, 120-123, 160)",
+  "protocol": "modbus-tcp",
+  "deviceTypes": ["pv"],
+  "fields": ["p_kw", "e_out_kwh", "state", "fault", "v", "a", "hz", "pf", "dc", "t_c"],
+  "read": [
+    { "field": "p_kw", "reg": 40083, "type": "int16", "scaleReg": 40084, "mult": 0.001 },
+    { "field": "e_out_kwh", "reg": 40093, "type": "acc32", "scaleReg": 40095, "mult": 0.001 },
+    { "field": "a", "reg": 40071, "type": "uint16", "scaleReg": 40075 },
+    { "field": "v", "reg": 40079, "type": "uint16", "scaleReg": 40082 },
+    { "field": "hz", "reg": 40085, "type": "uint16", "scaleReg": 40086 },
+    { "field": "pf", "reg": 40091, "type": "int16", "scaleReg": 40092, "mult": 0.01 },
+    { "field": "t_c", "reg": 40102, "type": "int16", "scaleReg": 40106 },
+    { "field": "state", "reg": 40107, "type": "enum16" },
+    { "field": "fault", "reg": 40109, "type": "bitfield32" }
+  ],
+  "write": {
+    "export_limit": {
+      "description": "Limit AC output to a share of nameplate power (model 123 WMaxLimPct), reverting after the timeout",
+      "reg": 40232,
+      "revertReg": 40235,
+      "params": {
+        "pct": { "type": "number", "unit": "%", "min": 0, "max": 100 }
+      },
+      "maxDurationMin": 240
+    },
+    "restart": {
+      "description": "Restart the inverter's communication board",
+      "reg": 40250,
+      "params": {}
+    }
+  },
+  "states": { "1": "off", "2": "sleeping", "3": "starting", "4": "running", "5": "throttled", "6": "shutting down", "7": "fault", "8": "standby" },
+  "faults": {
+    "bit0": "Ground fault",
+    "bit1": "DC over voltage",
+    "bit2": "AC disconnect open",
+    "bit3": "DC disconnect open",
+    "bit4": "Grid disconnect",
+    "bit5": "Cabinet open",
+    "bit7": "Over temperature",
+    "bit8": "Over frequency",
+    "bit9": "Under frequency",
+    "bit10": "AC over voltage",
+    "bit11": "AC under voltage"
+  },
+  "fixes": [{ "id": "restart", "label": "Remote restart (Modbus restart register)", "action": "restart" }],
+  "pollMs": 5000,
+  "version": 3,
+  "reviewed": true
+}

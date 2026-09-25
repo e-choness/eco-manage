@@ -80,30 +80,22 @@ deviceSchema.index({ siteId: 1 });
 export type DeviceDoc = InferSchemaType<typeof deviceSchema> & { _id: Types.ObjectId };
 export const Device = mongoose.model('Device', deviceSchema, 'devices');
 
-const registerSchema = new Schema(
-  {
-    field: { type: String, required: true },
-    reg: { type: Number, required: true },
-    type: { type: String, required: true },
-    scaleReg: Number,
-    mult: Number,
-  },
-  { _id: false }
-);
-
 const deviceProfileSchema = new Schema(
   {
     id: { type: String, required: true }, // "sunspec-inverter@3"
     vendor: { type: String, required: true },
     model: { type: String, required: true },
     protocol: { type: String, required: true },
-    deviceType: { type: String, enum: DEVICE_TYPES, required: true },
-    read: { type: [registerSchema], default: [] },
+    deviceTypes: { type: [{ type: String, enum: DEVICE_TYPES }], required: true },
+    // Validated by packages/profiles (register sources and protocol-message sources differ).
+    fields: { type: [String], default: [] },
+    read: { type: [Schema.Types.Mixed], default: [] },
     write: { type: Schema.Types.Mixed, default: {} },
     states: { type: Schema.Types.Mixed, default: {} },
     faults: { type: Schema.Types.Mixed, default: {} },
     fixes: { type: [Schema.Types.Mixed], default: [] },
     pollMs: { type: Number, default: 5000 },
+    version: { type: Number, default: 1 },
     reviewed: { type: Boolean, default: false },
   },
   { timestamps: true }

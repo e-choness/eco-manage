@@ -1,10 +1,12 @@
 import mongoose from 'mongoose';
-import { Membership, Site, initModels, recordAudit } from '@ecomanage/db';
+import { DeviceProfile, Membership, Site, initModels, recordAudit } from '@ecomanage/db';
+import { loadProfiles } from '@ecomanage/profiles';
 import User from '../modules/auth/model';
 
 export interface MigrationSummary {
   legacyDevicesMoved: number;
   sitesCreated: number;
+  profiles: number;
 }
 
 /**
@@ -45,10 +47,20 @@ const createSitesForUsers = async (): Promise<number> => {
   return created;
 };
 
+/** Mirrors the built-in profile library into `deviceProfiles` (upsert by id). */
+const syncProfiles = async (): Promise<number> => {
+  const profiles = [...loadProfiles().values()];
+  await DeviceProfile.bulkWrite(
+    profiles.map((p) => ({ updateOne: { filter: { id: p.id }, update: { $set: p }, upsert: true } }))
+  );
+  return profiles.length;
+};
+
 /** Brings a v1 database up to the v2 model. Safe to run any number of times. */
 export const migrateToV2 = async (): Promise<MigrationSummary> => {
   const legacyDevicesMoved = await moveLegacyDevices();
   await initModels();
   const sitesCreated = await createSitesForUsers();
-  return { legacyDevicesMoved, sitesCreated };
+  const profiles = await syncProfiles();
+  return { legacyDevicesMoved, sitesCreated, profiles };
 };
