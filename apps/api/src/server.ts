@@ -1,80 +1,41 @@
 import dotenv from 'dotenv';
-import express from 'express';
-import cors from 'cors';
+import { Redis } from 'ioredis';
 import { connectDB } from './config/database';
-import basicRoutes from './routes/index';
-import authRoutes from './routes/authRoutes';
-import dashboardRoutes from './routes/dashboardRoutes';
-import analyticsRoutes from './routes/analyticsRoutes';
-import alertRoutes from './routes/alertRoutes';
-import deviceRoutes from './routes/deviceRoutes';
-import financialRoutes from './routes/financialRoutes';
-import optimizationRoutes from './routes/optimizationRoutes';
+import { loadEnv } from './config/env';
+import { logger } from './config/logger';
+import { createApp } from './app';
 
 dotenv.config();
 
-// Validate environment variables
-if (!process.env.DATABASE_URL) {
-  console.error('Error: DATABASE_URL environment variable is missing.');
+let env;
+try {
+  env = loadEnv();
+} catch (err) {
+  logger.fatal((err as Error).message);
   process.exit(1);
 }
 
-const app = express();
-const port = process.env.PORT || 3000;
+const redis = env.REDIS_URL ? new Redis(env.REDIS_URL, { lazyConnect: false, maxRetriesPerRequest: 3 }) : undefined;
+redis?.on('error', (err) => logger.error({ err: err.message }, 'redis error'));
+if (!redis) logger.warn('REDIS_URL not set: rate limits are per-process');
 
-// Middleware
-app.enable('json spaces');
-app.enable('strict routing');
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Database connection
 connectDB();
 
-// Global error handler for unhandled Promise rejections
 process.on('unhandledRejection', (err: unknown) => {
   const error = err instanceof Error ? err : new Error(String(err));
-  console.error(`Unhandled Rejection: ${error.message}`);
-  console.error(error.stack);
+  logger.error({ err: { message: error.message, stack: error.stack } }, 'unhandled rejection');
 });
 
-// Routes
-app.use(basicRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/alerts', alertRoutes);
-app.use('/api/devices', deviceRoutes);
-app.use('/api/financial', financialRoutes);
-app.use('/api/optimization', optimizationRoutes);
+const app = createApp({ env, redis });
 
-// 404 handler
-app.use((_req, res) => {
-  res.status(404).json({ message: 'Page not found.' });
+const server = app.listen(env.PORT, () => {
+  logger.info(`Server running at http://localhost:${env.PORT}`);
 });
 
-// Global error handler
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(`Application error: ${err.message}`);
-  console.error(err.stack);
-  res.status(500).json({ message: 'There was an error serving your request.' });
+process.on('SIGINT', () => {
+  logger.info('Graceful shutdown initiated...');
+  redis?.disconnect();
+  server.close(() => process.exit(0));
 });
-
-// Start server (skip on Vercel — it manages the server lifecycle)
-if (!process.env.VERCEL) {
-  const server = app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-  });
-
-  // Graceful shutdown
-  process.on('SIGINT', async () => {
-    console.log('\nGraceful shutdown initiated...');
-    server.close(() => {
-      console.log('Server closed.');
-      process.exit(0);
-    });
-  });
-}
 
 export default app;

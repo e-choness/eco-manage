@@ -111,7 +111,7 @@ describe('Auth Middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('should return 403 for invalid token', async () => {
+    it('should return 401 for invalid token', async () => {
       req.headers = { authorization: 'Bearer invalid-token' };
       mockAuthUtils.verifyAccessToken.mockImplementation(() => {
         throw new Error('Invalid token');
@@ -119,12 +119,12 @@ describe('Auth Middleware', () => {
 
       await requireUser(req as AuthenticatedRequest, res as Response, next);
 
-      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('should return 403 for expired token', async () => {
+    it('should return 401 for expired token', async () => {
       req.headers = { authorization: 'Bearer expired-token' };
       mockAuthUtils.verifyAccessToken.mockImplementation(() => {
         throw new Error('Token expired');
@@ -132,7 +132,7 @@ describe('Auth Middleware', () => {
 
       await requireUser(req as AuthenticatedRequest, res as Response, next);
 
-      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
       expect(next).not.toHaveBeenCalled();
     });
@@ -183,13 +183,13 @@ describe('Auth Middleware', () => {
 
       req.headers = { authorization: `Bearer ${mockToken}` };
       mockAuthUtils.verifyAccessToken.mockReturnValue(mockPayload as any);
-      mockUserService.get.mockRejectedValue(new Error('Database connection failed'));
+      const dbError = new Error('Database connection failed');
+      mockUserService.get.mockRejectedValue(dbError);
 
       await requireUser(req as AuthenticatedRequest, res as Response, next);
 
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
-      expect(next).not.toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith(dbError);
     });
 
     it('should properly extract token from Bearer header', async () => {

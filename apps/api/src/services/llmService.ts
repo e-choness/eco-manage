@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '../config/logger';
 
 // Lazy initialization to avoid errors when API keys are not set
 let openai: OpenAI | null = null;
@@ -43,7 +44,7 @@ const sendRequestToOpenAI = async (model: string, message: string): Promise<stri
       return content;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      console.error(`Error sending request to OpenAI (attempt ${i + 1}):`, err.message);
+      logger.warn({ provider: 'openai', attempt: i + 1, err: err.message }, 'LLM request failed');
       if (i === MAX_RETRIES - 1) throw error;
       await sleep(RETRY_DELAY);
     }
@@ -54,13 +55,11 @@ const sendRequestToOpenAI = async (model: string, message: string): Promise<stri
 const sendRequestToAnthropic = async (model: string, message: string): Promise<string> => {
   for (let i = 0; i < MAX_RETRIES; i++) {
     try {
-      console.log(`Sending request to Anthropic with model: ${model} and message: ${message}`);
       const response = await getAnthropic().messages.create({
         model,
         messages: [{ role: 'user', content: message }],
         max_tokens: 1024,
       });
-      console.log(`Received response from Anthropic: ${JSON.stringify(response.content)}`);
       const textBlock = response.content.find((block) => block.type === 'text');
       if (!textBlock || textBlock.type !== 'text') {
         throw new Error('No text block in Anthropic response');
@@ -68,7 +67,7 @@ const sendRequestToAnthropic = async (model: string, message: string): Promise<s
       return textBlock.text;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      console.error(`Error sending request to Anthropic (attempt ${i + 1}):`, err.message);
+      logger.warn({ provider: 'anthropic', attempt: i + 1, err: err.message }, 'LLM request failed');
       if (i === MAX_RETRIES - 1) throw error;
       await sleep(RETRY_DELAY);
     }

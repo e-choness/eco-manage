@@ -68,3 +68,9 @@ export interface FinancialHistoryItem {
   costs: number
   category: string
 }
+
+export interface SessionUser {
+  _id: string
+  email: string
+  name?: string
+}

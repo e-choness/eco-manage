@@ -39,9 +39,8 @@ export function DashboardHeader() {
     navigate('/dashboard/alerts')
   }
 
-  const handleLogout = () => {
-    console.log('User logging out')
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate("/login")
   }
 

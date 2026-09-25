@@ -130,7 +130,8 @@ describe('Auth Routes Integration Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('accessToken', accessToken);
-      expect(response.body).toHaveProperty('refreshToken', refreshToken);
+      expect(response.body).not.toHaveProperty('refreshToken');
+      expect(String(response.headers['set-cookie'])).toContain(`em_rt=${refreshToken}`);
       expect(response.body).toHaveProperty('email', 'test@example.com');
       expect(response.body).not.toHaveProperty('password');
     });
@@ -171,34 +172,36 @@ describe('Auth Routes Integration Tests', () => {
       const response = await request(app).post('/api/auth/refresh').send({});
 
       expect(response.status).toBe(401);
-      expect(response.body).toHaveProperty('success', false);
       expect(response.body.message).toContain('Refresh token is required');
     });
 
-    it('should return 403 if refresh token is invalid', async () => {
+    it('should ignore a refresh token sent in the body', async () => {
+      const response = await request(app).post('/api/auth/refresh').send({ refreshToken: 'valid-token' });
+
+      expect(response.status).toBe(401);
+      expect(mockAuthUtils.verifyRefreshToken).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 if refresh token is invalid', async () => {
       mockAuthUtils.verifyRefreshToken.mockImplementation(() => {
         throw new Error('Invalid token');
       });
 
-      const response = await request(app).post('/api/auth/refresh').send({
-        refreshToken: 'invalid-token',
-      });
+      const response = await request(app).post('/api/auth/refresh').set('Cookie', 'em_rt=invalid-token');
 
-      expect(response.status).toBe(403);
-      expect(response.body).toHaveProperty('success', false);
+      expect(response.status).toBe(401);
+      expect(response.body.message).toContain('Invalid refresh token');
     });
 
-    it('should return 403 if user not found', async () => {
+    it('should return 401 if user not found', async () => {
       const mockPayload = { sub: userId.toString() };
       mockAuthUtils.verifyRefreshToken.mockReturnValue(mockPayload as any);
       mockUserService.get.mockResolvedValue(null);
 
-      const response = await request(app).post('/api/auth/refresh').send({
-        refreshToken: 'valid-token',
-      });
+      const response = await request(app).post('/api/auth/refresh').set('Cookie', 'em_rt=valid-token');
 
-      expect(response.status).toBe(403);
-      expect(response.body.message).toContain('User not found');
+      expect(response.status).toBe(401);
+      expect(response.body.message).toContain('Invalid refresh token');
     });
   });
 
@@ -223,7 +226,7 @@ describe('Auth Routes Integration Tests', () => {
       expect(response.body).not.toHaveProperty('password');
     });
 
-    it('should include tokens in login response', async () => {
+    it('should return the access token in the body and the refresh token as a cookie', async () => {
       mockUserService.authenticateWithPassword.mockResolvedValue(mockUser as any);
       mockAuthUtils.generateAccessToken.mockReturnValue('access');
       mockAuthUtils.generateRefreshToken.mockReturnValue('refresh');
@@ -234,7 +237,8 @@ describe('Auth Routes Integration Tests', () => {
       });
 
       expect(response.body).toHaveProperty('accessToken');
-      expect(response.body).toHaveProperty('refreshToken');
+      expect(response.body).not.toHaveProperty('refreshToken');
+      expect(String(response.headers['set-cookie'])).toMatch(/em_rt=refresh;.*HttpOnly/);
     });
   });
 });

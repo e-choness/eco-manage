@@ -34,10 +34,12 @@ Object.defineProperty(window, 'localStorage', {
 
 // Setup MSW server for API mocking
 export const server = setupServer(
+  // The refresh token is an httpOnly cookie, so it never appears in a response body.
   http.post('http://localhost:3000/api/auth/login', () => {
     return HttpResponse.json({
+      _id: 'user-1',
+      email: 'test@example.com',
       accessToken: 'mock-access-token',
-      refreshToken: 'mock-refresh-token',
     })
   }),
 
@@ -53,11 +55,9 @@ export const server = setupServer(
     })
   }),
 
+  // Default: no refresh cookie, so there is no session to restore.
   http.post('http://localhost:3000/api/auth/refresh', () => {
-    return HttpResponse.json({
-      accessToken: 'new-mock-access-token',
-      refreshToken: 'new-mock-refresh-token',
-    })
+    return HttpResponse.json({ message: 'Refresh token is required' }, { status: 401 })
   }),
 
   http.get('http://localhost:3000/api/auth/me', () => {
