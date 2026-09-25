@@ -92,11 +92,24 @@ services:
     command: ["pnpm", "--filter", "@ecomanage/simulator", "dev"]
     ports:
       - "4100:4100"
+    # Lists replace (not merge) the anchor's, so the workspace mounts are repeated here.
+    volumes:
+      - ..:/repo
+      - /repo/node_modules
+      - /repo/apps/api/node_modules
+      - /repo/apps/web/node_modules
+      - /repo/packages/shared/node_modules
+      - /repo/packages/db/node_modules
+      - /repo/packages/profiles/node_modules
+      - /repo/apps/simulator/node_modules
+      - /repo/apps/ingest/node_modules
+      - simulator_state:/state
     environment:
       <<: *workspace-env
       SIM_SPEED: ${SIM_SPEED:-1}
       SIM_SEED: ${SIM_SEED:-42}
       MQTT_URL: mqtts://mosquitto:8883
+      SIM_STATE_FILE: /state/simulator.json
     depends_on:
       mosquitto:
         condition: service_healthy
@@ -181,6 +194,27 @@ services:
       retries: 12
     restart: unless-stopped
 
+  # Playwright smoke test against the running stack: `docker compose --profile e2e run --rm e2e`
+  # (seed first: `docker compose run --rm mongo-seed`). Reports land in e2e/playwright-report.
+  e2e:
+    build:
+      context: ../e2e
+    profiles: ["e2e"]
+    environment:
+      E2E_BASE_URL: http://web:5173
+      CI: ${CI:-}
+    volumes:
+      - ../e2e/playwright-report:/tests/playwright-report
+      - ../e2e/test-results:/tests/test-results
+    depends_on:
+      web:
+        condition: service_healthy
+      simulator:
+        condition: service_healthy
+      ingest:
+        condition: service_started
+    restart: "no"
+
   # One-shot: resets the demo accounts and data. Not started by `up`; run it with
   # `docker compose run --rm mongo-seed`.
   mongo-seed:
@@ -198,3 +232,4 @@ services:
 volumes:
   mongo_data:
   mosquitto_data:
+  simulator_state:

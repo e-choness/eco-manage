@@ -19,6 +19,9 @@ export default {
     },
   },
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  // Integration suites connect to MongoDB and Redis; under full parallel load a hook can take
+  // longer than jest's 5 s default.
+  testTimeout: 20_000,
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },

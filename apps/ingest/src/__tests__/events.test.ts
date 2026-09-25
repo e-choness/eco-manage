@@ -76,6 +76,14 @@ describe('DemandTracker', () => {
     expect(d.update('m', reading('2026-09-24T19:15:30Z', 50, 1000))!.quality).toBe('ok')
   })
 
+  it('treats a counter that goes backwards as a reset, estimated from current power', () => {
+    const d = new DemandTracker()
+    d.update('m', reading('2026-09-24T19:16:00Z', 50, 481_000))
+    const r = d.update('m', reading('2026-09-24T19:20:00Z', 35, 1_200))!
+    expect(r.quality).toBe('estimated')
+    expect(r.demand.soFarKw).toBe(35)
+  })
+
   it('ignores out-of-order readings and readings without a counter', () => {
     const d = new DemandTracker()
     d.update('m', reading('2026-09-24T19:20:00Z', 96, 1008))

@@ -70,11 +70,13 @@ const deviceFlow = (rows: Row[], start: number, end: number, inWhenPositive: boo
   const inEnd = counterAt(rows, end, 'e_in_kwh', inWhenPositive);
   const outStart = counterAt(rows, start, 'e_out_kwh', inWhenPositive);
   const outEnd = counterAt(rows, end, 'e_out_kwh', inWhenPositive);
-  const hasIn = inStart !== undefined && inEnd !== undefined;
-  const hasOut = outStart !== undefined && outEnd !== undefined;
+  // A counter that went backwards (device replaced or reset) can't be used: fall back to power.
+  const hasIn = inStart !== undefined && inEnd !== undefined && inEnd >= inStart;
+  const hasOut = outStart !== undefined && outEnd !== undefined && outEnd >= outStart;
   const expectsIn = rows.some((r) => r.e_in_kwh !== undefined);
   const expectsOut = rows.some((r) => r.e_out_kwh !== undefined);
-  if ((hasIn || !expectsIn) && (hasOut || !expectsOut) && (hasIn || hasOut)) {
+  const reset = (inStart !== undefined && inEnd !== undefined && inEnd < inStart) || (outStart !== undefined && outEnd !== undefined && outEnd < outStart);
+  if (!reset && (hasIn || !expectsIn) && (hasOut || !expectsOut) && (hasIn || hasOut)) {
     return { inKwh: hasIn ? Math.max(0, inEnd! - inStart!) : 0, outKwh: hasOut ? Math.max(0, outEnd! - outStart!) : 0, estimated: false, missing: false };
   }
   const samples = rows.filter((r) => r.ts.getTime() >= start && r.ts.getTime() < end);

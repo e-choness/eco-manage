@@ -52,6 +52,11 @@ const currentDemand = async (meterId: string, latest: TelemetryReading | null, t
     startKwh = ref.e - (Math.max(0, ref.p) * (ref.ts.getTime() - start.getTime())) / 3_600_000;
     quality = ref.ts.getTime() - start.getTime() > 60_000 ? 'estimated' : 'ok';
   }
+  if (latest.e_in_kwh < startKwh) {
+    // The counter went backwards (meter replaced or reset): estimate from the current power.
+    startKwh = latest.e_in_kwh - (Math.max(0, latest.p_kw) * (now.getTime() - start.getTime())) / 3_600_000;
+    quality = 'estimated';
+  }
   return { ...demandNow({ intervalStart: start, now, startKwh, nowKwh: latest.e_in_kwh, currentKw: latest.p_kw }), quality };
 };
 

@@ -100,6 +100,15 @@ describe('GET /api/site/snapshot', () => {
     expect(res.body.demand).toMatchObject({ intervalStart: iso(start), quality: 'estimated', soFarKw: 80 });
   });
 
+  it('estimates demand when the meter counter went backwards', async () => {
+    const start = Math.floor(Date.now() / 900_000) * 900_000 - 900_000;
+    await Telemetry.create({ ts: new Date(start - 5000), meta: { siteId: SITE_ID, deviceId: dev('meter').id }, p_kw: 40, e_in_kwh: 481_000 });
+    await redis.set(`latest:${dev('meter').id}`, JSON.stringify({ ts: iso(start + 600_000), p_kw: 35, e_in_kwh: 1_200, q: 'ok' }));
+    const res = await request(app).get('/api/site/snapshot').set('Authorization', `Bearer ${token}`);
+    expect(res.body.demand).toMatchObject({ quality: 'estimated', soFarKw: 35 });
+    await Telemetry.deleteMany({});
+  });
+
   it('needs a signed-in member', async () => {
     expect((await request(app).get('/api/site/snapshot')).status).toBe(401);
   });

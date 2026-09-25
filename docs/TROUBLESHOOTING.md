@@ -54,6 +54,13 @@ On some Windows hosts 8883 sits in a reserved port range, so the broker is publi
 Watchers poll (`CHOKIDAR_USEPOLLING`) because Windows bind mounts don’t deliver file events
 reliably. Allow about a second for a change to register.
 
+### Demand looks wrong right after the simulator restarted
+
+The 15-minute interval that spans a restart may be off, because the restart fills the gap in
+the counters with average power. The next interval is exact. If a counter goes backwards (a
+meter replaced, or the simulator state volume removed), the live demand and that interval fall
+back to power readings and are marked estimated.
+
 ### A web test hangs until the timeout
 
 A page effect that lists `toast` as a dependency loops forever when a test's `useToast` mock

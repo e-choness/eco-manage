@@ -137,7 +137,7 @@ export function Live() {
                     <td>
                       <Badge className={`${STATUS_COLOR[d.status] ?? "bg-gray-500"} text-white`}>{d.status}</Badge>
                     </td>
-                    <td className="text-right" data-testid={`device-kw-${d.id}`}>
+                    <td className="text-right" data-testid={`device-kw-${d.id}`} data-ts={d.latest?.ts ?? ""}>
                       {d.latest ? kw(displayKw(d.type, d.latest.p_kw)) : "—"}
                     </td>
                     <td className="text-right text-muted-foreground">{age(d.latest?.ts, now)}</td>
