@@ -66,7 +66,6 @@ describe('authentication guard', () => {
     ['get', '/api/dashboard/energy-flow'],
     ['get', '/api/analytics/production'],
     ['get', '/api/analytics/consumption'],
-    ['post', '/api/analytics/insight'],
     ['get', '/api/alerts'],
     ['put', '/api/alerts/read'],
     ['get', '/api/devices'],
@@ -290,53 +289,10 @@ describe('analytics', () => {
     expect(res.body).toEqual({ period: 'month', data: [{ date: '2026-09-01', consumption: 5 }] });
   });
 
-  it('insight requires data', async () => {
-    const res = await authed(request(app).post('/api/analytics/insight')).send({});
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Missing data field' });
+  it('insight endpoint was removed (P0-05)', async () => {
+    const res = await authed(request(app).post('/api/analytics/insight')).send({ data: 'x' });
+    expect(res.status).toBe(404);
   });
 });
 
-describe('dashboard', () => {
-  it('overview', async () => {
-    jest.spyOn(model('EnergyReading'), 'find').mockImplementation(
-      () => query([{ type: 'production', value: 300 }, { type: 'consumption', value: 50 }]) as never
-    );
-    jest.spyOn(model('EnergyReading'), 'findOne').mockImplementation(() => query({ value: 4.567 }) as never);
-    jest
-      .spyOn(model('Device'), 'find')
-      .mockImplementation(() => query([{ status: 'online' }, { status: 'offline' }, { status: 'online' }]) as never);
-    jest.spyOn(model('Weather'), 'findOne').mockImplementation(() => query(null) as never);
-
-    const res = await authed(request(app).get('/api/dashboard/overview'));
-    expect(res.body).toEqual({
-      totalProduction: 300,
-      currentPower: 4.57,
-      dailyProduction: 10,
-      monthlyProduction: 300,
-      systemStatus: 66.7,
-      weatherCondition: 'sunny',
-      temperature: 22,
-      savings: 36,
-      carbonOffset: 150,
-    });
-  });
-
-  it('energy flow sums the latest reading per device type', async () => {
-    jest.spyOn(model('Device'), 'find').mockImplementation(
-      () =>
-        query([
-          { _id: 'd1', type: 'solar' },
-          { _id: 'd2', type: 'battery' },
-          { _id: 'd3', type: 'grid' },
-        ]) as never
-    );
-    const latest: Record<string, number> = { d1: 5, d2: 2, d3: 1 };
-    jest
-      .spyOn(model('EnergyReading'), 'findOne')
-      .mockImplementation(((filter: { deviceId: string }) => query({ value: latest[filter.deviceId] })) as never);
-
-    const res = await authed(request(app).get('/api/dashboard/energy-flow'));
-    expect(res.body).toEqual({ solar: 5, wind: 0, battery: 2, grid: 1, consumption: 2 });
-  });
-});
+// Dashboard numbers are covered against a real database in integration/p0-05-bugfixes.test.ts.

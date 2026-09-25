@@ -1,15 +1,9 @@
 import { Battery, Sun, Wind, Home, Zap } from "lucide-react"
 
-interface EnergyFlowData {
-  solar: number
-  wind: number
-  battery: number
-  grid: number
-  consumption: number
-}
+import type { EnergyFlow } from "@/api/types"
 
 interface EnergyFlowDiagramProps {
-  data: EnergyFlowData
+  data: EnergyFlow
 }
 
 export function EnergyFlowDiagram({ data }: EnergyFlowDiagramProps) {
@@ -47,8 +41,8 @@ export function EnergyFlowDiagram({ data }: EnergyFlowDiagramProps) {
         <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-full mb-2">
           <Zap className="h-6 w-6 text-purple-600" />
         </div>
-        <span className="text-sm font-medium">{data.grid} kW</span>
-        <span className="text-xs text-muted-foreground">Grid</span>
+        <span className="text-sm font-medium">{Math.abs(data.grid)} kW</span>
+        <span className="text-xs text-muted-foreground">{data.grid < 0 ? 'Grid export' : 'Grid import'}</span>
       </div>
 
       {/* Home/Consumption - Center */}

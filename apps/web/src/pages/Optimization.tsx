@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { getOptimizationRecommendations, acceptRecommendation } from "@/api/optimization"
+import { getOptimizationRecommendations, acceptRecommendation, dismissRecommendation } from "@/api/optimization"
 import type { Recommendation } from "@/api/types"
 import { useToast } from "@/hooks/useToast"
 import { CheckCircle, XCircle, TrendingUp, Zap, Sun, Wind, Battery, DollarSign } from "lucide-react"
@@ -56,15 +56,22 @@ export function Optimization() {
     }
   }
 
-  const handleDismissRecommendation = (recommendationId: string) => {
-    console.log('Dismissing recommendation:', recommendationId)
-    setRecommendations(prev => 
-      prev.filter(rec => rec._id !== recommendationId)
-    )
-    toast({
-      title: "Recommendation Dismissed",
-      description: "The recommendation has been removed from your list.",
-    })
+  const handleDismissRecommendation = async (recommendationId: string) => {
+    try {
+      await dismissRecommendation(recommendationId)
+      setRecommendations(prev => prev.filter(rec => rec._id !== recommendationId))
+      toast({
+        title: "Recommendation Dismissed",
+        description: "The recommendation has been removed from your list.",
+      })
+    } catch (error) {
+      console.error('Error dismissing recommendation:', error)
+      toast({
+        title: "Error",
+        description: "Failed to dismiss recommendation",
+        variant: "destructive",
+      })
+    }
   }
 
   const getPriorityColor = (priority: string) => {
