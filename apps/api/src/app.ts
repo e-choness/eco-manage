@@ -4,14 +4,14 @@ import type { Logger } from 'pino';
 import { Env } from './config/env';
 import { logger as defaultLogger } from './config/logger';
 import { corsMiddleware, helmetMiddleware, rateLimiter, requestLogger } from './middleware/security';
-import basicRoutes from './routes/index';
-import authRoutes from './routes/authRoutes';
-import dashboardRoutes from './routes/dashboardRoutes';
-import analyticsRoutes from './routes/analyticsRoutes';
-import alertRoutes from './routes/alertRoutes';
-import deviceRoutes from './routes/deviceRoutes';
-import financialRoutes from './routes/financialRoutes';
-import optimizationRoutes from './routes/optimizationRoutes';
+import basicRoutes from './modules/health/routes';
+import authRoutes from './modules/auth/routes';
+import dashboardRoutes from './modules/dashboard/routes';
+import analyticsRoutes from './modules/analytics/routes';
+import alertRoutes from './modules/alerts/routes';
+import deviceRoutes from './modules/devices/routes';
+import financialRoutes from './modules/financial/routes';
+import optimizationRoutes from './modules/optimization/routes';
 
 export interface AppDeps {
   env: Pick<Env, 'CORS_ORIGINS' | 'RATE_LIMIT_WINDOW_MS' | 'RATE_LIMIT_MAX' | 'AUTH_RATE_LIMIT_MAX'>;

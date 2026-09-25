@@ -2,9 +2,9 @@
  * Financial Routes Tests
  */
 
-import FinancialRecord from '../../models/FinancialRecord';
+import FinancialRecord from '../../modules/financial/model';
 
-jest.mock('../../models/FinancialRecord');
+jest.mock('../../modules/financial/model');
 
 const mockFinancialRecord = FinancialRecord as jest.Mocked<typeof FinancialRecord>;
 

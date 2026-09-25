@@ -4,7 +4,7 @@
  * Tests for Alert schema validation
  */
 
-import Alert from '../../models/Alert';
+import Alert from '../../modules/alerts/model';
 
 describe('Alert Model', () => {
   it('should have userId as a required ObjectId field', () => {

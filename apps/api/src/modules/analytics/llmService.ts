@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
-import { logger } from '../config/logger';
+import { logger } from '../../config/logger';
 
 // Lazy initialization to avoid errors when API keys are not set
 let openai: OpenAI | null = null;

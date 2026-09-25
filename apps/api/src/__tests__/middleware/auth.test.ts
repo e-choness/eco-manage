@@ -5,13 +5,13 @@
  */
 
 import { Response } from 'express';
-import { requireUser, AuthenticatedRequest } from '../../routes/middleware/auth';
+import { requireUser, AuthenticatedRequest } from '../../middleware/auth';
 import * as authUtils from '../../utils/auth';
-import UserService from '../../services/userService';
+import UserService from '../../modules/auth/userService';
 import mongoose from 'mongoose';
 
 jest.mock('../../utils/auth');
-jest.mock('../../services/userService');
+jest.mock('../../modules/auth/userService');
 
 const mockAuthUtils = authUtils as jest.Mocked<typeof authUtils>;
 const mockUserService = UserService as jest.Mocked<typeof UserService>;

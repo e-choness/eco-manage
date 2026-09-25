@@ -4,20 +4,20 @@
  * Tests for seed script functionality
  */
 
-import User from '../../models/User';
-import Device from '../../models/Device';
-import EnergyReading from '../../models/EnergyReading';
-import Alert from '../../models/Alert';
-import FinancialRecord from '../../models/FinancialRecord';
-import Recommendation from '../../models/Recommendation';
+import User from '../../modules/auth/model';
+import Device from '../../modules/devices/model';
+import EnergyReading from '../../modules/analytics/model';
+import Alert from '../../modules/alerts/model';
+import FinancialRecord from '../../modules/financial/model';
+import Recommendation from '../../modules/optimization/model';
 import { generatePasswordHash } from '../../utils/password';
 
-jest.mock('../../models/User');
-jest.mock('../../models/Device');
-jest.mock('../../models/EnergyReading');
-jest.mock('../../models/Alert');
-jest.mock('../../models/FinancialRecord');
-jest.mock('../../models/Recommendation');
+jest.mock('../../modules/auth/model');
+jest.mock('../../modules/devices/model');
+jest.mock('../../modules/analytics/model');
+jest.mock('../../modules/alerts/model');
+jest.mock('../../modules/financial/model');
+jest.mock('../../modules/optimization/model');
 jest.mock('../../utils/password');
 
 const mockUser = User as jest.Mocked<typeof User>;

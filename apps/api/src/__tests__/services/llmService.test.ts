@@ -4,7 +4,7 @@
  * Tests for LLM provider selection and request handling with retry logic
  */
 
-import { sendLLMRequest } from '../../services/llmService';
+import { sendLLMRequest } from '../../modules/analytics/llmService';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 

@@ -4,7 +4,7 @@
  * Tests for Device schema validation
  */
 
-import Device from '../../models/Device';
+import Device from '../../modules/devices/model';
 
 describe('Device Model', () => {
   it('should have userId as a required ObjectId field', () => {

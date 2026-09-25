@@ -6,12 +6,12 @@
 
 import request from 'supertest';
 import express, { Express } from 'express';
-import authRoutes from '../../routes/authRoutes';
-import UserService from '../../services/userService';
+import authRoutes from '../../modules/auth/routes';
+import UserService from '../../modules/auth/userService';
 import * as authUtils from '../../utils/auth';
 import mongoose from 'mongoose';
 
-jest.mock('../../services/userService');
+jest.mock('../../modules/auth/userService');
 jest.mock('../../utils/auth');
 
 const mockUserService = UserService as jest.Mocked<typeof UserService>;
