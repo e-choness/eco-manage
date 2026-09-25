@@ -48,6 +48,11 @@ const ROUTES: Record<string, Access> = {
   'get /api/tariffs/': MONEY,
   'get /api/tariffs/templates': OWNER,
   'post /api/tariffs/': OWNER,
+  'get /api/bills/': MONEY,
+  'get /api/bills/range': MONEY,
+  'get /api/bills/:period': MONEY,
+  'get /api/bills/:period/statement': MONEY,
+  'post /api/bills/:period/utility-bill': OWNER,
 };
 
 interface Layer {
@@ -75,7 +80,8 @@ const listRoutes = (app: Express): string[] => {
   return out;
 };
 
-const pathFor = (route: string) => route.split(' ')[1].replace(':id', new mongoose.Types.ObjectId().toString());
+const pathFor = (route: string) =>
+  route.split(' ')[1].replace(':id', new mongoose.Types.ObjectId().toString()).replace(':period', '2026-01');
 
 let app: Express;
 const tokens: Record<string, string> = {};

@@ -238,16 +238,38 @@ const billSchema = new Schema(
     // the site has 7 days of intervals. savedCents = solar + battery + demand; baseline = total + saved.
     savedCents: { type: Number, default: null },
     savings: {
-      type: {
-        baselineCents: Number,
-        solarCents: Number, // solar used on site (incl. via the battery) + export credit
-        batteryCents: Number, // buying cheap and using at dear periods (signed)
-        demandCents: Number, // lower peak than the load alone would have set
-        baselinePeakKw: Number,
-      },
+      type: new Schema(
+        {
+          baselineCents: Number,
+          solarCents: Number, // solar used on site (incl. via the battery) + export credit
+          batteryCents: Number, // buying cheap and using at dear periods (signed)
+          demandCents: Number, // lower peak than the load alone would have set
+          baselinePeakKw: Number,
+        },
+        { _id: false }
+      ),
       default: null,
     },
-    utility: { totalCents: Number, fileId: String, parsedAt: Date }, // P2-05
+    // P2-05: the utility's own bill for the period. An upload is read by the worker
+    // (processing → done | failed); the owner can type the total in instead (manual).
+    utility: {
+      type: new Schema(
+        {
+          status: { type: String, enum: ['processing', 'done', 'failed', 'manual'] },
+          totalCents: Number,
+          diffCents: Number, // our total − the utility's
+          source: { type: String, enum: ['pdf', 'csv', 'manual'] },
+          fileId: String,
+          fileName: String,
+          error: String,
+          uploadedBy: { type: ObjectId, ref: 'User' },
+          parsedAt: Date,
+        },
+        { _id: false }
+      ),
+      default: null,
+    },
+    statement: { type: new Schema({ fileId: String, renderedAt: Date }, { _id: false }), default: null }, // cached PDF
     computedAt: { type: Date, default: null },
   },
   { timestamps: true }
