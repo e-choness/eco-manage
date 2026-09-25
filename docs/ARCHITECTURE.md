@@ -146,7 +146,8 @@ A stand-in for the site gateway (spec §7). It uses the same MQTT topics, certif
 handling as a real one, so the backend can't tell the two apart.
 
 - `engine/`: deterministic physics per seed. Clear-sky solar for the site's latitude times a
-  seeded daily cloud factor; school load profile from the calendar (terms, days off, opening
+  seeded daily cloud factor (the solar model and weather profile live in `packages/shared`, so the
+  PV forecast uses the same ones); school load profile from the calendar (terms, days off, opening
   hours); heat pump driven by temperature and SG-Ready mode; EV sessions (buses, staff cars)
   honouring current limits and schedules; battery with round-trip losses in self-consumption
   mode unless commanded. The grid meter is the remainder. Every device integrates its own
@@ -269,6 +270,22 @@ The `email` queue (P2-09) runs every 30 s and sends through SMTP (Mailpit in dev
   - `alert:{alertId}:{userId}`
   - `escalation:{alertId}:{userId}`
   - `daily:{siteId}:{date}:{userId}`
+
+The `forecast` queue (P2-10) issues each site's PV and load forecasts for the next 48 h in 15-minute steps. It runs every hour, and once at start-up. A single site is redone when its calendar or its solar arrays change.
+- **Weather** comes from `WEATHER_PROVIDER`:
+  - `simulated` (the default) is the simulator's own seeded profile, from `packages/shared/src/weather.ts` with `WEATHER_SEED` = `SIM_SEED`. So the simulated site is forecast from the weather it will actually get.
+  - `open-meteo` is the real service: hourly temperature and cloud cover, interpolated, with cloud cover converted by Kasten–Czeplak.
+- **PV** uses the same clear-sky model as the simulator (`packages/shared/src/solar.ts`) × cloud × each array's geometry.
+  - The geometry factor is relative to the demo's 10° south arrays, which the simulator is calibrated to.
+  - Output is summed per inverter and capped at its rating.
+- **Load** is site consumption (grid − export + PV + battery):
+  - It averages the same local time on history days (last 6 weeks) of the same weekday and calendar class. The class is open or closed, from terms, days off and weekends; without a calendar, weekdays count as open.
+  - With fewer than two such days, it uses every day of that class.
+  - It then applies × (1 + s × Δ degrees outside 13–20 °C). The sensitivity `s` is fitted from the history, at most 10% per degree.
+  - It needs 7 days of intervals.
+- **Accuracy:** a day later, each forecast is scored against the meter. The MAPE covers daylight steps for PV (at least 5% of kWp) and steps of at least 1 kW for load. It is stored on the forecast and logged (`forecast accuracy (MAPE %)`).
+  - On two weeks of the simulated site, the day-ahead MAPE is about 5% for PV and 7% for load (worker test).
+- Forecasts expire after 30 days.
 
 ## Rules (`apps/rules`, P2-07)
 

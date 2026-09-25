@@ -57,6 +57,7 @@ services share them. Plain types live in `packages/shared/src/models.ts`.
 | `maintenance`    | siteId, deviceId, at, by, source (visit, alert), text, alertId | {siteId, deviceId, at: -1} |
 | `commands`       | siteId, deviceId, recommendationId, alertId, action, params, expiresAt, revertAt, status (created, sent, acked, failed, verified, reverted, cancelled), sentAt, ackedAt, failedAt, error, createdBy | {siteId, status} |
 | `notificationPrefs` | userId, siteId, email, alerts, daily, recs, failures, quietFrom, quietTo (HH:mm or null), escalateMin | {userId, siteId} unique |
+| `forecasts`      | siteId, kind (pv, load), issuedAt, source, points [{ts, kw}] (48 h, 15 min), weather [{ts, tempC, cloud}] (PV), profiles [{date, label, days}] (load), accuracy {mape, n, evaluatedAt} | {siteId, kind, issuedAt: -1}; expires after 30 days |
 | `emails`         | key (unique claim), siteId, userId, kind (alert, escalation, daily), alertId, to, subject, status (sending, sent), sentAt, messageId | key unique, {siteId, createdAt: -1} |
 | `auditEvents`    | siteId, userId (null for system actions), action, target, before, after, ts | {siteId, ts: -1} |
 

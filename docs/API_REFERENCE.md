@@ -247,6 +247,17 @@ The signed-in person's email settings for this site (App v2 Settings → Notific
 - **`escalateMin`:** 5 to 1440.
 - **Command failures:** always on for owners and managers. `failures: false` from either answers `422`.
 
+## Forecast `/api/forecast` 🔒 all roles (P2-10)
+
+`GET /` returns the latest PV and load forecasts from the current 15-minute step, 48 h ahead (type `ForecastView`):
+
+- `points [{ ts, pvKw, loadKw, netKw, tempC, cloud }]`. `netKw` = load − PV is what the grid and the battery must cover.
+- `issuedAt { pv, load }` and `source` (the weather source).
+- `profiles [{ date, label, days }]`: which history each day's load comes from, e.g. `Thursday open-day profile`, 6 days.
+- `accuracy { pv, load }`: the latest day-ahead MAPE, `{ mape, n, issuedAt }`, or null.
+
+The worker issues forecasts every hour. Before the first run the lists are empty and every field is null. A site without a location gets no forecasts, and load needs 7 days of intervals.
+
 ## Bills `/api/bills` 🔒 (P2-03 to P2-05)
 
 The worker computes one bill per billing period (see ARCHITECTURE, Worker). Money is whole cents.

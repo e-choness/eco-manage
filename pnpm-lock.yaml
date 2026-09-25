@@ -506,6 +506,9 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
+      '@ecomanage/simulator':
+        specifier: workspace:*
+        version: link:../simulator
       '@types/node':
         specifier: ^20.11.5
         version: 20.19.43

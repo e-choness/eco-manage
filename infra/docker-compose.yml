@@ -100,6 +100,8 @@ services:
       REDIS_URL: redis://redis:6379
       SMTP_URL: smtp://mailpit:1025
       APP_URL: http://localhost:5173
+      WEATHER_PROVIDER: ${WEATHER_PROVIDER:-simulated}
+      WEATHER_SEED: ${SIM_SEED:-42}
     depends_on:
       mongodb:
         condition: service_healthy

@@ -15,3 +15,7 @@ export * from './jobs';
 export * from './api/settings';
 export * from './alerts';
 export * from './notifications';
+export * from './random';
+export * from './solar';
+export * from './weather';
+export * from './api/forecast';

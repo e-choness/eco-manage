@@ -9,6 +9,8 @@ import { costPendingIntervals, nightlyBills } from './billing';
 import { statementJob, utilityBillJob } from './documents';
 import { createMailer } from './email/mailer';
 import { dailySummaries, notifyAlerts } from './email/notify';
+import { forecastAll, forecastSite } from './forecast/run';
+import { openMeteoWeather, simulatedWeather } from './forecast/weather';
 
 const env = z
   .object({
@@ -20,6 +22,10 @@ const env = z
     MAIL_FROM: z.string().default('EcoManage <alerts@ecomanage.local>'),
     APP_URL: z.string().default('http://localhost:5173'),
     EMAIL_EVERY_MS: z.coerce.number().int().positive().default(30_000),
+    FORECAST_EVERY_MS: z.coerce.number().int().positive().default(3_600_000),
+    WEATHER_PROVIDER: z.enum(['simulated', 'open-meteo']).default('simulated'),
+    // The simulator's seed, so the simulated site is forecast from its own weather.
+    WEATHER_SEED: z.coerce.number().int().default(42),
   })
   .parse(process.env);
 
@@ -96,9 +102,30 @@ const main = async () => {
     { connection, concurrency: 1 }
   );
   email.on('failed', (job, err) => log.error({ job: job?.name, err: err.message }, 'job failed'));
+
+  // Forecasts: every site hourly (the first run at start-up), one site on demand when its
+  // calendar or solar arrays change.
+  const weather = env.WEATHER_PROVIDER === 'open-meteo' ? openMeteoWeather() : simulatedWeather(env.WEATHER_SEED);
+  const forecastQueue = new Queue(QUEUES.forecast, { connection });
+  await forecastQueue.upsertJobScheduler('forecast-all', { every: env.FORECAST_EVERY_MS, immediately: true }, { name: 'forecast-all' });
+  const forecasts = new Worker(
+    QUEUES.forecast,
+    async (job) => {
+      if (job.name === 'forecast-site') return forecastSite(job.data.siteId, weather);
+      const { runs, scores } = await forecastAll(weather);
+      for (const s of scores) log.info({ siteId: s.siteId, kind: s.kind, mape: s.mape, n: s.n, issuedAt: s.issuedAt }, 'forecast accuracy (MAPE %)');
+      const skipped = runs.filter((r) => r.reason);
+      log.info({ sites: runs.length, skipped: skipped.map((r) => ({ siteId: r.siteId, reason: r.reason })) }, 'forecasts issued');
+      return runs.length;
+    },
+    { connection, concurrency: 1 }
+  );
+  forecasts.on('failed', (job, err) => log.error({ job: job?.name, err: err.message }, 'job failed'));
   log.info('worker ready');
 
   const stop = async () => {
+    await forecasts.close();
+    await forecastQueue.close();
     await email.close();
     await emailQueue.close();
     await documents.close();

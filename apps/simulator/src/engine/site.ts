@@ -1,8 +1,5 @@
-import { siteMinuteOfDay, siteDate, type DemoDevice, type TelemetryReading } from '@ecomanage/shared';
+import { clearSkyGhi, hashRandom, pvKw, siteMinuteOfDay, siteDate, sunElevationDeg, weatherAt, type DemoDevice, type TelemetryReading } from '@ecomanage/shared';
 import { DEMO_CALENDAR, dayType, type DayType, type SchoolCalendar } from './calendar';
-import { hashRandom } from './random';
-import { clearSkyGhi, pvKw, sunElevationDeg } from './solar';
-import { weatherAt } from './weather';
 
 // Physics of the simulated site (spec §7). Powers use the site sign convention: positive into the
 // switchboard (PV, battery discharge, grid import), negative for loads. Every device integrates its
