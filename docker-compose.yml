@@ -16,7 +16,10 @@ services:
     command: ["pnpm", "--filter", "@ecomanage/api", "dev"]
     ports:
       - "3000:3000"
-    env_file: ./apps/api/.env
+    env_file:
+      - path: ./apps/api/.env.example
+      - path: ./apps/api/.env
+        required: false
     environment:
       DATABASE_URL: mongodb://mongodb:27017/ecomanage
     depends_on:
@@ -48,7 +51,10 @@ services:
   mongo-seed:
     <<: *workspace
     command: ["pnpm", "--filter", "@ecomanage/api", "seed"]
-    env_file: ./apps/api/.env
+    env_file:
+      - path: ./apps/api/.env.example
+      - path: ./apps/api/.env
+        required: false
     environment:
       DATABASE_URL: mongodb://mongodb:27017/ecomanage
     depends_on:
