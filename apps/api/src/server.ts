@@ -6,6 +6,8 @@ import { logger } from './config/logger';
 import { createApp } from './app';
 import { SiteEventHub } from './lib/siteEvents';
 import { createJobClient } from './lib/jobs';
+import { createGatewayLink } from './lib/gatewayLink';
+import { syncPendingGatewayConfigs } from './modules/site/settings';
 
 dotenv.config();
 
@@ -34,7 +36,15 @@ const hub = redis ? new SiteEventHub(redis) : undefined;
 // Statements and utility bills are handled by the worker (needs Redis).
 const jobs = env.REDIS_URL ? createJobClient(env.REDIS_URL) : undefined;
 
-const app = createApp({ env, redis, hub, jobs });
+// Gateway config (battery floor) over MQTT; anything that couldn't be sent goes out on connect.
+const gateway = env.MQTT_URL ? createGatewayLink(env.MQTT_URL, env.MQTT_CERT_DIR) : undefined;
+gateway?.onConnect(() => {
+  syncPendingGatewayConfigs(gateway)
+    .then((n) => n && logger.info({ sites: n }, 'sent pending gateway config'))
+    .catch((err: Error) => logger.error({ err: err.message }, 'gateway config sync failed'));
+});
+
+const app = createApp({ env, redis, hub, jobs, gateway });
 
 const server = app.listen(env.PORT, () => {
   logger.info(`Server running at http://localhost:${env.PORT}`);
@@ -44,6 +54,7 @@ process.on('SIGINT', () => {
   logger.info('Graceful shutdown initiated...');
   void hub?.close();
   void jobs?.close();
+  void gateway?.close();
   redis?.disconnect();
   server.close(() => process.exit(0));
 });

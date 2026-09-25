@@ -47,7 +47,7 @@ describe('topics', () => {
 
   it('lists the filters each side subscribes to', () => {
     expect(subscriptions.ingest).toContain('site/+/dev/+/telemetry')
-    expect(subscriptions.gatewayInbox(S)).toEqual([`site/${S}/cmd/+`, `site/${S}/job/+`])
+    expect(subscriptions.gatewayInbox(S)).toEqual([`site/${S}/cmd/+`, `site/${S}/job/+`, `site/${S}/config`])
   })
 })
 

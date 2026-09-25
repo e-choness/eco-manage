@@ -20,6 +20,8 @@ const ALL: readonly Role[] = ['owner', 'manager', 'installer'];
 const MONEY: readonly Role[] = ['owner', 'manager'];
 const INSTALLER: readonly Role[] = ['installer'];
 const OWNER: readonly Role[] = ['owner'];
+const HARDWARE: readonly Role[] = ['owner', 'installer'];
+const PLANNERS: readonly Role[] = ['owner', 'manager'];
 
 // Who may call each route. 'public': no token; 'user': any signed-in user, no site needed.
 const ROUTES: Record<string, Access> = {
@@ -43,6 +45,11 @@ const ROUTES: Record<string, Access> = {
   'get /api/optimization/recommendations': ALL,
   'post /api/optimization/accept': MONEY,
   'post /api/optimization/dismiss': MONEY,
+  'get /api/site/': ALL,
+  'patch /api/site/': OWNER,
+  'put /api/site/pv-arrays': HARDWARE,
+  'patch /api/site/battery': HARDWARE,
+  'get /api/site/gateway': ALL,
   'get /api/site/snapshot': ALL,
   'get /api/site/stream': ALL,
   'get /api/tariffs/': MONEY,
@@ -53,6 +60,8 @@ const ROUTES: Record<string, Access> = {
   'get /api/bills/:period': MONEY,
   'get /api/bills/:period/statement': MONEY,
   'post /api/bills/:period/utility-bill': OWNER,
+  'get /api/calendar/': ALL,
+  'put /api/calendar/': PLANNERS,
 };
 
 interface Layer {

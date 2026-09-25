@@ -9,17 +9,19 @@ export const topics = {
   commandAck: (siteId: string, commandId: string) => `site/${siteId}/cmd/${commandId}/ack`,
   job: (siteId: string, jobId: string) => `site/${siteId}/job/${jobId}`,
   jobResult: (siteId: string, jobId: string) => `site/${siteId}/job/${jobId}/result`,
+  /** Retained settings the gateway enforces itself (battery floor). Written by the API. */
+  gatewayConfig: (siteId: string) => `site/${siteId}/config`,
 } as const;
 
 // Subscription filters for the cloud side.
 export const subscriptions = {
   ingest: ['site/+/dev/+/telemetry', 'site/+/dev/+/status', 'site/+/gw/status', 'site/+/cmd/+/ack', 'site/+/job/+/result'],
-  gatewayInbox: (siteId: string) => [`site/${siteId}/cmd/+`, `site/${siteId}/job/+`],
+  gatewayInbox: (siteId: string) => [`site/${siteId}/cmd/+`, `site/${siteId}/job/+`, `site/${siteId}/config`],
 } as const;
 
 export type ParsedTopic =
   | { kind: 'telemetry' | 'deviceStatus'; siteId: string; deviceId: string }
-  | { kind: 'gatewayStatus'; siteId: string }
+  | { kind: 'gatewayStatus' | 'gatewayConfig'; siteId: string }
   | { kind: 'command' | 'commandAck'; siteId: string; commandId: string }
   | { kind: 'job' | 'jobResult'; siteId: string; jobId: string };
 
@@ -36,6 +38,7 @@ export const parseTopic = (topic: string): ParsedTopic | null => {
     return null;
   }
   if (p[2] === 'gw' && p.length === 4 && p[3] === 'status') return { kind: 'gatewayStatus', siteId };
+  if (p[2] === 'config' && p.length === 3) return { kind: 'gatewayConfig', siteId };
   if (p[2] === 'cmd' || p[2] === 'job') {
     const id = p[3];
     const isResult = p.length === 5 && p[4] === (p[2] === 'cmd' ? 'ack' : 'result');
@@ -138,3 +141,13 @@ export const BACKFILL_AFTER_MS = 15 * 60 * 1000;
 
 export const isBackfill = (readingTs: Date, receivedAt: Date): boolean =>
   receivedAt.getTime() - readingTs.getTime() > BACKFILL_AFTER_MS;
+
+/**
+ * Settings the gateway enforces on its own, published retained by the API so a gateway that
+ * reconnects gets the latest. No command may take the battery below `batteryFloorPct`.
+ */
+export const gatewayConfigMessage = z.object({
+  ts: isoTs,
+  batteryFloorPct: z.number().min(0).max(100),
+});
+export type GatewayConfigMessage = z.infer<typeof gatewayConfigMessage>;

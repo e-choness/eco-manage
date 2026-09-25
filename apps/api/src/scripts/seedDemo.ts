@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { DEMO_DEVICES, DEMO_SITE, DEMO_SITE_ID, DEMO_USERS, TARIFF_TEMPLATES } from '@ecomanage/shared';
-import { Bill, Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, deleteSiteFiles, initModels } from '@ecomanage/db';
+import { DEMO_CALENDAR_INPUT, DEMO_DEVICES, DEMO_SITE, DEMO_SITE_ID, DEMO_USERS, TARIFF_TEMPLATES } from '@ecomanage/shared';
+import { Bill, Calendar, Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, deleteSiteFiles, initModels } from '@ecomanage/db';
 import User from '../modules/auth/model';
 import Alert from '../modules/alerts/model';
 import Recommendation from '../modules/optimization/model';
@@ -52,6 +52,7 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       Interval15.deleteMany({ siteId: DEMO_SITE_ID }),
       Tariff.deleteMany({ siteId: DEMO_SITE_ID }),
       Bill.deleteMany({ siteId: DEMO_SITE_ID }),
+      Calendar.deleteMany({ siteId: DEMO_SITE_ID }),
       deleteSiteFiles(DEMO_SITE_ID),
     ]);
     log('✅ Cleared existing demo data');
@@ -193,6 +194,18 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       }))
     );
     log(`✅ Created ${DEMO_SITE.name} with ${DEMO_DEVICES.length} devices`);
+    // Settings → Site and Calendar as App v2 shows them (P2-06)
+    const inverters = DEMO_DEVICES.filter((d) => d.type === 'pv');
+    await Site.updateOne(
+      { _id: DEMO_SITE_ID },
+      {
+        $set: {
+          batteryFloorPct: 10,
+          pvArrays: inverters.map((d, i) => ({ id: `arr-${i + 1}`, name: i === 0 ? 'Roof east' : 'Roof west', inverterId: d.id, kwp: d.kwp, tiltDeg: 10, azimuthDeg: 180 })),
+        },
+      }
+    );
+    await Calendar.create({ siteId: DEMO_SITE_ID, ...DEMO_CALENDAR_INPUT });
 
     // Tariff history (App v2: version 3 valid from 1 Apr 2026; earlier rates were a little lower).
     const tou = TARIFF_TEMPLATES[0].tariff;

@@ -51,3 +51,17 @@ export const currentUser = (req: AuthenticatedRequest): IUser => {
 };
 
 export const userIdOf = (req: AuthenticatedRequest): string => String(currentUser(req)._id);
+
+/** Parses a v2 request body: zod errors become 400 with each field's message in details.issues. */
+export const parseBody = <S extends z.ZodTypeAny>(schema: S, data: unknown): z.infer<S> => {
+  const r = schema.safeParse(data);
+  if (!r.success)
+    throw new HttpError(400, {
+      error: {
+        code: 400,
+        message: r.error.issues[0]?.message ?? 'Invalid request',
+        details: { issues: r.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })) },
+      },
+    });
+  return r.data;
+};
