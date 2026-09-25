@@ -234,7 +234,19 @@ const billSchema = new Schema(
     intervals: { type: Number, default: 0 },
     estimatedShare: { type: Number, default: 0 },
     unpricedIntervals: { type: Number, default: 0 }, // days with no tariff in force
-    savedCents: { type: Number, default: null }, // P2-04
+    // P2-04: against the same load bought entirely from the grid on the same tariff. Null until
+    // the site has 7 days of intervals. savedCents = solar + battery + demand; baseline = total + saved.
+    savedCents: { type: Number, default: null },
+    savings: {
+      type: {
+        baselineCents: Number,
+        solarCents: Number, // solar used on site (incl. via the battery) + export credit
+        batteryCents: Number, // buying cheap and using at dear periods (signed)
+        demandCents: Number, // lower peak than the load alone would have set
+        baselinePeakKw: Number,
+      },
+      default: null,
+    },
     utility: { totalCents: Number, fileId: String, parsedAt: Date }, // P2-05
     computedAt: { type: Date, default: null },
   },
