@@ -26,6 +26,11 @@ export class RulesService {
 
   constructor(private readonly opts: RulesServiceOptions) {}
 
+  /** The last demand figure ingest published for a site (for the recommendation rules). */
+  demandOf(siteId: string): DemandNow | null {
+    return this.demand.get(siteId) ?? null;
+  }
+
   /** A message from a site's event channel. */
   onEvent(siteId: string, event: SiteEvent): void {
     if (event.type === 'alert') return; // our own

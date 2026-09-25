@@ -115,4 +115,5 @@ export type SiteEvent =
   | { type: 'demand'; demand: DemandNow; quality: 'ok' | 'estimated' }
   | { type: 'device'; deviceId: string; status: string }
   | { type: 'alert'; alert: AlertView }
-  | { type: 'command'; commandId: string; deviceId: string; status: string };
+  | { type: 'command'; commandId: string; deviceId: string; status: string }
+  | { type: 'inbox'; itemType: 'decide' | 'alert' | 'active'; itemId: string };

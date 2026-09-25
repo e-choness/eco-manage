@@ -19,3 +19,4 @@ export * from './random';
 export * from './solar';
 export * from './weather';
 export * from './api/forecast';
+export * from './recommendations';

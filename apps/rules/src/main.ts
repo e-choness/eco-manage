@@ -3,8 +3,12 @@ import { Redis } from 'ioredis';
 import pino from 'pino';
 import { z } from 'zod';
 import { Site, initModels } from '@ecomanage/db';
-import type { SiteEvent } from '@ecomanage/shared';
+import { quarterOf, type SiteEvent } from '@ecomanage/shared';
 import { RulesService } from './service';
+import { RULES } from './recs/registry';
+import { proposeForSite } from './recs/runner';
+
+const siteIds = async () => (await Site.find().select('_id').lean()).map((s) => String(s._id));
 
 const env = z
   .object({
@@ -36,17 +40,24 @@ const main = async () => {
     }
   });
 
-  // One loop, so a site is never evaluated twice at once: new readings every tick, and every
-  // site on the sweep for the time-based checks.
+  // One loop, so a site is never evaluated twice at once: new readings every tick, every site on
+  // the sweep for the time-based checks, and the recommendation rules once per quarter hour.
   let lastSweep = 0;
+  let lastQuarter = quarterOf(new Date()).getTime(); // the first proposals come at the next :00/:15/:30/:45
   let stopped = false;
   const loop = async () => {
     while (!stopped) {
       const now = new Date();
-      if (now.getTime() - lastSweep >= env.RULES_SWEEP_MS) {
+      const quarter = quarterOf(now).getTime();
+      if (quarter > lastQuarter) {
+        lastQuarter = quarter;
+        for (const siteId of await siteIds())
+          await proposeForSite(siteId, now, { redis, logger: log, rules: RULES, demand: rules.demandOf(siteId) }).catch((err: Error) =>
+            log.error({ siteId, err: err.message }, 'recommendation run failed')
+          );
+      } else if (now.getTime() - lastSweep >= env.RULES_SWEEP_MS) {
         lastSweep = now.getTime();
-        const ids = (await Site.find().select('_id').lean()).map((s) => String(s._id));
-        await rules.runAll(ids, now);
+        await rules.runAll(await siteIds(), now);
       } else {
         await rules.runDirty(now);
       }

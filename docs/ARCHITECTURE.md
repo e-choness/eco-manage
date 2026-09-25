@@ -331,6 +331,33 @@ device, rule). A unique partial index enforces this, even if two rules processes
 - Opened, resolved and counted alerts are published as `alert` events on the site channel, and
   the SSE stream forwards them.
 
+
+### Recommendations (P3-01)
+
+Once per quarter hour (:00, :15, :30, :45 site time; every time zone is a whole number of quarters from UTC), the same loop runs the recommendation rules for every site (`src/recs`).
+
+- **Rule shape:** a rule is `{ id, evaluate(ctx, params), check(ctx, action, params), saving(ctx, action, params) }`. All three are pure functions of a `RecContext`, so the same state always gives the same proposal.
+- **`RecContext`** is loaded as of the quarter:
+  - site and cap
+  - today's calendar class
+  - the tariff in force
+  - this billing period's peak so far
+  - the last demand event
+  - devices with their latest readings
+  - the battery's charge, reserve, capacity and floor
+  - the latest PV and load forecasts merged from now on
+  - open commands
+  - the approval settings
+- **Settings:** `ruleConfigs` holds Settings → Rules. Each rule has `on` and `params` over the App v2 defaults (`RULE_DEFAULTS`), and the site's approval settings (who approves, decide how long before, whom to email) live under the ruleId `approval`.
+- **Proposing:** for each enabled rule, a proposal becomes a `recommendations` document:
+  - `status: proposed`, with its checks, expected saving and one-line `calc`
+  - `expiresAt` = the window start − `expireMin`
+  - skipped if that time has already passed, or if an open recommendation (proposed, approved, sent or acked) has the same `dedupeKey` (rule + device + window). A unique partial index backs this.
+  - A failing rule is logged and the others still run.
+- **Notifying:** each new proposal goes out as an `inbox` event.
+- **Proposal emails:** the worker's email job emails the approvers named in the approval settings who have "New proposals" on. Quiet hours apply.
+- **Rules only propose:** nothing in this service talks to a device.
+
 ## Live view (P1-08)
 
 ```mermaid

@@ -1,5 +1,5 @@
 import mongoose, { InferSchemaType, Schema, Types } from 'mongoose';
-import { ALERT_RULE_IDS, ALERT_SEVERITIES, ALERT_STATES, DEVICE_STATUSES, DEVICE_TYPES, QUALITY, ROLES } from '@ecomanage/shared';
+import { RECOMMENDATION_STATUSES, ALERT_RULE_IDS, ALERT_SEVERITIES, ALERT_STATES, DEVICE_STATUSES, DEVICE_TYPES, QUALITY, ROLES } from '@ecomanage/shared';
 
 // v2 data model (plan §2). Models are registered on the default mongoose connection; the app that
 // imports them owns connecting. Collection names are given explicitly so they match the plan.
@@ -436,13 +436,13 @@ export const NotificationPrefs = mongoose.model('NotificationPrefs', notificatio
 
 // Every email sent. The unique key is claimed before sending, so a restart or a second worker
 // never sends the same email twice: `alert:{alertId}:{userId}`, `escalation:{alertId}:{userId}`,
-// `daily:{siteId}:{date}:{userId}`.
+// `daily:{siteId}:{date}:{userId}`, `proposal:{recommendationId}:{userId}`.
 const emailSchema = new Schema(
   {
     key: { type: String, required: true },
     siteId: { type: ObjectId, ref: 'Site', required: true },
     userId: { type: ObjectId, ref: 'User', default: null },
-    kind: { type: String, enum: ['alert', 'escalation', 'daily'], required: true },
+    kind: { type: String, enum: ['alert', 'escalation', 'daily', 'proposal'], required: true },
     alertId: { type: ObjectId, ref: 'Alert', default: null },
     to: { type: String, required: true },
     subject: { type: String, required: true },
@@ -456,6 +456,62 @@ emailSchema.index({ key: 1 }, { unique: true });
 emailSchema.index({ siteId: 1, createdAt: -1 });
 export type EmailDoc = InferSchemaType<typeof emailSchema> & { _id: Types.ObjectId };
 export const Email = mongoose.model('Email', emailSchema, 'emails');
+
+// ---- rules and recommendations -------------------------------------------------------------------
+
+// Settings → Rules (P3-01): one document per site and rule overriding the App v2 defaults
+// (RULE_DEFAULTS), plus one with ruleId "approval" holding the site's approval settings.
+const ruleConfigSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    ruleId: { type: String, required: true },
+    on: { type: Boolean, default: null },
+    params: { type: Schema.Types.Mixed, default: {} },
+    updatedBy: { type: ObjectId, ref: 'User', default: null },
+  },
+  { timestamps: true }
+);
+ruleConfigSchema.index({ siteId: 1, ruleId: 1 }, { unique: true });
+export type RuleConfigDoc = InferSchemaType<typeof ruleConfigSchema> & { _id: Types.ObjectId };
+export const RuleConfig = mongoose.model('RuleConfig', ruleConfigSchema, 'ruleConfigs');
+
+// A proposed device action (plan §2, Backend Coverage §2). Created by the rules service or a
+// person on the Devices page (ruleId "manual"); decided in the Inbox (P3-03).
+const recommendationSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    ruleId: { type: String, required: true },
+    dedupeKey: { type: String, required: true },
+    deviceId: { type: String, required: true },
+    action: { type: String, required: true },
+    params: { type: Schema.Types.Mixed, default: {} },
+    title: { type: String, required: true },
+    window: { type: new Schema({ start: Date, end: Date }, { _id: false }), required: true },
+    inputs: { type: [new Schema({ label: String, value: String }, { _id: false })], default: [] },
+    checks: { type: [new Schema({ text: String, pass: Boolean }, { _id: false })], default: [] },
+    calc: { type: String, default: '' },
+    expectedSavingCents: { type: Number, default: 0 },
+    status: { type: String, enum: RECOMMENDATION_STATUSES, default: 'proposed' },
+    proposedAt: { type: Date, required: true },
+    expiresAt: { type: Date, required: true },
+    decidedBy: { type: ObjectId, ref: 'User', default: null },
+    decidedAt: { type: Date, default: null },
+    declineReason: { type: String, default: null },
+    commandId: { type: ObjectId, ref: 'Command', default: null },
+    actualSavingCents: { type: Number, default: null },
+    createdBy: { type: ObjectId, ref: 'User', default: null }, // manual requests
+  },
+  { timestamps: true }
+);
+recommendationSchema.index({ siteId: 1, status: 1 });
+recommendationSchema.index({ dedupeKey: 1 });
+// One open recommendation per dedupeKey, even if two rules processes run the same quarter.
+recommendationSchema.index(
+  { siteId: 1, dedupeKey: 1 },
+  { unique: true, partialFilterExpression: { status: { $in: ['proposed', 'approved', 'sent', 'acked'] } }, name: 'one_open_recommendation' }
+);
+export type RecommendationDoc = InferSchemaType<typeof recommendationSchema> & { _id: Types.ObjectId };
+export const Recommendation = mongoose.model('Recommendation', recommendationSchema, 'recommendations');
 
 // ---- forecasts -----------------------------------------------------------------------------------
 
@@ -501,7 +557,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, AuditEvent] as const;
+export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, Recommendation, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

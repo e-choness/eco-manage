@@ -1,4 +1,4 @@
-import type { AlertDoc, SiteDoc } from '@ecomanage/db';
+import type { AlertDoc, RecommendationDoc, SiteDoc } from '@ecomanage/db';
 import type { Message } from './mailer';
 import type { Recipient } from './notify';
 
@@ -69,4 +69,22 @@ export const dailyEmail = (site: SiteDoc, s: DailySummary, r: Recipient, appUrl:
     : [`${longDate(s.date)} at ${site.name}: no meter data for the day.`];
   lines.push(s.openAlerts.length ? `Open alerts (${s.openAlerts.length}): ${s.openAlerts.slice(0, 5).join('; ')}.` : 'No open alerts.');
   return message(r.prefs.email, `[${site.name}] Yesterday: ${s.intervals ? money(s.costCents, cur) : 'no data'}`, lines, { label: 'See the day in History', url: `${appUrl}/history?date=${s.date}` });
+};
+
+export const proposalEmail = (site: SiteDoc, rec: RecommendationDoc, r: Recipient, appUrl: string): Message => {
+  const cur = site.currency || 'USD';
+  const by = time(rec.expiresAt, site.tz).split(', ')[1] ?? '';
+  const failing = (rec.checks ?? []).filter((c) => !c.pass);
+  return message(
+    r.prefs.email,
+    `[${site.name}] Decide by ${by}: ${rec.title}`,
+    [
+      `${rec.title}, ${time(rec.window.start!, site.tz)}–${time(rec.window.end!, site.tz).split(', ')[1] ?? ''}.`,
+      ...(rec.inputs ?? []).map((i) => `${i.label}: ${i.value}`),
+      `Expected saving ${money(rec.expectedSavingCents ?? 0, cur)}${rec.calc ? ` (${rec.calc})` : ''}.`,
+      failing.length ? `Not ready to approve: ${failing.map((c) => c.text).join('; ')}.` : 'All checks pass.',
+      `It expires at ${by} if nobody decides. Nothing is sent to the device until someone approves.`,
+    ],
+    { label: 'Decide in the Inbox', url: `${appUrl}/inbox?recommendation=${rec._id}` }
+  );
 };

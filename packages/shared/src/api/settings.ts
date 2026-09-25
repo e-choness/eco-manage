@@ -166,3 +166,13 @@ export const DEMO_CALENDAR_INPUT: CalendarInput = {
   close: '17:30',
   weekends: 'closed',
 };
+
+/**
+ * Open or closed for a site: from its calendar when it has terms or days off, otherwise weekdays
+ * open and weekends closed (the load forecast and the recommendation rules use this).
+ */
+export const siteDayClass = (date: string, calendar: Pick<CalendarInput, 'terms' | 'daysOff' | 'weekends'> | null): CalendarDayType => {
+  if (calendar && (calendar.terms.length || calendar.daysOff.length)) return calendarDayType(calendar, date);
+  const dow = new Date(`${date}T12:00:00Z`).getUTCDay();
+  return dow === 0 || dow === 6 ? 'closed' : 'open';
+};

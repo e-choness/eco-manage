@@ -8,7 +8,7 @@ import { QUEUES } from '@ecomanage/shared';
 import { costPendingIntervals, nightlyBills } from './billing';
 import { statementJob, utilityBillJob } from './documents';
 import { createMailer } from './email/mailer';
-import { dailySummaries, notifyAlerts } from './email/notify';
+import { dailySummaries, notifyAlerts, notifyProposals } from './email/notify';
 import { forecastAll, forecastSite } from './forecast/run';
 import { openMeteoWeather, simulatedWeather } from './forecast/weather';
 
@@ -96,8 +96,9 @@ const main = async () => {
     async () => {
       const sent = await notifyAlerts(mailer, env.APP_URL);
       const daily = await dailySummaries(mailer, env.APP_URL);
-      if (sent.alerts || sent.escalations || daily) log.info({ ...sent, daily }, 'emails sent');
-      return { ...sent, daily };
+      const proposals = await notifyProposals(mailer, env.APP_URL);
+      if (sent.alerts || sent.escalations || daily || proposals) log.info({ ...sent, daily, proposals }, 'emails sent');
+      return { ...sent, daily, proposals };
     },
     { connection, concurrency: 1 }
   );
