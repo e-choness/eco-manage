@@ -4,7 +4,9 @@ import { Queue, Worker } from 'bullmq';
 import pino from 'pino';
 import { z } from 'zod';
 import { initModels } from '@ecomanage/db';
+import { QUEUES } from '@ecomanage/shared';
 import { costPendingIntervals, nightlyBills } from './billing';
+import { statementJob, utilityBillJob } from './documents';
 
 const env = z
   .object({
@@ -17,7 +19,7 @@ const env = z
 
 const log = pino({ level: env.LOG_LEVEL });
 
-const QUEUE = 'billing';
+const QUEUE = QUEUES.billing;
 
 const main = async () => {
   await mongoose.connect(env.DATABASE_URL);
@@ -54,9 +56,27 @@ const main = async () => {
     { connection, concurrency: 1 }
   );
   worker.on('failed', (job, err) => log.error({ job: job?.name, err: err.message }, 'job failed'));
+
+  // Statements and utility bills are requested by the API, so they get their own queue and
+  // don't wait behind a long billing pass.
+  const documents = new Worker(
+    QUEUES.documents,
+    async (job) => {
+      if (job.name === 'statement') return statementJob(job.data);
+      if (job.name === 'utility-bill') {
+        const result = await utilityBillJob(job.data);
+        log.info({ period: job.data.period, ...result }, 'utility bill read');
+        return result;
+      }
+      throw new Error(`unknown job ${job.name}`);
+    },
+    { connection, concurrency: 2 }
+  );
+  documents.on('failed', (job, err) => log.error({ job: job?.name, err: err.message }, 'job failed'));
   log.info('worker ready');
 
   const stop = async () => {
+    await documents.close();
     await worker.close();
     await queue.close();
     connection.disconnect();

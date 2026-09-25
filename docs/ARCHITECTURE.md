@@ -228,6 +228,16 @@ shifting** (signed cost of battery kWh: discharge at dear periods minus charge a
 `savedCents` is the sum of the three and `baselineCents` = `totalCents` + `savedCents`. Both stay
 null until the site has 7 days (672) of intervals.
 
+The `documents` queue (P2-05) runs on demand, two at a time:
+
+- `statement`: renders the bill to PDF with pdfkit, stores it in GridFS (bucket `files`, metadata
+  `{ siteId, kind, contentType }`) and remembers `{ fileId, renderedAt }` on the bill. The API waits
+  for the result (up to 30 s) and serves the stored copy until the bill changes.
+- `utility-bill`: reads an uploaded bill's total. It uses the PDF's text (unpdf) or the CSV
+  template, sets `utility.status` to `done` with `diffCents` = ours − utility, or to `failed` so the
+  owner can type the total in. A job for a file that a newer upload replaced does nothing.
+  Recomputing a bill keeps `diffCents` in step with our total.
+
 ## Live view (P1-08)
 
 ```mermaid

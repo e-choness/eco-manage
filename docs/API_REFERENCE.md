@@ -174,3 +174,50 @@ Body (`tariffInput` in `@ecomanage/shared`): `name`, `validFrom` (local date), `
 - `validFrom` may not be before the start of the current billing period, so a closed bill never
   changes. Rates are cents per kWh (fractions allowed); money totals are whole cents.
 - The version in force on a day is the one with the latest `validFrom` on or before it.
+
+## Bills `/api/bills` 🔒 (P2-03 to P2-05)
+
+The worker computes one bill per billing period (see ARCHITECTURE, Worker). Money is whole cents.
+
+| Method | Path | Roles | Result |
+| ------ | ---- | ----- | ------ |
+| GET | `/` | owner, manager | `{ items: BillSummary[] (newest first), kpis }` |
+| GET | `/range?from=YYYY-MM-DD&to=YYYY-MM-DD` | owner, manager | Spending for local dates (at most 366 days) |
+| GET | `/:period` | owner, manager | Bill detail (`period` is `YYYY-MM`, the month the period starts in) |
+| GET | `/:period/statement` | owner, manager | Statement PDF (`attachment; filename="statement-<period>.pdf"`) |
+| POST | `/:period/utility-bill` | owner | Utility bill: a file is read by the worker (`202`); a typed-in total is stored (`200`) |
+
+**BillSummary**: `period`, `start`, `end` (UTC), `inProgress`, `days { elapsed, total }`,
+`totalCents`, `projectedCents` (open period only: energy and export credit so far scaled to the
+whole period, plus demand at today's peak and the fixed fee), `lines { energyPkCents,
+energyMdCents, energyOpCents, demandCents, fixedCents, exportCreditCents }`, `peakKw`, `peakAt`,
+`savedCents` (null until 7 days of data), `estimatedShare` and `utility` (below, or null).
+
+**kpis**: `last12 { totalCents, from, to }` over the last 12 closed periods, `saved12Cents`,
+`peak12 { kw, period, demandCents }`, `utilityDiffPct` (mean |ours − utility| / utility, in percent)
+and `compared` (how many closed bills have a utility total).
+
+**Detail** adds `energyKwh { pk, md, op, export }`, `gridKwh`, `tariff { version, name,
+demandRateCents, fixedCents }` (the version for demand and fixed), `tariffVersions[]` (every
+version that priced energy), `intervals`, `unpricedIntervals`, `estimated [{ start, end }]`
+(contiguous estimated stretches), `savings { baselineCents, solarCents, batteryCents, demandCents,
+baselinePeakKw }` and `computedAt`.
+
+**Range** returns `energyCents`, the three energy `lines`, `exportCreditCents`, `gridKwh`,
+`exportKwh`, `peak { kw, at }` (highest 15-minute demand), `tariffVersions`, `intervals`,
+`estimatedShare` and `unpricedIntervals`. Each day is priced with the version in force that day.
+It has no demand charge, because demand is charged once per billing period.
+
+**Statement**: the worker renders it and it is kept in GridFS. The stored copy is served until the
+bill is recomputed or a utility total arrives. `503` if the worker doesn't answer within 30 s.
+
+**Utility bill**: `409` while the period is open.
+- Multipart `file`, at most 10 MB, answers `202 { utility: { status: "processing", … } }`:
+  - A PDF: the worker looks for "Total amount due", "Amount due", "Total due", "Balance due", "Total new charges" and then "Total".
+  - A CSV template: a header with `total_due` (or `total`, `amount_due`) and optionally `period`.
+  - Other types answer `415`.
+- JSON `{ "totalCents": 149820 }` answers `200 { utility: { status: "manual", … } }`.
+- `utility` is `{ status: processing | done | failed | manual, totalCents, diffCents (ours −
+  utility), source: pdf | csv | manual, fileName, error, parsedAt }`. When extraction fails, the
+  status is `failed` with an `error` asking the owner to type the total in.
+- Both forms are audited (`bill.utility.upload`, `bill.utility.enter`).

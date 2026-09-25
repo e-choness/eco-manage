@@ -11,6 +11,8 @@ import { devicesRoutes } from './modules/devices/routes';
 import optimizationRoutes from './modules/optimization/routes';
 import { siteRoutes } from './modules/site/routes';
 import tariffRoutes from './modules/tariffs/routes';
+import { billsRoutes } from './modules/bills/routes';
+import type { JobClient } from './lib/jobs';
 import type { SiteEventHub } from './lib/siteEvents';
 
 export interface AppDeps {
@@ -19,9 +21,11 @@ export interface AppDeps {
   hub?: SiteEventHub;
   logger?: Logger;
   sseHeartbeatMs?: number;
+  /** Worker jobs (statements, utility bills); absent without Redis. */
+  jobs?: JobClient;
 }
 
-export const createApp = ({ env, redis, hub, logger = defaultLogger, sseHeartbeatMs }: AppDeps): Express => {
+export const createApp = ({ env, redis, hub, jobs, logger = defaultLogger, sseHeartbeatMs }: AppDeps): Express => {
   const app = express();
   const window = env.RATE_LIMIT_WINDOW_MS;
 
@@ -46,6 +50,7 @@ export const createApp = ({ env, redis, hub, logger = defaultLogger, sseHeartbea
   app.use('/api/optimization', optimizationRoutes);
   app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs }));
   app.use('/api/tariffs', tariffRoutes);
+  app.use('/api/bills', billsRoutes(jobs));
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: 404, message: 'Not found' } });

@@ -5,6 +5,7 @@ import { loadEnv } from './config/env';
 import { logger } from './config/logger';
 import { createApp } from './app';
 import { SiteEventHub } from './lib/siteEvents';
+import { createJobClient } from './lib/jobs';
 
 dotenv.config();
 
@@ -30,7 +31,10 @@ process.on('unhandledRejection', (err: unknown) => {
 // Live events from ingest, forwarded to SSE clients (needs Redis).
 const hub = redis ? new SiteEventHub(redis) : undefined;
 
-const app = createApp({ env, redis, hub });
+// Statements and utility bills are handled by the worker (needs Redis).
+const jobs = env.REDIS_URL ? createJobClient(env.REDIS_URL) : undefined;
+
+const app = createApp({ env, redis, hub, jobs });
 
 const server = app.listen(env.PORT, () => {
   logger.info(`Server running at http://localhost:${env.PORT}`);
@@ -39,6 +43,7 @@ const server = app.listen(env.PORT, () => {
 process.on('SIGINT', () => {
   logger.info('Graceful shutdown initiated...');
   void hub?.close();
+  void jobs?.close();
   redis?.disconnect();
   server.close(() => process.exit(0));
 });
