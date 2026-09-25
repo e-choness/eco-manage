@@ -45,6 +45,18 @@ describe('clock', () => {
   })
 })
 
+it('starts counters where the site would be after running since commissioning, so restarts never go backwards', () => {
+  const earlier = makeSite(42, new Date('2026-09-24T04:00:00Z')).engine
+  const later = makeSite(42, new Date('2026-09-25T04:00:00Z')).engine
+  for (const key of ['meter', 'invA', 'bat', 'ev1', 'hp']) {
+    const a = earlier.countersOf(key)
+    const b = later.countersOf(key)
+    expect(b.inKwh).toBeGreaterThanOrEqual(a.inKwh)
+    expect(b.outKwh).toBeGreaterThanOrEqual(a.outKwh)
+  }
+  expect(later.countersOf('meter').inKwh - earlier.countersOf('meter').inKwh).toBeCloseTo(22 * 24, 0)
+})
+
 describe('24 simulated hours on a school day', () => {
   const site = makeSite()
   beforeAll(() => site.run(24 * 3600))
@@ -266,5 +278,30 @@ describe('jobs', () => {
     const { gateway, sent } = makeSite()
     gateway.handleMessage(topics.job(DEMO_SITE_ID, 'j'), { type: 'commission', params: { deviceId: 'x', address: 'nowhere' } })
     expect(sent[0].payload).toEqual(expect.objectContaining({ ok: false }))
+  })
+})
+
+describe('restarts', () => {
+  it('resumes counters and battery charge, ageing counters over the downtime', () => {
+    const first = makeSite(42, new Date('2026-09-24T16:00:00Z'))
+    first.run(600)
+    const saved = first.engine.saveState()
+
+    // back 30 minutes later
+    const second = makeSite(42, new Date('2026-09-24T16:40:00Z')).engine
+    expect(second.restoreState(saved)).toBe(true)
+    const meter = second.countersOf('meter')
+    const expected = saved.counters.meter.inKwh + 22 * 0.5
+    expect(meter.inKwh).toBeCloseTo(expected, 3)
+    expect(meter.inKwh).toBeGreaterThan(first.engine.countersOf('meter').inKwh)
+    expect(second.batteryState().socPct).toBeCloseTo(first.engine.batteryState().socPct)
+  })
+
+  it('ignores state saved in the future', () => {
+    const later = makeSite(42, new Date('2026-09-25T00:00:00Z')).engine.saveState()
+    const engine = makeSite(42, new Date('2026-09-24T00:00:00Z')).engine
+    const before = engine.countersOf('meter')
+    expect(engine.restoreState(later)).toBe(false)
+    expect(engine.countersOf('meter')).toEqual(before)
   })
 })

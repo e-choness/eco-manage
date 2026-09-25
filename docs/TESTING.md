@@ -62,6 +62,16 @@ makes the effect loop forever.
 
 ## End-to-end (`e2e/`, Playwright)
 
-The existing suite predates Phase 0 and is outdated. It checks for tokens in `localStorage`, and
-nothing wires it to the compose stack. P1-12 replaces it with a compose-based
-smoke test.
+A smoke test runs against the compose stack (P1-12). It needs the demo seed and the running
+simulator:
+
+```bash
+docker compose run --rm mongo-seed          # once
+docker compose --profile e2e run --rm e2e
+```
+
+It signs in as the demo manager, lands on Home (the live view), checks the site name and the
+"Live" badge, waits for a newer grid-meter reading within 10 s (it compares reading timestamps,
+because one-decimal kW values can repeat) and checks that every simulated device is live. A
+second test checks that signed-out visitors are sent away from Home. The `e2e` image pins
+Playwright 1.49.0. Reports and traces go to `e2e/playwright-report` and `e2e/test-results`.

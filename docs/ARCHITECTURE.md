@@ -155,6 +155,11 @@ handling as a real one, so the backend can't tell the two apart.
   offline device back. `DELETE /sim/faults` clears them, `POST /sim/clock {speed}` changes the
   speed (1–60), `GET /sim/state` shows time, weather, battery and faults.
 - Start options: `--speed`, `--seed`, `--start` (or `SIM_SPEED`, `SIM_SEED`, `SIM_START`).
+- Energy counters behave like real ones. They start from the site's average power since
+  commissioning (14 Mar 2024). Counters and battery charge are saved every 30 s to
+  `SIM_STATE_FILE` (the `simulator_state` volume in compose), and a restart resumes from them,
+  adding average power for the downtime. Meter and inverter readings carry ±0.25% measurement
+  noise; the counters integrate the true power.
 
 With seed 42 on 24 Sep 2026, a school day, the uncontrolled 15-minute grid peak is 130 kW at
 15:15, matching the App v2 peak-shaving story.

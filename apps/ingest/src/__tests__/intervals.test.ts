@@ -107,6 +107,19 @@ describe('one interval', () => {
     expect(v).toMatchObject({ grid: 12.5, demandKw: 50, quality: 'estimated' })
   })
 
+  it('falls back to average power when a counter goes backwards (device reset)', async () => {
+    await stream(0, 7)
+    // the meter is replaced mid-interval: its import counter restarts near zero
+    for (let s = 7 * 60 + 5; s <= 15 * 60; s += 5) {
+      const t = new Date(T0 + s * 1000)
+      const r = { ...reading('meter', t), e_in_kwh: 5 + (50 * (s - 420)) / 3600 }
+      await ingestor.handle(topics.telemetry(DEMO_SITE_ID, dev('meter').id), JSON.stringify(r), t)
+    }
+    await ingestor.flush()
+    const v = await computeInterval(DEMO_SITE_ID, at(0))
+    expect(v).toMatchObject({ grid: 12.5, demandKw: 50, quality: 'estimated' })
+  })
+
   it('returns nothing for a site without data', async () => {
     expect(await computeInterval(DEMO_SITE_ID, at(0))).toBeNull()
     expect(await computeInterval('650000000000000000000077', at(0))).toBeNull()

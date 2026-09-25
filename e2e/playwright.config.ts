@@ -1,37 +1,19 @@
 import { defineConfig, devices } from '@playwright/test'
 
+// Runs against the compose stack (`docker compose --profile e2e run --rm e2e`). The web app is
+// reached by its service name; nothing is started here.
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  retries: process.env.CI ? 1 : 0,
+  workers: 1,
+  reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
+  timeout: 60_000,
   use: {
-    baseURL: 'http://localhost:5173',
-    trace: 'on-first-retry',
+    baseURL: process.env.E2E_BASE_URL ?? 'http://web:5173',
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-  ],
-
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    cwd: '../apps/web',
-  },
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 })

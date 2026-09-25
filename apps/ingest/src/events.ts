@@ -80,7 +80,12 @@ export class DemandTracker {
     const importKw = Math.max(0, reading.p_kw);
     let s = this.meters.get(meterId);
     if (s && ts <= s.last.ts) return null; // out of order: live demand only moves forward
-    if (!s || s.start !== start) {
+    // A counter that goes backwards (meter replaced or reset) starts the interval over, estimated.
+    const reset = s !== undefined && reading.e_in_kwh < s.last.eIn;
+    if (s && reset) {
+      s = { start, startKwh: reading.e_in_kwh - (importKw * (ts - start)) / 3_600_000, estimated: true, last: { ts, eIn: reading.e_in_kwh, p: reading.p_kw } };
+      this.meters.set(meterId, s);
+    } else if (!s || s.start !== start) {
       const carried = s && start - s.last.ts <= 60_000 && start - s.last.ts >= 0;
       s = {
         start,

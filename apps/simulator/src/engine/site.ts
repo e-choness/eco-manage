@@ -33,6 +33,21 @@ export interface CommandResult {
 }
 
 const HOUR_S = 3600;
+const COMMISSIONED_AT = Date.parse('2024-03-14T15:00:00Z'); // demo site, App v2
+// Long-run average power per device type, used to age counters over time the simulator didn't run.
+const AVERAGE_KW: Partial<Record<DemoDevice['type'], { in: number; out: number }>> = {
+  pv: { in: 0, out: 6 },
+  battery: { in: 4, out: 3.7 },
+  meter: { in: 22, out: 1.2 },
+  ev: { in: 3, out: 0 },
+  heatpump: { in: 6, out: 0 },
+};
+
+export interface SimState {
+  savedAt: string;
+  socPct: number;
+  counters: Record<string, { inKwh: number; outKwh: number }>;
+}
 const KW_PER_AMP = 22 / 32; // three-phase 230 V
 const EV_DEFAULT_LIMIT_A = 32;
 const BATTERY_DEFAULTS: BatteryConfig = {
@@ -114,17 +129,14 @@ export class SiteEngine {
     this.now = new Date(start);
     this.soc = this.battery.initialSocPct;
     this.reserve = this.battery.reservePct;
-    // Lifetime counters start where a two-year-old site would be.
+    // Lifetime counters as if the site had run at its average power since commissioning, so a
+    // simulator restart later in time never makes a counter go backwards (real counters don't).
+    const hoursRunning = Math.max(0, (start.getTime() - COMMISSIONED_AT) / 3_600_000);
+    const since = (avgKw: number) => Math.round(avgKw * hoursRunning * 1000) / 1000;
     for (const d of config.devices) {
       const base = Math.round(hashRandom(this.seed, `counter:${d.key}`) * 1000);
-      const initial: Record<string, Counters> = {
-        pv: { inKwh: 0, outKwh: 120_000 + base },
-        battery: { inKwh: 60_000 + base, outKwh: 55_000 + base },
-        meter: { inKwh: 481_000 + base, outKwh: 21_000 + base },
-        ev: { inKwh: 18_000 + base, outKwh: 0 },
-        heatpump: { inKwh: 60_000 + base, outKwh: 0 },
-      };
-      this.counters.set(d.key, initial[d.type] ?? { inKwh: 0, outKwh: 0 });
+      const avg = AVERAGE_KW[d.type];
+      this.counters.set(d.key, avg ? { inKwh: avg.in ? base + since(avg.in) : 0, outKwh: avg.out ? base + since(avg.out) : 0 } : { inKwh: 0, outKwh: 0 });
       this.power.set(d.key, 0);
     }
   }
@@ -365,7 +377,10 @@ export class SiteEngine {
     const c = this.counters.get(key);
     if (!d || !c || d.type === 'gateway') return null;
     const ts = this.now.toISOString();
-    const p = Math.round((this.power.get(key) ?? 0) * 1000) / 1000 + 0; // + 0 turns -0 into 0
+    // Meters and inverters measure with some noise (class 0.5: ±0.25%). Counters integrate the
+    // true power, so the noise never shows up in the energy balance.
+    const measured = d.type === 'meter' || d.type === 'pv' ? 1 + (hashRandom(this.seed, `noise:${key}:${ts}`) - 0.5) * 0.005 : 1;
+    const p = Math.round((this.power.get(key) ?? 0) * measured * 1000) / 1000 + 0; // + 0 turns -0 into 0
     const kwh = (v: number) => Math.round(v * 1000) / 1000;
     const phase = (kw: number) => Math.round((Math.abs(kw) * 1000) / (3 * 230) * 10) / 10;
     switch (d.type) {
@@ -435,6 +450,34 @@ export class SiteEngine {
   countersOf(key: string): Counters {
     const c = this.counters.get(key);
     return c ? { ...c } : { inKwh: 0, outKwh: 0 };
+  }
+
+  // ---- persistence across restarts -----------------------------------------------------------------
+
+  /** Counters and battery charge, so a restarted simulator carries on like real hardware would. */
+  saveState(): SimState {
+    return {
+      savedAt: this.now.toISOString(),
+      socPct: this.soc,
+      counters: Object.fromEntries([...this.counters].map(([k, c]) => [k, { ...c }])),
+    };
+  }
+
+  /**
+   * Resumes from saved state. Devices kept counting while the simulator was down, so the gap is
+   * filled at each device's average power. State from the future (clock moved back) is ignored.
+   */
+  restoreState(state: SimState): boolean {
+    const gapH = (this.now.getTime() - Date.parse(state.savedAt)) / 3_600_000;
+    if (!Number.isFinite(gapH) || gapH < 0) return false;
+    for (const [key, saved] of Object.entries(state.counters)) {
+      const d = this.devices.get(key);
+      if (!d) continue;
+      const avg = AVERAGE_KW[d.type] ?? { in: 0, out: 0 };
+      this.counters.set(key, { inKwh: saved.inKwh + avg.in * gapH, outKwh: saved.outKwh + avg.out * gapH });
+    }
+    this.soc = Math.min(100, Math.max(0, state.socPct));
+    return true;
   }
 
   powerOf(key: string): number {

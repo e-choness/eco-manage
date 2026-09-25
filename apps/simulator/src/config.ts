@@ -11,6 +11,8 @@ const env = z.object({
   MQTT_URL: z.string().default('mqtts://mosquitto:8883'),
   MQTT_CERT_DIR: z.string().default('/repo/infra/mosquitto/certs'),
   LOG_LEVEL: z.string().default('info'),
+  // Counters and battery charge survive restarts through this file (empty: no persistence).
+  SIM_STATE_FILE: z.string().default(''),
 });
 
 export interface SimConfig {
@@ -22,6 +24,7 @@ export interface SimConfig {
   mqttUrl: string;
   certDir: string;
   logLevel: string;
+  stateFile: string;
 }
 
 /** Flags win over environment variables: `--speed 60 --seed 42 --start 2026-09-24T04:00:00Z`. */
@@ -41,6 +44,7 @@ export const loadConfig = (argv = process.argv.slice(2), source = process.env): 
     mqttUrl: e.MQTT_URL,
     certDir: e.MQTT_CERT_DIR,
     logLevel: e.LOG_LEVEL,
+    stateFile: e.SIM_STATE_FILE,
   };
 };
 
