@@ -10,11 +10,13 @@ import {
   Settings,
   Sun,
   Wind,
-  Battery
+  Battery,
+  Radio
 } from "lucide-react"
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Live', href: '/dashboard/live', icon: Radio },
   { name: 'Monitoring', href: '/dashboard/monitoring', icon: Activity },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Optimization', href: '/dashboard/optimization', icon: Zap },

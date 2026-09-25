@@ -12,7 +12,10 @@ export const setAccessToken = (token: string | null): void => {
   accessToken = token;
 };
 
-export const setSessionExpiredHandler = (handler: () => void): void => {
+/** Authorization header for requests made outside axios (the SSE stream uses fetch). */
+export const authHeader = (): Record<string, string> => (accessToken ? { Authorization: `Bearer ${accessToken}` } : {});
+
+export const setSessionExpiredHandler =(handler: () => void): void => {
   onSessionExpired = handler;
 };
 

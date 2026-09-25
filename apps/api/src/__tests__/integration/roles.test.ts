@@ -46,6 +46,8 @@ const ROUTES: Record<string, Access> = {
   'get /api/optimization/recommendations': ALL,
   'post /api/optimization/accept': MONEY,
   'post /api/optimization/dismiss': MONEY,
+  'get /api/site/snapshot': ALL,
+  'get /api/site/stream': ALL,
 };
 
 interface Layer {

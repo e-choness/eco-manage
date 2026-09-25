@@ -12,14 +12,18 @@ import alertRoutes from './modules/alerts/routes';
 import deviceRoutes from './modules/devices/routes';
 import financialRoutes from './modules/financial/routes';
 import optimizationRoutes from './modules/optimization/routes';
+import { siteRoutes } from './modules/site/routes';
+import type { SiteEventHub } from './lib/siteEvents';
 
 export interface AppDeps {
   env: Pick<Env, 'CORS_ORIGINS' | 'RATE_LIMIT_WINDOW_MS' | 'RATE_LIMIT_MAX' | 'AUTH_RATE_LIMIT_MAX'>;
   redis?: Redis;
+  hub?: SiteEventHub;
   logger?: Logger;
+  sseHeartbeatMs?: number;
 }
 
-export const createApp = ({ env, redis, logger = defaultLogger }: AppDeps): Express => {
+export const createApp = ({ env, redis, hub, logger = defaultLogger, sseHeartbeatMs }: AppDeps): Express => {
   const app = express();
   const window = env.RATE_LIMIT_WINDOW_MS;
 
@@ -45,6 +49,7 @@ export const createApp = ({ env, redis, logger = defaultLogger }: AppDeps): Expr
   app.use('/api/devices', deviceRoutes);
   app.use('/api/financial', financialRoutes);
   app.use('/api/optimization', optimizationRoutes);
+  app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs }));
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: 404, message: 'Not found' } });

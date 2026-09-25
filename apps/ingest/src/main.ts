@@ -9,6 +9,7 @@ import { subscriptions } from '@ecomanage/shared';
 import { Ingestor } from './ingestor';
 import { markSilentDevices } from './stale';
 import { RollupScheduler } from './intervals';
+import { DemandTracker, EventPublisher } from './events';
 
 const env = z
   .object({
@@ -27,7 +28,19 @@ const main = async () => {
   await initModels();
   const redis = new Redis(env.REDIS_URL);
   const rollups = new RollupScheduler(log);
-  const ingestor = new Ingestor({ redis, logger: log, onReading: (siteId, ts, at) => rollups.markDirty(siteId, ts, at) });
+  const publisher = new EventPublisher(redis);
+  const demand = new DemandTracker();
+  const ingestor = new Ingestor({
+    redis,
+    logger: log,
+    onReading: (siteId, ts, at) => rollups.markDirty(siteId, ts, at),
+    onLatest: (siteId, device, reading) => {
+      publisher.telemetry(siteId, device.id, reading);
+      if (device.type !== 'meter') return;
+      const d = demand.update(device.id, reading);
+      if (d) publisher.demand(siteId, d.demand, d.quality);
+    },
+  });
 
   const client = mqtt.connect(env.MQTT_URL, {
     ca: readFileSync(`${env.MQTT_CERT_DIR}/ca.crt`),
@@ -69,6 +82,7 @@ const main = async () => {
   const shutdown = async () => {
     clearInterval(watcher);
     clearInterval(roller);
+    publisher.stop();
     client.end();
     await ingestor.stop();
     await redis.quit();
