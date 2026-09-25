@@ -4,10 +4,10 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import mongoose from 'mongoose'
-import { Alert, Email, Interval15, Membership, NotificationPrefs, Site, Tariff, initModels } from '@ecomanage/db'
+import { Alert, Email, Interval15, Membership, NotificationPrefs, Recommendation, RuleConfig, Site, Tariff, initModels } from '@ecomanage/db'
 import { TARIFF_TEMPLATES } from '@ecomanage/shared'
 import { createMailer, type Mailer, type Message } from '../email/mailer'
-import { dailySummaries, notifyAlerts, sendOnce } from '../email/notify'
+import { dailySummaries, notifyAlerts, notifyProposals, sendOnce } from '../email/notify'
 
 const MONGO = `${process.env.MONGO_TEST_URL || 'mongodb://mongodb:27017'}/ecomanage_test_worker_email`
 const MAILPIT = process.env.MAILPIT_URL || 'http://mailpit:8025'
@@ -82,7 +82,7 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
-  await Promise.all([Alert.deleteMany({}), Email.deleteMany({}), Interval15.deleteMany({}), Tariff.deleteMany({})])
+  await Promise.all([Alert.deleteMany({}), Email.deleteMany({}), Interval15.deleteMany({}), Tariff.deleteMany({}), Recommendation.deleteMany({}), RuleConfig.deleteMany({})])
 })
 
 describe('alert emails', () => {
@@ -205,5 +205,60 @@ describe('SMTP', () => {
     expect(found.messages_count).toBe(1)
     expect(found.messages[0]).toMatchObject({ Subject: 'EcoManage test', From: { Address: 'alerts@ecomanage.local' } })
     expect(await Email.findOne({ key: claim.key }).lean()).toMatchObject({ status: 'sent', messageId: expect.any(String) })
+  })
+})
+
+describe('proposal emails (P3-01)', () => {
+  const proposal = (over: object = {}) =>
+    Recommendation.create({
+      siteId,
+      ruleId: 'peak-shaving',
+      dedupeKey: `peak|bat|${Math.random()}`,
+      deviceId: 'bat',
+      action: 'force_discharge',
+      params: { kw: 30 },
+      title: 'Discharge battery at 30 kW',
+      window: { start: new Date('2026-09-24T18:00:00Z'), end: new Date('2026-09-24T21:00:00Z') },
+      inputs: [{ label: 'Load forecast 14:00–17:00', value: 'max 148 kW at 15:15' }],
+      checks: [
+        { text: 'Within the 60 kW discharge limit', pass: true },
+        { text: 'Battery stays at or above 30%', pass: false },
+      ],
+      calc: '(148 − 120) kW × $14/kW',
+      expectedSavingCents: 39_200,
+      proposedAt: new Date('2026-09-24T15:45:00Z'),
+      expiresAt: new Date('2026-09-24T17:45:00Z'),
+      ...over,
+    })
+
+  it('go to the approvers who want them, once', async () => {
+    const m = mailer()
+    const r = await proposal()
+    expect(await notifyProposals(m, APP, NOON)).toBe(2)
+    expect(to(m)).toEqual(['jamie@test.example', 'priya@test.example']) // never the installer
+    const mail = m.sent[0]
+    expect(mail.subject).toBe('[Maple Grove School] Decide by 13:45: Discharge battery at 30 kW')
+    expect(mail.text).toContain('Discharge battery at 30 kW, 24 Sept, 14:00–17:00.')
+    expect(mail.text).toContain('Load forecast 14:00–17:00: max 148 kW at 15:15')
+    expect(mail.text).toContain('Expected saving $392.00 ((148 − 120) kW × $14/kW).')
+    expect(mail.text).toContain('Not ready to approve: Battery stays at or above 30%.')
+    expect(mail.text).toContain(`${APP}/inbox?recommendation=${r._id}`)
+    expect(await notifyProposals(m, APP, NOON)).toBe(0)
+  })
+
+  it('follow the approval settings, and skip expired or decided proposals', async () => {
+    await proposal()
+    await RuleConfig.create({ siteId, ruleId: 'approval', params: { who: 'owner' } })
+    const m = mailer()
+    await notifyProposals(m, APP, NOON)
+    expect(to(m)).toEqual(['priya@test.example'])
+    await RuleConfig.updateOne({ siteId, ruleId: 'approval' }, { $set: { params: { email: 'nobody' } } })
+    await proposal()
+    expect(await notifyProposals(mailer(), APP, NOON)).toBe(0)
+    await RuleConfig.deleteMany({})
+    await Recommendation.deleteMany({})
+    await proposal({ expiresAt: new Date(NOON.getTime() - 60_000) })
+    await proposal({ status: 'declined' })
+    expect(await notifyProposals(mailer(), APP, NOON)).toBe(0)
   })
 })

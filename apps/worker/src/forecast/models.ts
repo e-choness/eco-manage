@@ -1,6 +1,6 @@
 import {
   arrayFactor,
-  calendarDayType,
+  siteDayClass,
   clearSkyGhi,
   pvKw,
   siteDate,
@@ -59,23 +59,11 @@ export interface LoadSlot {
   tempC: number;
 }
 
-type DayClass = 'open' | 'closed';
-
 /** Degrees outside the band where the building needs neither heating nor cooling. */
 export const degreesOutside = (tempC: number): number => Math.max(0, tempC - 20) + Math.max(0, 13 - tempC);
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const weekdayOf = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay();
-
-/**
- * Open or closed: from the site calendar when there is one (terms, days off, weekends), otherwise
- * weekdays open and weekends closed.
- */
-export const dayClassOf = (date: string, calendar: Pick<CalendarInput, 'terms' | 'daysOff' | 'weekends'> | null): DayClass => {
-  if (calendar && (calendar.terms.length || calendar.daysOff.length)) return calendarDayType(calendar, date);
-  const dow = weekdayOf(date);
-  return dow === 0 || dow === 6 ? 'closed' : 'open';
-};
 
 export interface LoadForecast {
   kw: (number | null)[];
@@ -106,7 +94,7 @@ export const loadForecast = (
     byMinute.set(siteMinuteOfDay(s.ts, tz), s);
     days.set(date, byMinute);
   }
-  const classOf = new Map([...days.keys()].map((d) => [d, dayClassOf(d, calendar)]));
+  const classOf = new Map([...days.keys()].map((d) => [d, siteDayClass(d, calendar)]));
 
   // Fit the temperature sensitivity: relative deviation from the class average at that minute,
   // against degrees outside the band relative to that minute's average.
@@ -137,7 +125,7 @@ export const loadForecast = (
   const pick = (date: string): string[] => {
     const cached = candidatesFor.get(date);
     if (cached) return cached;
-    const cls = dayClassOf(date, calendar);
+    const cls = siteDayClass(date, calendar);
     const sameClass = [...days.keys()].filter((d) => classOf.get(d) === cls);
     const sameWeekday = sameClass.filter((d) => weekdayOf(d) === weekdayOf(date));
     const chosen = sameWeekday.length >= MIN_SAME_WEEKDAY ? sameWeekday : sameClass;

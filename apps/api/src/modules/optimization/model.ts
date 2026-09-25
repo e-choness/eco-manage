@@ -60,6 +60,9 @@ const schema = new Schema<IRecommendation>(
 // Index for efficient querying by user and status
 schema.index({ userId: 1, status: 1 });
 
-const Recommendation = mongoose.model<IRecommendation>('Recommendation', schema);
+// v1 per-user recommendations, kept for the v1 optimization routes until the v2 Recommendations API
+// replaces them (P3-03). v2 owns the `recommendations` collection, so these live in
+// `legacy_recommendations`.
+const Recommendation = mongoose.model<IRecommendation>('LegacyRecommendation', schema, 'legacy_recommendations');
 
 export default Recommendation;

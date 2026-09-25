@@ -41,11 +41,14 @@ describe('migrating a v1 database', () => {
     await db()
       .collection('alerts')
       .insertMany([{ userId: ua, title: 'Low output', message: 'Solar Panel A is low', type: 'warning', read: false, resolved: false }]);
+    await db()
+      .collection('recommendations')
+      .insertMany([{ userId: ua, title: 'Add panels', description: 'More solar', priority: 'high', estimatedSavings: 100 }]);
   });
 
   it('creates one site and owner membership per user, and moves v1 devices and alerts', async () => {
     const summary = await migrateToV2();
-    expect(summary).toEqual({ legacyDevicesMoved: 2, legacyAlertsMoved: 1, sitesCreated: 3, profiles: 6, legacyDropped: [] });
+    expect(summary).toEqual({ legacyDevicesMoved: 2, legacyAlertsMoved: 1, legacyRecommendationsMoved: 1, sitesCreated: 3, profiles: 6, legacyDropped: [] });
     expect(await DeviceProfile.countDocuments()).toBe(6);
 
     const memberships = await Membership.find().lean();
@@ -60,12 +63,13 @@ describe('migrating a v1 database', () => {
     expect(await db().collection('legacy_devices').countDocuments()).toBe(2);
     expect(await db().collection('alerts').countDocuments()).toBe(0);
     expect(await db().collection('legacy_alerts').countDocuments()).toBe(1);
+    expect(await db().collection('legacy_recommendations').countDocuments()).toBe(1);
     expect(await AuditEvent.countDocuments({ action: 'site.create' })).toBe(3);
   });
 
   it('changes nothing when run again', async () => {
     const summary = await migrateToV2();
-    expect(summary).toEqual({ legacyDevicesMoved: 0, legacyAlertsMoved: 0, sitesCreated: 0, profiles: 6, legacyDropped: [] });
+    expect(summary).toEqual({ legacyDevicesMoved: 0, legacyAlertsMoved: 0, legacyRecommendationsMoved: 0, sitesCreated: 0, profiles: 6, legacyDropped: [] });
     expect(await DeviceProfile.countDocuments()).toBe(6);
     expect(await Site.countDocuments()).toBe(3);
     expect(await Membership.countDocuments()).toBe(3);

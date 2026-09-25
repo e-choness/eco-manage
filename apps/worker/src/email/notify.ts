@@ -4,16 +4,21 @@ import {
   Email,
   Interval15,
   Membership,
+  Recommendation,
+  RuleConfig,
   NotificationPrefs,
   Site,
   Tariff,
   type AlertDoc,
   type MembershipDoc,
   type NotificationPrefsDoc,
+  type RecommendationDoc,
+  type RuleConfigDoc,
   type SiteDoc,
   type TariffDoc,
 } from '@ecomanage/db';
 import {
+  APPROVAL_DEFAULTS,
   DAILY_SUMMARY_AT,
   DEFAULT_NOTIFICATION_PREFS,
   computeBill,
@@ -24,9 +29,10 @@ import {
   tariffFromDoc,
   type IntervalLike,
   type NotificationPrefs as Prefs,
+  type ApprovalConfig,
 } from '@ecomanage/shared';
 import type { Mailer, Message } from './mailer';
-import { alertEmail, dailyEmail, escalationEmail, type DailySummary } from './templates';
+import { alertEmail, dailyEmail, escalationEmail, proposalEmail, type DailySummary } from './templates';
 
 // Alert emails, escalation and the daily summary (plan P2-09). Runs every 30 s from the worker;
 // everything it sends is claimed in `emails` first, so each email goes out once.
@@ -80,7 +86,7 @@ export const recipients = async (siteId: string, now: Date): Promise<Recipient[]
  */
 export const sendOnce = async (
   mailer: Mailer,
-  claim: { key: string; siteId: string; userId: string | null; kind: 'alert' | 'escalation' | 'daily'; alertId?: string },
+  claim: { key: string; siteId: string; userId: string | null; kind: 'alert' | 'escalation' | 'daily' | 'proposal'; alertId?: string },
   message: Message,
   now: Date
 ): Promise<boolean> => {
@@ -189,6 +195,34 @@ export const dailySummaries = async (mailer: Mailer, appUrl: string, now = new D
       const key = `daily:${site._id}:${yesterday}:${r.userId}`;
       if (await sendOnce(mailer, { key, siteId: String(site._id), userId: r.userId, kind: 'daily' }, dailyEmail(site, summary, r, appUrl), now)) sent++;
     }
+  }
+  return sent;
+};
+
+/**
+ * New proposals to the people who can approve them (Settings → Rules → Approval: "Email new
+ * proposals to" approvers, the owner only, or nobody), if they have "New proposals" on. Quiet
+ * hours apply; a proposal that expires before they end isn't sent.
+ */
+export const notifyProposals = async (mailer: Mailer, appUrl: string, now = new Date()): Promise<number> => {
+  let sent = 0;
+  const open = await Recommendation.find({ status: 'proposed', expiresAt: { $gt: now }, proposedAt: { $gte: new Date(now.getTime() - ALERT_EMAIL_WINDOW_MS) } }).lean<RecommendationDoc[]>();
+  const bySite = new Map<string, RecommendationDoc[]>();
+  for (const r of open) bySite.set(String(r.siteId), [...(bySite.get(String(r.siteId)) ?? []), r]);
+  for (const [siteId, list] of bySite) {
+    const site = await Site.findById(siteId).lean<SiteDoc>();
+    if (!site) continue;
+    const saved = await RuleConfig.findOne({ siteId, ruleId: 'approval' }).lean<RuleConfigDoc>();
+    const approval: ApprovalConfig = { ...APPROVAL_DEFAULTS, ...((saved?.params as Partial<ApprovalConfig>) ?? {}) };
+    if (approval.email === 'nobody') continue;
+    const roles = approval.email === 'owner' || approval.who === 'owner' ? ['owner'] : ['owner', 'manager'];
+    const people = (await recipients(siteId, now)).filter((r) => roles.includes(r.role) && r.prefs.recs);
+    for (const rec of list)
+      for (const r of people) {
+        if (inQuietHours(now, site.tz, r.prefs.quietFrom, r.prefs.quietTo)) continue;
+        const key = `proposal:${rec._id}:${r.userId}`;
+        if (await sendOnce(mailer, { key, siteId, userId: r.userId, kind: 'proposal' }, proposalEmail(site, rec, r, appUrl), now)) sent++;
+      }
   }
   return sent;
 };

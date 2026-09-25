@@ -4,9 +4,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import mongoose from 'mongoose'
 import { Calendar, Device, Forecast, Interval15, Site, initModels } from '@ecomanage/db'
-import { DEMO_CALENDAR_INPUT, DEMO_DEVICES, DEMO_SITE, siteDateStart } from '@ecomanage/shared'
+import { DEMO_CALENDAR_INPUT, DEMO_DEVICES, DEMO_SITE, siteDateStart, siteDayClass } from '@ecomanage/shared'
 import { SiteEngine } from '@ecomanage/simulator/engine'
-import { HORIZON_STEPS, dayClassOf, degreesOutside, horizon, loadForecast, mape, pvForecast, type LoadSlot } from '../forecast/models'
+import { HORIZON_STEPS, degreesOutside, horizon, loadForecast, mape, pvForecast, type LoadSlot } from '../forecast/models'
 import { forecastSite, scoreForecasts } from '../forecast/run'
 import { openMeteoWeather, simulatedWeather, type WeatherPoint } from '../forecast/weather'
 
@@ -60,7 +60,7 @@ describe('load forecast', () => {
   const truth = (ts: Date, tempC: number) => {
     const date = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(ts)
     const hour = Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hour12: false, timeZone: TZ }).format(ts))
-    const open = dayClassOf(date, calendar) === 'open' && hour >= 8 && hour < 16
+    const open = siteDayClass(date, calendar) === 'open' && hour >= 8 && hour < 16
     return (open ? 80 : 30) * (1 + 0.04 * degreesOutside(tempC))
   }
   const history: LoadSlot[] = Array.from({ length: 42 * 96 }, (_, i) => {
@@ -88,9 +88,9 @@ describe('load forecast', () => {
   })
 
   it('without a calendar, weekdays are open and weekends closed', () => {
-    expect(dayClassOf('2026-09-25', null)).toBe('open')
-    expect(dayClassOf('2026-09-26', null)).toBe('closed')
-    expect(dayClassOf('2026-09-25', { terms: [], daysOff: [], weekends: 'closed' })).toBe('open')
+    expect(siteDayClass('2026-09-25', null)).toBe('open')
+    expect(siteDayClass('2026-09-26', null)).toBe('closed')
+    expect(siteDayClass('2026-09-25', { terms: [], daysOff: [], weekends: 'closed' })).toBe('open')
   })
 
   it('has nothing to say without history for that time of day', () => {

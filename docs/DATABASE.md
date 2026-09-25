@@ -57,8 +57,10 @@ services share them. Plain types live in `packages/shared/src/models.ts`.
 | `maintenance`    | siteId, deviceId, at, by, source (visit, alert), text, alertId | {siteId, deviceId, at: -1} |
 | `commands`       | siteId, deviceId, recommendationId, alertId, action, params, expiresAt, revertAt, status (created, sent, acked, failed, verified, reverted, cancelled), sentAt, ackedAt, failedAt, error, createdBy | {siteId, status} |
 | `notificationPrefs` | userId, siteId, email, alerts, daily, recs, failures, quietFrom, quietTo (HH:mm or null), escalateMin | {userId, siteId} unique |
+| `ruleConfigs`    | siteId, ruleId (a recommendation rule, or `approval`), on, params, updatedBy | {siteId, ruleId} unique |
+| `recommendations` | siteId, ruleId (or `manual`), dedupeKey, deviceId, action, params, title, window {start, end}, inputs [{label, value}], checks [{text, pass}], calc, expectedSavingCents, status (proposed, approved, declined, expired, sent, acked, verified, failed, reverted, cancelled), proposedAt, expiresAt, decidedBy, decidedAt, declineReason, commandId, actualSavingCents, createdBy | {siteId, status}, dedupeKey; one open per (siteId, dedupeKey) (unique partial) |
 | `forecasts`      | siteId, kind (pv, load), issuedAt, source, points [{ts, kw}] (48 h, 15 min), weather [{ts, tempC, cloud}] (PV), profiles [{date, label, days}] (load), accuracy {mape, n, evaluatedAt} | {siteId, kind, issuedAt: -1}; expires after 30 days |
-| `emails`         | key (unique claim), siteId, userId, kind (alert, escalation, daily), alertId, to, subject, status (sending, sent), sentAt, messageId | key unique, {siteId, createdAt: -1} |
+| `emails`         | key (unique claim), siteId, userId, kind (alert, escalation, daily, proposal), alertId, to, subject, status (sending, sent), sentAt, messageId | key unique, {siteId, createdAt: -1} |
 | `auditEvents`    | siteId, userId (null for system actions), action, target, before, after, ts | {siteId, ts: -1} |
 
 `initModels()` creates the collections and syncs the indexes. The time-series collection has to be
@@ -72,6 +74,8 @@ safe to run repeatedly:
 1. v1 documents in `devices` (the ones with a `userId`) move to `legacy_devices`, which the v1
    modules now use (model `LegacyDevice`). Likewise v1 per-user `alerts` move to
    `legacy_alerts`. Nothing reads them since the v2 Alerts API replaced the v1 routes (P2-08).
+   v1 `recommendations` move to `legacy_recommendations`, which the v1 optimization routes read
+   until the v2 Recommendations API replaces them (P3-03).
 2. The v2 collections and indexes are created.
 3. Every user without a membership gets a site named "<name>'s site" and an owner membership,
    recorded as an audit event. The site's time zone is UTC until the owner sets it.

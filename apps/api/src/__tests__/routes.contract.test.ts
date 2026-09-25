@@ -37,7 +37,7 @@ beforeAll(() => {
   process.env.REFRESH_TOKEN_SECRET = 'contract-refresh';
   token = jwt.sign({ sub: String(userId) }, 'contract-jwt');
   // Loaded by createApp's imports; referenced here so the names are registered.
-  ['User', 'Recommendation'].forEach(model);
+  ['User', 'LegacyRecommendation'].forEach(model);
 });
 
 // Site access (P1-04): the caller is a member of one site with this role.
@@ -156,14 +156,14 @@ describe('auth', () => {
 
 describe('optimization', () => {
   it('lists open recommendations', async () => {
-    const find = jest.spyOn(model('Recommendation'), 'find').mockImplementation(() => query([{ title: 'r' }]) as never);
+    const find = jest.spyOn(model('LegacyRecommendation'), 'find').mockImplementation(() => query([{ title: 'r' }]) as never);
     const res = await authed(request(app).get('/api/optimization/recommendations'));
     expect(res.body).toEqual({ recommendations: [{ title: 'r' }] });
     expect(find).toHaveBeenCalledWith({ userId: expect.anything(), status: { $in: ['pending', 'accepted'] } });
   });
 
   it('accept: 400, 404, 200', async () => {
-    const update = jest.spyOn(model('Recommendation'), 'findOneAndUpdate');
+    const update = jest.spyOn(model('LegacyRecommendation'), 'findOneAndUpdate');
     const bad = await authed(request(app).post('/api/optimization/accept')).send({});
     expect(bad.body).toEqual({ error: 'Missing recommendationId' });
 

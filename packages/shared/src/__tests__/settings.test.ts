@@ -2,7 +2,7 @@
  * P2-06: settings schemas and calendar day types.
  */
 import { describe, expect, it } from 'vitest'
-import { DEMO_CALENDAR_INPUT, alertActions, alertKey, batteryPatch, calendarDayType, calendarInput, parseTopic, sitePatch, topics } from '../index'
+import { DEMO_CALENDAR_INPUT, alertActions, alertKey, dedupeKeyOf, quarterOf, siteDayClass, batteryPatch, calendarDayType, calendarInput, parseTopic, sitePatch, topics } from '../index'
 
 describe('calendarDayType', () => {
   const cal = DEMO_CALENDAR_INPUT
@@ -57,5 +57,21 @@ describe('alert buttons (Backend Coverage §3)', () => {
     expect(alertActions({ state: 'ack', condition: 'active' }, false)).toEqual({ ack: false, snooze: true, fix: false, resolve: false, falseAlarm: true })
     expect(alertActions({ state: 'open', condition: 'cleared' }, true)).toEqual({ ack: true, snooze: false, fix: false, resolve: true, falseAlarm: false })
     expect(alertActions({ state: 'resolved', condition: 'cleared' }, true)).toEqual({ ack: false, snooze: false, fix: false, resolve: false, falseAlarm: false })
+  })
+})
+
+describe('recommendation helpers', () => {
+  it('key proposals by rule, device and window, and run on quarter hours', () => {
+    const w = { start: new Date('2026-09-24T18:00:00Z'), end: new Date('2026-09-24T21:00:00Z') }
+    expect(dedupeKeyOf('peak-shaving', 'bat', w)).toBe('peak-shaving|bat|2026-09-24T18:00:00.000Z|2026-09-24T21:00:00.000Z')
+    expect(quarterOf(new Date('2026-09-24T16:44:59Z'))).toEqual(new Date('2026-09-24T16:30:00Z'))
+    expect(quarterOf(new Date('2026-09-24T16:45:00Z'))).toEqual(new Date('2026-09-24T16:45:00Z'))
+  })
+
+  it('classes days as open or closed from the calendar, or by weekday without one', () => {
+    expect(siteDayClass('2026-09-24', DEMO_CALENDAR_INPUT)).toBe('open')
+    expect(siteDayClass('2026-10-09', DEMO_CALENDAR_INPUT)).toBe('closed') // PA day
+    expect(siteDayClass('2026-10-09', null)).toBe('open') // a Friday
+    expect(siteDayClass('2026-10-10', { terms: [], daysOff: [], weekends: 'closed' })).toBe('closed')
   })
 })

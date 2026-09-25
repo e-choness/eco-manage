@@ -6,6 +6,7 @@ import User from '../modules/auth/model';
 export interface MigrationSummary {
   legacyDevicesMoved: number;
   legacyAlertsMoved: number;
+  legacyRecommendationsMoved: number;
   sitesCreated: number;
   profiles: number;
   legacyDropped: string[];
@@ -16,8 +17,9 @@ export interface MigrationSummary {
  * (they have a userId and no siteId) move to `legacy_<name>`:
  * - `devices`: `--drop-legacy` removes `legacy_devices` with the other retired collections.
  * - `alerts`: v1 per-user alerts; v2 site alerts replaced them (P2-08).
+ * - `recommendations`: the v1 optimization routes read `legacy_recommendations` until P3-03.
  */
-const moveLegacy = async (from: 'devices' | 'alerts'): Promise<number> => {
+const moveLegacy = async (from: 'devices' | 'alerts' | 'recommendations'): Promise<number> => {
   const db = mongoose.connection.db;
   if (!db) throw new Error('Not connected');
   const source = db.collection(from);
@@ -81,9 +83,10 @@ const dropLegacyCollections = async (): Promise<string[]> => {
 export const migrateToV2 = async ({ dropLegacy = false } = {}): Promise<MigrationSummary> => {
   const legacyDevicesMoved = await moveLegacy('devices');
   const legacyAlertsMoved = await moveLegacy('alerts');
+  const legacyRecommendationsMoved = await moveLegacy('recommendations');
   await initModels();
   const sitesCreated = await createSitesForUsers();
   const profiles = await syncProfiles();
   const legacyDropped = dropLegacy ? await dropLegacyCollections() : [];
-  return { legacyDevicesMoved, legacyAlertsMoved, sitesCreated, profiles, legacyDropped };
+  return { legacyDevicesMoved, legacyAlertsMoved, legacyRecommendationsMoved, sitesCreated, profiles, legacyDropped };
 };
