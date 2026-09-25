@@ -113,6 +113,8 @@ export class SiteEngine {
   private readonly sessions = new Map<string, EvSession>();
   private readonly startedToday = new Set<string>();
   private sgMode: Override<number> | null = null;
+  private sgSchedule: { at: number; mode: number }[] = [];
+  private sgScheduleUntil: number | null = null;
   private submeterKey: string | null = null;
 
   constructor(config: SiteConfig, start: Date) {
@@ -197,6 +199,11 @@ export class SiteEngine {
 
   activeSgMode(): number {
     if (this.sgMode && (this.sgMode.until === null || this.now.getTime() < this.sgMode.until)) return this.sgMode.value;
+    const now = this.now.getTime();
+    if (this.sgSchedule.length && (this.sgScheduleUntil === null || now < this.sgScheduleUntil)) {
+      const current = this.sgSchedule.filter((s) => s.at <= now).at(-1);
+      if (current) return current.mode;
+    }
     return 2;
   }
 
@@ -556,8 +563,15 @@ export class SiteEngine {
       case 'heatpump:sg_mode':
         this.sgMode = { value: Number(params.mode), until };
         return { ok: true };
+      case 'heatpump:sg_schedule': {
+        const schedule = (params.schedule as { start: string; mode: number }[] | undefined) ?? [];
+        this.sgSchedule = schedule.map((s) => ({ at: toMs(s.start) ?? 0, mode: Number(s.mode) })).sort((a, b) => a.at - b.at);
+        this.sgScheduleUntil = toMs(params.validTo);
+        return { ok: true };
+      }
       case 'heatpump:revert':
         this.sgMode = null;
+        this.sgSchedule = [];
         return { ok: true };
       default:
         return { ok: true }; // restart, reset, change_availability …: acknowledged, nothing to simulate

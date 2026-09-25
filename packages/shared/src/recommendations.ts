@@ -60,6 +60,8 @@ export interface Proposal {
   /** Rule + device + window: one open recommendation per key. */
   dedupeKey: string;
   title: string; // e.g. "Discharge battery at 30 kW, 14:00–17:00"
+  /** When to stop waiting for a decision; by default approve.expireMin before the window starts. */
+  expiresAt?: Date;
 }
 
 export const dedupeKeyOf = (ruleId: string, deviceId: string, window: { start: Date; end: Date }): string =>

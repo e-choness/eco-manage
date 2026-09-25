@@ -6,11 +6,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import mongoose from 'mongoose'
 import { Redis } from 'ioredis'
 import pino from 'pino'
-import { Calendar, Command, Device, Forecast, Interval15, Recommendation, RuleConfig, Site, Tariff, initModels } from '@ecomanage/db'
+import { Calendar, Command, Device, FleetVehicle, Forecast, Interval15, Recommendation, RuleConfig, Site, Tariff, Telemetry, initModels } from '@ecomanage/db'
 import { DEMO_CALENDAR_INPUT, TARIFF_TEMPLATES, dedupeKeyOf, siteEventsChannel, type Proposal } from '@ecomanage/shared'
 import { resolveRuleConfig } from '../recs/config'
 import { loadRecContext } from '../recs/context'
 import { proposeForSite } from '../recs/runner'
+import { RULES } from '../recs/registry'
 import type { RecContext, Rule } from '../recs/types'
 
 const MONGO = `${process.env.MONGO_TEST_URL || 'mongodb://mongodb:27017'}/ecomanage_test_rules_recs`
@@ -84,7 +85,7 @@ const forecastWithPeak = (netPeakKw: number, at = u('2026-09-24T19:15:00Z')) =>
 
 beforeEach(async () => {
   await redis.flushdb()
-  await Promise.all([Site, Device, Calendar, Tariff, Interval15, Forecast, Command, Recommendation, RuleConfig].map((m) => (m as typeof Site).deleteMany({})))
+  await Promise.all([Site, Device, Calendar, Tariff, Interval15, Forecast, Command, Recommendation, RuleConfig, FleetVehicle, Telemetry].map((m) => (m as typeof Site).deleteMany({})))
   await Site.create({ _id: siteId, name: 'Maple Grove School', tz: TZ, demandCapKw: 120, currency: 'CAD', batteryFloorPct: 10 })
   await Device.create({ _id: bat, siteId, type: 'battery', name: 'Battery', ratedKw: 60, capacityKwh: 200, status: 'live' })
   await redis.set(`latest:${bat}`, JSON.stringify({ ts: NOW.toISOString(), p_kw: 0, soc_pct: 68, reserve_pct: 20, q: 'ok' }))
@@ -127,7 +128,7 @@ describe('context', () => {
       battery: { deviceId: String(bat), socPct: 68, reservePct: 20, usableKwh: 200, maxKw: 60, floorPct: 10 },
     })
     // Only steps from now on; net = load − PV
-    expect(ctx.forecast).toEqual([{ ts: u('2026-09-24T19:15:00Z'), pvKw: 20, loadKw: 160, netKw: 140, tempC: 26 }])
+    expect(ctx.forecast).toEqual([{ ts: u('2026-09-24T19:15:00Z'), pvKw: 20, loadKw: 160, netKw: 140, tempC: 26, storm: false }])
     expect(ctx.commands.map((c) => c.status)).toEqual(['sent'])
   })
 })
@@ -203,5 +204,52 @@ describe('proposeForSite', () => {
     await forecastWithPeak(100)
     expect(await proposeForSite(sid, NOW, { redis, logger: log, rules: [standIn] })).toEqual([])
     expect(await proposeForSite(String(new mongoose.Types.ObjectId()), NOW, { redis, logger: log, rules: [standIn] })).toEqual([])
+  })
+})
+
+describe('EV sessions in the context (P3-02)', () => {
+  it('finds the fleet vehicle and its usual energy from sessions at about the same time of day', async () => {
+    const ev1 = new mongoose.Types.ObjectId()
+    await Device.create({ _id: ev1, siteId, type: 'ev', name: 'EV charger 1', ratedKw: 22, status: 'live' })
+    await FleetVehicle.create({ siteId, name: 'Bus 2', rfid: 'BUS-2', capacityKwh: 150, departure: '07:00' })
+    // Afternoon sessions (15:05 EDT) took 40, 44, 48 kWh; morning ones (09:10) 20 kWh; another car 90.
+    const rows = []
+    for (const [day, kwh, hourZ] of [[21, 40, 19], [22, 44, 19], [23, 48, 19], [22, 20, 13], [23, 20, 13]] as const) {
+      const start = u(`2026-09-${day}T${hourZ}:05:00Z`)
+      for (const k of [kwh / 2, kwh]) rows.push({ ts: new Date(start.getTime() + k * 60_000), meta: { siteId, deviceId: ev1 }, p_kw: -22, session: { id: `s-${day}-${hourZ}`, idTag: 'BUS-2', kwh: k, startedAt: start.toISOString() }, q: 'ok' })
+    }
+    rows.push({ ts: u('2026-09-23T20:00:00Z'), meta: { siteId, deviceId: ev1 }, p_kw: -22, session: { id: 'other', idTag: 'STAFF-11', kwh: 90, startedAt: '2026-09-23T19:00:00.000Z' }, q: 'ok' })
+    await Telemetry.insertMany(rows)
+    await redis.set(`latest:${ev1}`, JSON.stringify({ ts: NOW.toISOString(), p_kw: -21.5, session: { id: 'now', idTag: 'BUS-2', kwh: 3.2, startedAt: '2026-09-24T19:05:00.000Z' }, q: 'ok' }))
+
+    const ctx = (await loadRecContext(sid, u('2026-09-24T19:15:00Z'), { redis, demand: null, approval: { who: 'owner-or-manager', expireMin: 15, email: 'approvers' } }))!
+    expect(ctx.evSessions).toEqual([
+      {
+        deviceId: String(ev1),
+        chargerName: 'EV charger 1',
+        sessionId: 'now',
+        idTag: 'BUS-2',
+        deliveredKwh: 3.2,
+        startedAt: u('2026-09-24T19:05:00Z'),
+        chargingKw: 21.5,
+        ratedKw: 22,
+        vehicle: { name: 'Bus 2', departure: '07:00', capacityKwh: 150 },
+        typicalKwh: 44, // (40 + 44 + 48) / 3: the morning sessions are 6 h away
+        typicalFrom: 3,
+      },
+    ])
+  })
+})
+
+describe('the App v2 rules through the runner (P3-02)', () => {
+  it('proposes peak shaving from the stored forecast, and nothing else on a quiet day', async () => {
+    await Interval15.create({ siteId, start: u('2026-09-10T19:15:00Z'), grid: 28, demandKw: 112 })
+    await Forecast.create([
+      { siteId, kind: 'pv', issuedAt: u('2026-09-24T16:00:00Z'), source: 'simulated', points: [{ ts: u('2026-09-24T19:15:00Z'), kw: 17 }], weather: [{ ts: u('2026-09-24T19:15:00Z'), tempC: 24, cloud: 0.9, storm: false }] },
+      { siteId, kind: 'load', issuedAt: u('2026-09-24T16:00:00Z'), source: 'simulated', points: [{ ts: u('2026-09-24T19:15:00Z'), kw: 148 }] },
+    ])
+    const made = await proposeForSite(sid, NOW, { redis, logger: log, rules: RULES })
+    expect(made.map((r) => [r.ruleId, r.title, r.expectedSavingCents])).toEqual([['peak-shaving', 'Discharge battery at 25 kW, 15:15–15:30', 26_600]])
+    expect(made[0].checks.every((c) => c.pass)).toBe(true)
   })
 })

@@ -40,11 +40,11 @@ describe('PV forecast', () => {
   })
 
   it('is zero at night, capped at the inverter rating, and follows the array geometry', async () => {
-    const clear: WeatherPoint[] = [u('2026-09-25T04:00:00Z'), u('2026-06-21T17:15:00Z')].map((ts) => ({ ts, tempC: 20, cloud: 1 }))
+    const clear: WeatherPoint[] = [u('2026-09-25T04:00:00Z'), u('2026-06-21T17:15:00Z')].map((ts) => ({ ts, tempC: 20, cloud: 1, storm: false }))
     expect(pvForecast(DEMO_SITE, demoArrays, ratings, clear)[0]).toBe(0)
     const big = [{ inverterId: 'x', kwp: 100, tiltDeg: 10, azimuthDeg: 180 }]
     expect(pvForecast(DEMO_SITE, big, new Map([['x', 50]]), clear)[1]).toBe(50)
-    const winter: WeatherPoint[] = [{ ts: u('2026-12-21T17:15:00Z'), tempC: -5, cloud: 1 }]
+    const winter: WeatherPoint[] = [{ ts: u('2026-12-21T17:15:00Z'), tempC: -5, cloud: 1, storm: false }]
     const flat = pvForecast(DEMO_SITE, [{ inverterId: 'x', kwp: 40, tiltDeg: 10, azimuthDeg: 180 }], new Map(), winter)[0]
     const steep = pvForecast(DEMO_SITE, [{ inverterId: 'x', kwp: 40, tiltDeg: 45, azimuthDeg: 180 }], new Map(), winter)[0]
     expect(steep / flat).toBeGreaterThan(1.3)
@@ -71,7 +71,7 @@ describe('load forecast', () => {
 
   it('uses the same weekday and calendar class, and learns how load follows temperature', () => {
     const noonThu = u('2026-09-24T16:00:00Z') // Thursday, in term
-    const f = loadForecast([{ ts: noonThu, tempC: 26, cloud: 1 }], history, TZ, calendar)
+    const f = loadForecast([{ ts: noonThu, tempC: 26, cloud: 1, storm: false }], history, TZ, calendar)
     expect(f.sensitivity).toBeCloseTo(0.04, 2)
     expect(f.kw[0]).toBeCloseTo(truth(noonThu, 26), -1) // within ~5 kW of 80 × 1.24
     expect(f.profiles).toEqual([{ date: '2026-09-24', label: 'Thursday open-day profile', days: 6 }])
@@ -80,7 +80,7 @@ describe('load forecast', () => {
   it('treats days off and weekends as closed days', () => {
     const paDay = u('2026-09-25T16:00:00Z') // Friday, PA day
     const saturday = u('2026-09-26T16:00:00Z')
-    const f = loadForecast([paDay, saturday].map((ts) => ({ ts, tempC: 16, cloud: 1 })), history, TZ, calendar)
+    const f = loadForecast([paDay, saturday].map((ts) => ({ ts, tempC: 16, cloud: 1, storm: false })), history, TZ, calendar)
     expect(f.kw[0]).toBeCloseTo(30, -1)
     expect(f.kw[1]).toBeCloseTo(30, -1)
     // No closed Friday in the history (term time): all closed days are used instead
@@ -94,7 +94,7 @@ describe('load forecast', () => {
   })
 
   it('has nothing to say without history for that time of day', () => {
-    expect(loadForecast([{ ts: u('2026-09-24T16:00:00Z'), tempC: 20, cloud: 1 }], [], TZ, null)).toMatchObject({ kw: [null], sensitivity: 0 })
+    expect(loadForecast([{ ts: u('2026-09-24T16:00:00Z'), tempC: 20, cloud: 1, storm: false }], [], TZ, null)).toMatchObject({ kw: [null], sensitivity: 0 })
   })
 })
 
@@ -110,12 +110,12 @@ describe('Open-Meteo', () => {
     let url = ''
     const fetchFn = async (u: string) => {
       url = u
-      return { ok: true, status: 200, json: async () => ({ hourly: { time: ['2026-09-24T16:00', '2026-09-24T17:00'], temperature_2m: [20, 22], cloud_cover: [0, 100] } }) }
+      return { ok: true, status: 200, json: async () => ({ hourly: { time: ['2026-09-24T16:00', '2026-09-24T17:00'], temperature_2m: [20, 22], cloud_cover: [0, 100], weather_code: [3, 95] } }) }
     }
     const w = await openMeteoWeather(fetchFn).at({ lat: 43.65, lon: -79.38, tz: TZ }, [u('2026-09-24T16:30:00Z'), u('2026-09-24T18:00:00Z')])
-    expect(url).toContain('latitude=43.65&longitude=-79.38&hourly=temperature_2m,cloud_cover&timezone=UTC')
+    expect(url).toContain('latitude=43.65&longitude=-79.38&hourly=temperature_2m,cloud_cover,weather_code&timezone=UTC')
     expect(w[0]).toMatchObject({ tempC: 21, cloud: expect.closeTo(1 - 0.75 * 0.5 ** 3.4, 6) })
-    expect(w[1]).toMatchObject({ tempC: 22, cloud: 0.25 }) // past the last hour: held
+    expect(w[1]).toMatchObject({ tempC: 22, cloud: 0.25, storm: true }) // past the last hour: held; 95 is a thunderstorm
     expect(await openMeteoWeather(fetchFn).at({ lat: 0, lon: 0, tz: 'UTC' }, [])).toEqual([])
   })
 

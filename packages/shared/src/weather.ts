@@ -2,13 +2,18 @@ import { siteDate, siteMinuteOfDay } from './time';
 import { hashRandom } from './random';
 
 // Seeded weather profile: one cloud factor and temperature offset per local day, with a diurnal
-// temperature curve. The simulator and the forecast worker (P2-10, WEATHER_PROVIDER=simulated)
-// both use it, so forecasts for the simulated site are made from the weather it will get.
+// temperature curve and the odd summer thunderstorm. The simulator and the forecast worker (P2-10,
+// WEATHER_PROVIDER=simulated) both use it, so forecasts for the simulated site are made from the
+// weather it will get.
 
 export interface Weather {
   cloud: number; // share of clear-sky irradiance that reaches the panels, 0.15–1
   tempC: number;
+  storm: boolean; // a severe-weather warning is in force (thunderstorm)
 }
+
+/** Share of days (April to October) with a thunderstorm warning in the afternoon. */
+const STORM_SHARE = 0.04;
 
 // Monthly mean temperatures for Toronto (°C), January first.
 const MONTHLY_MEAN_C = [-5.5, -4.5, 0, 7, 13.5, 19, 22, 21, 17, 10, 4, -2];
@@ -23,7 +28,9 @@ export const weatherAt = (at: Date, tz: string, seed: number): Weather => {
   // Warmest at 15:00 local time, ±6 °C around the daily mean.
   const minute = siteMinuteOfDay(at, tz);
   const diurnal = 6 * Math.cos((2 * Math.PI * (minute - 15 * 60)) / 1440);
-  return { cloud, tempC: MONTHLY_MEAN_C[month] + offset + diurnal };
+  // About one day in 25 (outside winter) has a thunderstorm warning from 15:00 to 19:00.
+  const storm = month >= 3 && month <= 9 && hashRandom(seed, `storm:${day}`) < STORM_SHARE && minute >= 15 * 60 && minute < 19 * 60;
+  return { cloud, tempC: MONTHLY_MEAN_C[month] + offset + diurnal, storm };
 };
 
 /**

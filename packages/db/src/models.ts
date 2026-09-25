@@ -475,6 +475,22 @@ ruleConfigSchema.index({ siteId: 1, ruleId: 1 }, { unique: true });
 export type RuleConfigDoc = InferSchemaType<typeof ruleConfigSchema> & { _id: Types.ObjectId };
 export const RuleConfig = mongoose.model('RuleConfig', ruleConfigSchema, 'ruleConfigs');
 
+// Fleet vehicles (plan §2): the EV off-peak rule only moves charging for these (App v2
+// "Fleet vehicles only"), and uses their departure time.
+const fleetVehicleSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    name: { type: String, required: true },
+    rfid: { type: String, required: true }, // the idTag the charger reports
+    capacityKwh: { type: Number, default: null },
+    departure: { type: String, required: true }, // local HH:mm on open days
+  },
+  { timestamps: true }
+);
+fleetVehicleSchema.index({ siteId: 1, rfid: 1 }, { unique: true });
+export type FleetVehicleDoc = InferSchemaType<typeof fleetVehicleSchema> & { _id: Types.ObjectId };
+export const FleetVehicle = mongoose.model('FleetVehicle', fleetVehicleSchema, 'fleetVehicles');
+
 // A proposed device action (plan §2, Backend Coverage §2). Created by the rules service or a
 // person on the Devices page (ruleId "manual"); decided in the Inbox (P3-03).
 const recommendationSchema = new Schema(
@@ -524,7 +540,7 @@ const forecastSchema = new Schema(
     issuedAt: { type: Date, required: true },
     source: { type: String, required: true }, // weather source: simulated | open-meteo
     points: { type: [new Schema({ ts: Date, kw: Number }, { _id: false })], default: [] },
-    weather: { type: [new Schema({ ts: Date, tempC: Number, cloud: Number }, { _id: false })], default: [] },
+    weather: { type: [new Schema({ ts: Date, tempC: Number, cloud: Number, storm: Boolean }, { _id: false })], default: [] },
     // Load: which history each day was built from, e.g. "Thursday school-day profile (6 days)".
     profiles: { type: [new Schema({ date: String, label: String, days: Number }, { _id: false })], default: [] },
     accuracy: {
@@ -557,7 +573,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, Recommendation, AuditEvent] as const;
+export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, FleetVehicle, Recommendation, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

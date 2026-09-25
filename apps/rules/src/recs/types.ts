@@ -30,6 +30,7 @@ export interface ForecastStep {
   loadKw: number | null;
   netKw: number | null; // load − PV
   tempC: number | null;
+  storm: boolean;
 }
 
 /**
@@ -51,6 +52,8 @@ export interface RecContext {
   battery: { deviceId: string; socPct: number | null; reservePct: number | null; usableKwh: number | null; maxKw: number | null; floorPct: number } | null;
   forecast: ForecastStep[];
   commands: { id: string; deviceId: string; action: string; status: string; expiresAt: Date; revertAt: Date | null }[];
+  /** EV sessions in progress, with the fleet vehicle (if any) and its usual energy per session. */
+  evSessions: EvSession[];
   approval: ApprovalConfig;
 }
 
@@ -59,10 +62,25 @@ export type Action = Pick<Proposal, 'deviceId' | 'params' | 'window'>;
 
 export interface Rule<P = Record<string, number | boolean>> {
   id: RecommendationRuleId;
-  /** A proposal, or null when nothing needs doing. */
-  evaluate(ctx: RecContext, params: P): Proposal | null;
+  /** Proposals (usually one; one per device when several need it), or null when nothing needs doing. */
+  evaluate(ctx: RecContext, params: P): Proposal | Proposal[] | null;
   /** The safety and limit checks; all must pass to approve (they run again at approval). */
   check(ctx: RecContext, action: Action, params: P): Check[];
   /** Expected saving and the one-line worked sum shown in the Inbox. */
   saving(ctx: RecContext, action: Action, params: P): { cents: number; calc: string };
+}
+
+export interface EvSession {
+  deviceId: string; // the charger
+  chargerName: string;
+  sessionId: string;
+  idTag: string | null;
+  deliveredKwh: number;
+  startedAt: Date;
+  chargingKw: number; // now (positive)
+  ratedKw: number | null; // the charger's maximum
+  vehicle: { name: string; departure: string; capacityKwh: number | null } | null;
+  /** Average energy of the vehicle's last 10 sessions started at about this time of day. */
+  typicalKwh: number | null;
+  typicalFrom: number; // how many sessions that average is made of
 }

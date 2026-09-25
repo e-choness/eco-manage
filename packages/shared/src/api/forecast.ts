@@ -7,6 +7,7 @@ export interface ForecastPoint {
   netKw: number | null; // load − PV: what the grid and battery must cover (negative = surplus)
   tempC: number | null;
   cloud: number | null;
+  storm: boolean | null; // a severe-weather warning in force
 }
 
 export interface ForecastAccuracy {
