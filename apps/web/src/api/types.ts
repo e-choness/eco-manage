@@ -10,17 +10,6 @@ export interface Alert {
   resolved: boolean
 }
 
-export interface Device {
-  _id: string
-  name: string
-  type: 'solar' | 'wind' | 'battery' | 'grid'
-  status: 'online' | 'offline' | 'charging' | 'maintenance'
-  currentOutput: number
-  maxOutput: number
-  efficiency: number
-  lastMaintenance: string
-}
-
 export interface Recommendation {
   _id: string
   title: string

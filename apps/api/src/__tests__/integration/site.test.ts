@@ -7,7 +7,7 @@ import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import { Redis } from 'ioredis';
 import { Device, Interval15, Membership, Site, Telemetry } from '@ecomanage/db';
-import { DEMO_DEVICES, DEMO_SITE, DEMO_SITE_ID, siteEventsChannel, type SiteSnapshot } from '@ecomanage/shared';
+import { DEMO_DEVICES, DEMO_SITE, siteEventsChannel, type SiteSnapshot } from '@ecomanage/shared';
 import { connectTestDb, disconnectTestDb } from './db';
 import { createApp } from '../../app';
 import { SiteEventHub } from '../../lib/siteEvents';
@@ -15,7 +15,11 @@ import User from '../../modules/auth/model';
 import { generatePasswordHash } from '../../utils/password';
 
 const REDIS = process.env.REDIS_TEST_URL?.replace(/\/\d+$/, '/4') || 'redis://redis:6379/4';
-const dev = (key: string) => DEMO_DEVICES.find((d) => d.key === key)!;
+// Own site and device ids: Redis pub/sub channels are shared across databases, so the demo site's
+// channel would also carry live events from a running dev stack.
+const SITE_ID = '650000000000000000000042';
+const DEVICES = DEMO_DEVICES.map((d, i) => ({ ...d, id: `6500000000000000000042${String(i + 1).padStart(2, '0')}` }));
+const dev = (key: string) => DEVICES.find((d) => d.key === key)!;
 const env = { CORS_ORIGINS: [], RATE_LIMIT_WINDOW_MS: 60_000, RATE_LIMIT_MAX: 1e6, AUTH_RATE_LIMIT_MAX: 1e6 };
 
 let redis: Redis;
@@ -33,12 +37,12 @@ beforeAll(async () => {
   process.env.JWT_SECRET = 'site-jwt';
   app = createApp({ env, redis, hub, sseHeartbeatMs: 200 });
 
-  await Site.create({ _id: DEMO_SITE_ID, ...DEMO_SITE });
+  await Site.create({ _id: SITE_ID, ...DEMO_SITE });
   await Device.insertMany(
-    DEMO_DEVICES.map((d) => ({ _id: d.id, siteId: DEMO_SITE_ID, type: d.type, name: d.name, profileId: d.profileId, status: 'live', ratedKw: d.ratedKw }))
+    DEVICES.map((d) => ({ _id: d.id, siteId: SITE_ID, type: d.type, name: d.name, profileId: d.profileId, status: 'live', ratedKw: d.ratedKw }))
   );
   const user = await User.create({ email: 'mgr@example.com', password: await generatePasswordHash('pw123456') });
-  await Membership.create({ userId: user._id, siteId: DEMO_SITE_ID, role: 'installer' });
+  await Membership.create({ userId: user._id, siteId: SITE_ID, role: 'installer' });
   token = jwt.sign({ sub: String(user._id) }, 'site-jwt');
 });
 
@@ -52,7 +56,8 @@ afterAll(async () => {
 describe('GET /api/site/snapshot', () => {
   it('returns devices with latest readings, live flows, battery, demand, month peak and gateway', async () => {
     const now = Date.now();
-    const intervalStart = Math.floor(now / 900_000) * 900_000;
+    // The server takes the interval from the meter reading's time (now - 2 s)
+    const intervalStart = Math.floor((now - 2000) / 900_000) * 900_000;
     const latest = (key: string, reading: object) => redis.set(`latest:${dev(key).id}`, JSON.stringify({ ts: iso(now - 2000), q: 'ok', ...reading }));
     await latest('invA', { p_kw: 36.1, e_out_kwh: 1000 });
     await latest('invB', { p_kw: 25.3, e_out_kwh: 900 });
@@ -62,18 +67,18 @@ describe('GET /api/site/snapshot', () => {
     // Meter: 12 kWh imported since the interval start (counter read 10 s before the boundary at 90 kW)
     const elapsedH = (now - 2000 - intervalStart) / 3_600_000;
     await latest('meter', { p_kw: 90, e_in_kwh: 50_000.25 + 90 * elapsedH, e_out_kwh: 5 });
-    await Telemetry.create({ ts: new Date(intervalStart - 10_000), meta: { siteId: DEMO_SITE_ID, deviceId: dev('meter').id }, p_kw: 90, e_in_kwh: 50_000 });
+    await Telemetry.create({ ts: new Date(intervalStart - 10_000), meta: { siteId: SITE_ID, deviceId: dev('meter').id }, p_kw: 90, e_in_kwh: 50_000 });
     await Interval15.create([
-      { siteId: DEMO_SITE_ID, start: new Date(intervalStart - 3_600_000), demandKw: 112 },
-      { siteId: DEMO_SITE_ID, start: new Date(intervalStart - 1_800_000), demandKw: 88 },
+      { siteId: SITE_ID, start: new Date(intervalStart - 3_600_000), demandKw: 112 },
+      { siteId: SITE_ID, start: new Date(intervalStart - 1_800_000), demandKw: 88 },
     ]);
-    await redis.set(`gw:${DEMO_SITE_ID}`, JSON.stringify({ ts: iso(now), fw: '1.4.2', uptimeS: 5, buffered: 0, oldestBufferedTs: null, clockOffsetMs: 0, receivedAt: iso(now - 5000) }));
+    await redis.set(`gw:${SITE_ID}`, JSON.stringify({ ts: iso(now), fw: '1.4.2', uptimeS: 5, buffered: 0, oldestBufferedTs: null, clockOffsetMs: 0, receivedAt: iso(now - 5000) }));
 
     const res = await request(app).get('/api/site/snapshot').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     const s = res.body as SiteSnapshot;
-    expect(s.site).toMatchObject({ id: DEMO_SITE_ID, name: 'Maple Grove School', tz: 'America/Toronto', demandCapKw: 120 });
-    expect(s.devices).toHaveLength(DEMO_DEVICES.length);
+    expect(s.site).toMatchObject({ id: SITE_ID, name: 'Maple Grove School', tz: 'America/Toronto', demandCapKw: 120 });
+    expect(s.devices).toHaveLength(DEVICES.length);
     expect(s.devices.find((d) => d.id === dev('invA').id)?.latest?.p_kw).toBe(36.1);
     expect(s.flows).toMatchObject({ pv: 61.4, battery: 20, grid: 90, ev: -7.4, heatpump: -18, stale: expect.arrayContaining([dev('ev2').id]) });
     expect(s.flows.building).toBeCloseTo(61.4 + 20 + 90 - 7.4 - 18);
@@ -88,10 +93,11 @@ describe('GET /api/site/snapshot', () => {
 
   it('marks demand estimated when there is no meter reading near the interval start', async () => {
     await Telemetry.deleteMany({});
+    // 10 minutes into an interval, with nothing stored near its start
+    const start = Math.floor(Date.now() / 900_000) * 900_000 - 900_000;
+    await redis.set(`latest:${dev('meter').id}`, JSON.stringify({ ts: iso(start + 600_000), p_kw: 80, e_in_kwh: 50_100, q: 'ok' }));
     const res = await request(app).get('/api/site/snapshot').set('Authorization', `Bearer ${token}`);
-    const now = Date.now();
-    const intoInterval = now - Math.floor(now / 900_000) * 900_000;
-    expect(res.body.demand.quality).toBe(intoInterval > 62_000 ? 'estimated' : 'ok');
+    expect(res.body.demand).toMatchObject({ intervalStart: iso(start), quality: 'estimated', soFarKw: 80 });
   });
 
   it('needs a signed-in member', async () => {
@@ -151,22 +157,22 @@ describe('GET /api/site/stream', () => {
     return { events, heartbeats };
   };
 
-  it('sends the snapshot first, then events published for the site, within a second', async () => {
+  it('sends the snapshot first, then events published for the site, within 2 s', async () => {
     const published: number[] = [];
     const pub = new Redis(REDIS);
     const publishing = (async () => {
       // wait for the subscription, then publish a telemetry event and one for another site
-      for (let i = 0; i < 50 && hub.listenerCount(DEMO_SITE_ID) === 0; i++) await new Promise((r) => setTimeout(r, 20));
+      for (let i = 0; i < 50 && hub.listenerCount(SITE_ID) === 0; i++) await new Promise((r) => setTimeout(r, 20));
       await pub.publish(siteEventsChannel('650000000000000000000099'), JSON.stringify({ type: 'telemetry', deviceId: 'x', reading: {} }));
       published.push(Date.now());
       await pub.publish(
-        siteEventsChannel(DEMO_SITE_ID),
+        siteEventsChannel(SITE_ID),
         JSON.stringify({ type: 'telemetry', deviceId: dev('invA').id, reading: { ts: iso(Date.now()), p_kw: 40, q: 'ok' } })
       );
       // A later event must still arrive: the stream stays subscribed after its first write.
       await new Promise((r) => setTimeout(r, 300));
       await pub.publish(
-        siteEventsChannel(DEMO_SITE_ID),
+        siteEventsChannel(SITE_ID),
         JSON.stringify({ type: 'telemetry', deviceId: dev('invA').id, reading: { ts: iso(Date.now()), p_kw: 41, q: 'ok' } })
       );
     })();
@@ -178,13 +184,13 @@ describe('GET /api/site/stream', () => {
     const telemetry = events.filter((e) => e.event === 'telemetry');
     expect(telemetry).toHaveLength(2);
     expect(telemetry.map((t) => (t.data as { reading: { p_kw: number } }).reading.p_kw)).toEqual([40, 41]);
-    expect(telemetry[0].at - published[0]).toBeLessThan(1000);
+    expect(telemetry[0].at - published[0]).toBeLessThan(2000); // plan: within 5 s end to end
   });
 
   it('sends heartbeats and releases the subscription when the client leaves', async () => {
     const { heartbeats } = await collect(() => false, 700);
     expect(heartbeats).toBeGreaterThanOrEqual(2);
-    for (let i = 0; i < 50 && hub.listenerCount(DEMO_SITE_ID) > 0; i++) await new Promise((r) => setTimeout(r, 20));
-    expect(hub.listenerCount(DEMO_SITE_ID)).toBe(0);
+    for (let i = 0; i < 50 && hub.listenerCount(SITE_ID) > 0; i++) await new Promise((r) => setTimeout(r, 20));
+    expect(hub.listenerCount(SITE_ID)).toBe(0);
   });
 });

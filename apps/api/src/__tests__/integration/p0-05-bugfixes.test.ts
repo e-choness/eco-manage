@@ -185,7 +185,6 @@ describe('energy flow', () => {
 describe('routes', () => {
   let app: ReturnType<typeof createApp>;
   let token: string;
-  const other = new mongoose.Types.ObjectId();
   const installerSite = new mongoose.Types.ObjectId();
   const managerSite = new mongoose.Types.ObjectId();
 
@@ -210,27 +209,7 @@ describe('routes', () => {
   const authed = (r: request.Test, site = installerSite) =>
     r.set('Authorization', `Bearer ${token}`).set('X-Site-Id', String(site));
 
-  it('PUT /api/devices/:id updates the caller’s device', async () => {
-    const res = await authed(request(app).put(`/api/devices/${ids.solarA}`)).send({ name: 'Roof east', maxOutput: 6 });
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual(expect.objectContaining({ name: 'Roof east', maxOutput: 6 }));
-    expect((await Device.findById(ids.solarA))?.name).toBe('Roof east');
-  });
-
-  it('PUT /api/devices/:id rejects bad input and other users’ devices', async () => {
-    expect((await authed(request(app).put(`/api/devices/${ids.solarA}`)).send({ status: 'exploded' })).status).toBe(400);
-    const foreign = await Device.create({ userId: other, name: 'Theirs', type: 'solar', maxOutput: 1 });
-    expect((await authed(request(app).put(`/api/devices/${foreign._id}`)).send({ name: 'x' })).status).toBe(404);
-    expect((await authed(request(app).delete(`/api/devices/${foreign._id}`))).status).toBe(404);
-    expect(await Device.exists({ _id: foreign._id })).toBeTruthy();
-  });
-
-  it('DELETE /api/devices/:id removes the caller’s device', async () => {
-    const extra = await Device.create({ userId, name: 'Temp', type: 'wind', maxOutput: 1 });
-    const res = await authed(request(app).delete(`/api/devices/${extra._id}`));
-    expect(res.status).toBe(204);
-    expect(await Device.exists({ _id: extra._id })).toBeNull();
-  });
+  // The v1 device PUT/DELETE tests moved to the v2 devices module tests (P1-09).
 
   it('dismissing a recommendation is saved', async () => {
     const rec = await Recommendation.create({

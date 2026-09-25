@@ -1,50 +1,64 @@
-import { z } from 'zod';
-import { isValidObjectId } from 'mongoose';
-import * as deviceService from './service';
+import type { Redis } from 'ioredis';
+import { createDeviceBody, patchDeviceBody, telemetryQuery } from '@ecomanage/shared';
 import { handle, HttpError, parse, userIdOf } from '../../lib/http';
 import type { AuthenticatedRequest } from '../../middleware/auth';
+import * as devices from './service';
 
-const required = z.object({ name: z.string().min(1), type: z.string().min(1), maxOutput: z.coerce.number().optional() });
-const typed = required.extend({ type: z.enum(deviceService.DEVICE_TYPES) });
-const update = z
-  .object({
-    name: z.string().trim().min(1).optional(),
-    maxOutput: z.coerce.number().min(0).optional(),
-    status: z.enum(deviceService.DEVICE_STATUSES).optional(),
-  })
-  .strict()
-  .refine((u) => Object.keys(u).length > 0);
-
-const NOT_FOUND = { error: 'Device not found' };
-
-// Malformed ids can't match a device, so they get the same 404 as unknown ones.
-const deviceIdOf = (req: AuthenticatedRequest): string => {
-  if (!isValidObjectId(req.params.id)) throw new HttpError(404, NOT_FOUND);
-  return req.params.id;
+// v2 error bodies: { error: { code, message } }
+const fail = (code: number, message: string) => new HttpError(code, { error: { code, message } });
+const FALLBACK = { status: 500, body: { error: { code: 500, message: 'Device request failed' } } };
+const NOT_FOUND = () => fail(404, 'Device not found');
+const PROFILE_ERRORS: Record<string, string> = {
+  'unknown-profile': 'Unknown device profile',
+  'profile-type-mismatch': 'The profile does not support this device type',
 };
 
-export const list = handle({ status: 500, body: { error: 'Failed to fetch devices' } }, async (req, res) => {
-  const devices = await deviceService.listDevices(userIdOf(req));
-  res.json({ devices });
-});
+const siteIdOf = (req: AuthenticatedRequest): string => String(req.site!._id);
 
-export const create = handle({ status: 500, body: { error: 'Failed to create device' } }, async (req, res) => {
-  parse(required, req.body, 400, { error: 'Missing required fields: name, type' });
-  const input = parse(typed, req.body, 400, { error: 'Invalid device type. Must be: solar, wind, battery, or grid' });
-  const device = await deviceService.createDevice(userIdOf(req), input);
-  res.status(201).json(device);
-});
+const writeResult = (result: devices.WriteResult) => {
+  if (result.ok) return result.device;
+  throw result.reason === 'not-found' ? NOT_FOUND() : fail(400, PROFILE_ERRORS[result.reason]);
+};
 
-export const updateOne = handle({ status: 500, body: { error: 'Failed to update device' } }, async (req, res) => {
-  const deviceId = deviceIdOf(req);
-  const changes = parse(update, req.body, 400, { error: 'Invalid device update' });
-  const device = await deviceService.updateDevice(userIdOf(req), deviceId, changes);
-  if (!device) throw new HttpError(404, NOT_FOUND);
-  res.json(device);
-});
+export const devicesController = (redis?: Redis) => {
+  const needRedis = (): Redis => {
+    if (!redis) throw fail(503, 'Live data is unavailable (no Redis)');
+    return redis;
+  };
 
-export const removeOne = handle({ status: 500, body: { error: 'Failed to delete device' } }, async (req, res) => {
-  const deleted = await deviceService.deleteDevice(userIdOf(req), deviceIdOf(req));
-  if (!deleted) throw new HttpError(404, NOT_FOUND);
-  res.status(204).end();
-});
+  return {
+    list: handle(FALLBACK, async (req, res) => {
+      res.json({ items: await devices.listDevices(needRedis(), siteIdOf(req)) });
+    }),
+
+    detail: handle(FALLBACK, async (req, res) => {
+      const device = await devices.getDevice(needRedis(), siteIdOf(req), req.params.id);
+      if (!device) throw NOT_FOUND();
+      res.json(device);
+    }),
+
+    telemetry: handle(FALLBACK, async (req, res) => {
+      const q = parse(telemetryQuery, req.query, 400, { error: { code: 400, message: 'Invalid telemetry query' } });
+      const series = await devices.telemetrySeries(siteIdOf(req), req.params.id, q);
+      if (series === 'not-found') throw NOT_FOUND();
+      if (series === 'range-invalid') throw fail(400, '"from" must be before "to"');
+      if (series === 'range-too-long') throw fail(400, 'Range too long: at most 400 hourly points (16 days)');
+      res.json(series);
+    }),
+
+    create: handle(FALLBACK, async (req, res) => {
+      const body = parse(createDeviceBody, req.body, 400, { error: { code: 400, message: 'Invalid device' } });
+      res.status(201).json(writeResult(await devices.createDevice(siteIdOf(req), userIdOf(req), body)));
+    }),
+
+    update: handle(FALLBACK, async (req, res) => {
+      const patch = parse(patchDeviceBody, req.body, 400, { error: { code: 400, message: 'Invalid device update' } });
+      res.json(writeResult(await devices.updateDevice(siteIdOf(req), userIdOf(req), req.params.id, patch)));
+    }),
+
+    remove: handle(FALLBACK, async (req, res) => {
+      if (!(await devices.deleteDevice(siteIdOf(req), userIdOf(req), req.params.id))) throw NOT_FOUND();
+      res.status(204).end();
+    }),
+  };
+};
