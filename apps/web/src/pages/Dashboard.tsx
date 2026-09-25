@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getDashboardOverview, getEnergyFlow } from "@/api/dashboard"
 import { getDevices } from "@/api/devices"
-import type { Device } from "@/api/types"
+import type { DashboardOverview, Device, EnergyFlow } from "@/api/types"
 import { useToast } from "@/hooks/useToast"
 import {
   Sun,
@@ -16,29 +16,13 @@ import {
 import { EnergyFlowDiagram } from "@/components/EnergyFlowDiagram"
 import { DeviceStatusGrid } from "@/components/DeviceStatusGrid"
 
-interface DashboardData {
-  totalProduction: number
-  currentPower: number
-  dailyProduction: number
-  monthlyProduction: number
-  systemStatus: string
-  weatherCondition: string
-  temperature: number
-  savings: number
-  carbonOffset: number
-}
 
-interface EnergyFlowData {
-  solar: number
-  wind: number
-  battery: number
-  grid: number
-  consumption: number
-}
+const formatChange = (pct: number | null) =>
+  pct === null ? 'No data from yesterday to compare' : `${pct > 0 ? '+' : ''}${pct}% vs same time yesterday`
 
 export function Dashboard() {
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
-  const [energyFlow, setEnergyFlow] = useState<EnergyFlowData | null>(null)
+  const [dashboardData, setDashboardData] = useState<DashboardOverview | null>(null)
+  const [energyFlow, setEnergyFlow] = useState<EnergyFlow | null>(null)
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
@@ -46,15 +30,14 @@ export function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log('Fetching dashboard data')
         const [overviewData, flowData, devicesData] = await Promise.all([
           getDashboardOverview(),
           getEnergyFlow(),
           getDevices()
         ])
 
-        setDashboardData(overviewData as DashboardData)
-        setEnergyFlow(flowData as EnergyFlowData)
+        setDashboardData(overviewData)
+        setEnergyFlow(flowData)
         setDevices(Array.isArray(devicesData.devices) ? devicesData.devices : [])
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
@@ -134,12 +117,12 @@ export function Dashboard() {
 
         <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Daily Production</CardTitle>
+            <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Today's Production</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-900 dark:text-green-100">{dashboardData.dailyProduction} kWh</div>
-            <p className="text-xs text-green-600 dark:text-green-400">+12% from yesterday</p>
+            <div className="text-2xl font-bold text-green-900 dark:text-green-100">{dashboardData.todayProduction} kWh</div>
+            <p className="text-xs text-green-600 dark:text-green-400">{formatChange(dashboardData.productionChangePct)}</p>
           </CardContent>
         </Card>
 
@@ -150,7 +133,7 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">${dashboardData.savings}</div>
-            <p className="text-xs text-purple-600 dark:text-purple-400">This month</p>
+            <p className="text-xs text-purple-600 dark:text-purple-400">Last 30 days (est. $0.12/kWh)</p>
           </CardContent>
         </Card>
 
@@ -160,8 +143,8 @@ export function Dashboard() {
             <Leaf className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{dashboardData.carbonOffset} tons</div>
-            <p className="text-xs text-emerald-600 dark:text-emerald-400">CO₂ saved today</p>
+            <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{dashboardData.carbonOffsetKg} kg</div>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400">CO₂ avoided, last 30 days</p>
           </CardContent>
         </Card>
       </div>

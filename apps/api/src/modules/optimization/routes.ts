@@ -6,5 +6,6 @@ const router: Router = Router();
 
 router.get('/recommendations', requireUser, optimization.recommendations);
 router.post('/accept', requireUser, optimization.accept);
+router.post('/dismiss', requireUser, optimization.dismiss);
 
 export default router;

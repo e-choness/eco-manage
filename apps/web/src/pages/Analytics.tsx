@@ -12,7 +12,6 @@ import {
 import {
   getProductionAnalytics,
   getConsumptionAnalytics,
-  getInsight
 } from "@/api/analytics";
 import type { ConsumptionPoint, ProductionPoint } from "@/api/types";
 import { useToast } from "@/hooks/useToast";
@@ -30,16 +29,14 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { Download, TrendingUp, TrendingDown, Lightbulb, Loader2 } from "lucide-react";
+import { Download, TrendingUp, TrendingDown, Lightbulb } from "lucide-react";
 
 export function Analytics() {
   const [productionData, setProductionData] = useState<ProductionPoint[]>([]);
   const [consumptionData, setConsumptionData] = useState<ConsumptionPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("month");
-  const [aiInsight, setAiInsight] = useState("");
-  const [detailedInsight, setDetailedInsight] = useState("");
-  const [insightLoading, setInsightLoading] = useState(false);
+  const [trendSummary, setTrendSummary] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -105,28 +102,9 @@ export function Analytics() {
       } and consumption is ${consumptionTrend.toFixed(1)}% ${
         consumptionTrend >= 0 ? "lower" : "higher"
       } than the previous period.`;
-      setAiInsight(insight);
+      setTrendSummary(insight);
     }
   }, [productionData, consumptionData, productionTrend, consumptionTrend]);
-
-  const handleGetInsight = async () => {
-    setInsightLoading(true);
-    setDetailedInsight("");
-    try {
-      const result = await getInsight({ productionData, consumptionData });
-      console.log("Result:", result.insight);
-      setDetailedInsight(result.insight); // Update with callback
-    } catch (error) {
-      console.error("Error getting detailed insight:", error);
-      toast({
-        title: "Error",
-        description: "Failed to get detailed insight. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setInsightLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -267,36 +245,19 @@ export function Analytics() {
         </Card>
       </div>
 
-      {/* AI Insight Card */}
-      {aiInsight && (
+      {/* Trend summary, worked out in the browser from the charted data */}
+      {trendSummary && (
         <Card className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
               <Lightbulb className="h-4 w-4 mr-2" />
-              AI Insight
+              Trend summary
             </CardTitle>
-            <Button onClick={handleGetInsight} size="sm" disabled={insightLoading}>
-              {insightLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Get Detailed Insight"
-              )}
-            </Button>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {aiInsight}
+              {trendSummary}
             </p>
-            {insightLoading && (
-              <div className="flex items-center justify-center mt-4">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-              </div>
-            )}
-            {detailedInsight && (
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{detailedInsight}</p>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}

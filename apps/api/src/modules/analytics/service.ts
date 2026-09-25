@@ -1,6 +1,5 @@
 import EnergyReading from './model';
 import { IDevice } from '../devices/model';
-import { sendLLMRequest } from './llmService';
 
 export interface ProductionPoint {
   date: string;
@@ -77,14 +76,4 @@ export const consumption = async (userId: string, period: string): Promise<Consu
   }
 
   return Object.entries(daily).map(([date, value]) => ({ date, consumption: round2(value) }));
-};
-
-export const insight = (data: unknown): Promise<string> => {
-  const prompt = `Based on the following energy data for a renewable energy system, provide a brief insight and recommendation:
-
-${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}
-
-Please provide a concise insight (2-3 sentences) about the energy usage patterns and one actionable recommendation.`;
-
-  return sendLLMRequest(prompt);
 };

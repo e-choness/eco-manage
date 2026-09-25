@@ -26,13 +26,3 @@ export const getConsumptionAnalytics = async (period: string): Promise<{ period:
     throw new Error(errorMessage(error));
   }
 };
-
-export const getInsight = async (data: unknown) => {
-  try {
-    const response = await api.post('/api/analytics/insight', { data });
-    return response.data;
-  } catch (error) {
-    console.error('Error getting insight:', error);
-    throw error;
-  }
-};

@@ -36,8 +36,24 @@ export interface EnergyFlow {
   solar: number
   wind: number
   battery: number
-  grid: number
   consumption: number
+  // Positive when importing from the grid, negative when exporting
+  grid: number
+  timestamp: string | null
+}
+
+export interface DashboardOverview {
+  totalProduction: number
+  currentPower: number
+  dailyProduction: number
+  monthlyProduction: number
+  todayProduction: number
+  productionChangePct: number | null
+  systemStatus: 'optimal' | 'warning' | 'critical' | 'unknown'
+  weatherCondition: string
+  temperature: number
+  savings: number
+  carbonOffsetKg: number
 }
 
 export interface ProductionPoint {

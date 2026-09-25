@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import User from '../modules/auth/model';
 import Device from '../modules/devices/model';
-import EnergyReading, { IEnergyReading } from '../modules/analytics/model';
+import EnergyReading from '../modules/analytics/model';
+import { buildSeedReadings } from './seedReadings';
 import Alert from '../modules/alerts/model';
 import FinancialRecord, { IFinancialRecord } from '../modules/financial/model';
 import Recommendation from '../modules/optimization/model';
@@ -59,7 +60,7 @@ async function seed() {
     });
     console.log(`✅ Created user: ${DEMO_EMAIL}`);
 
-    // 2. Create 4 devices
+    // 2. Create 5 devices
     console.log('\n🔌 Creating devices...');
 
     // Calculate current solar output based on time of day (peaks at noon)
@@ -113,75 +114,27 @@ async function seed() {
         efficiency: 97,
         lastMaintenance: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
       },
+      {
+        userId: demoUser._id,
+        name: 'Grid Meter',
+        type: 'grid',
+        status: 'online',
+        currentOutput: 0,
+        maxOutput: 50.0,
+        efficiency: 100,
+        lastMaintenance: new Date(),
+      },
     ]);
     console.log(`✅ Created ${devices.length} devices`);
 
-    // 3. Generate 365 days of energy readings
+    // 3. Generate 365 days of hourly energy readings up to now
     console.log('\n⚡ Generating energy readings (365 days × 24 hours)...');
-    const energyReadings: Partial<IEnergyReading>[] = [];
-    const energyStartDate = new Date();
-    const startDate = new Date(energyStartDate.getFullYear(), 0, 1); // Jan 1 of current year
-
-    // Solar sine curve pattern + wind random pattern
-    for (let dayOfYear = 0; dayOfYear < 365; dayOfYear++) {
-      for (let hour = 0; hour < 24; hour++) {
-        const timestamp = new Date(startDate);
-        timestamp.setDate(timestamp.getDate() + dayOfYear);
-        timestamp.setHours(hour, 0, 0, 0);
-
-        // Solar production (sine curve, peaks at noon, 0 at night)
-        const solarHourFraction = (hour - 6) / 12; // Peak at hour 6-18 (6am-6pm)
-        const solarProduction = solarHourFraction > 0 && solarHourFraction < 1
-          ? Math.sin(solarHourFraction * Math.PI) * 5.5
-          : 0;
-
-        // Add some daily variation
-        const dayVariation = Math.sin(dayOfYear * (2 * Math.PI / 365)) * 0.8 + 0.2;
-
-        // Production readings for Solar A
-        energyReadings.push({
-          deviceId: devices[0]._id,
-          userId: demoUser._id,
-          timestamp,
-          value: Math.max(0, solarProduction * dayVariation * 0.6), // 60% of solar B
-          type: 'production',
-        });
-
-        // Production readings for Solar B
-        energyReadings.push({
-          deviceId: devices[1]._id,
-          userId: demoUser._id,
-          timestamp,
-          value: Math.max(0, solarProduction * dayVariation),
-          type: 'production',
-        });
-
-        // Wind production (random with seasonal variation)
-        const windBase = Math.sin(dayOfYear * (2 * Math.PI / 365)) * 3 + 5;
-        const windVariation = Math.random() * 4;
-        energyReadings.push({
-          deviceId: devices[2]._id,
-          userId: demoUser._id,
-          timestamp,
-          value: Math.max(0, windBase + windVariation),
-          type: 'production',
-        });
-
-        // Consumption (baseline + peak hours)
-        const consumptionBase = 2.5; // Base load
-        const peakHour = (hour >= 7 && hour <= 9) || (hour >= 18 && hour <= 21) ? 2 : 0;
-        const consumption = consumptionBase + peakHour + Math.random() * 1;
-
-        energyReadings.push({
-          deviceId: devices[3]._id, // Battery tracks consumption
-          userId: demoUser._id,
-          timestamp,
-          value: consumption,
-          type: 'consumption',
-        });
-      }
-    }
-
+    const energyReadings = buildSeedReadings(demoUser._id as mongoose.Types.ObjectId, {
+      solarA: devices[0]._id as mongoose.Types.ObjectId,
+      solarB: devices[1]._id as mongoose.Types.ObjectId,
+      wind: devices[2]._id as mongoose.Types.ObjectId,
+      gridMeter: devices[4]._id as mongoose.Types.ObjectId,
+    }, new Date());
     await EnergyReading.insertMany(energyReadings);
     console.log(`✅ Created ${energyReadings.length} energy readings`);
 

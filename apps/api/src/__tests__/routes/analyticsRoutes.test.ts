@@ -2,17 +2,11 @@
  * Analytics Routes Tests
  */
 
-// Mock external dependencies first
-jest.mock('openai');
-jest.mock('@anthropic-ai/sdk');
 jest.mock('../../modules/analytics/model');
-jest.mock('../../modules/analytics/llmService');
 
 import EnergyReading from '../../modules/analytics/model';
-import { sendLLMRequest } from '../../modules/analytics/llmService';
 
 const mockEnergyReading = EnergyReading as jest.Mocked<typeof EnergyReading>;
-const mockSendLLMRequest = sendLLMRequest as jest.MockedFunction<typeof sendLLMRequest>;
 
 describe('Analytics Routes', () => {
   const userId = '507f1f77bcf86cd799439011';
@@ -136,54 +130,6 @@ describe('Analytics Routes', () => {
         expect(r.type).toBe('consumption');
         expect(r.value).toBeGreaterThan(0);
       });
-    });
-  });
-
-  describe('POST /api/analytics/insight', () => {
-    it('should send data to LLM and return insight', async () => {
-      const mockInsight =
-        'Your energy production is optimal with a 25% increase compared to last month.';
-
-      mockSendLLMRequest.mockResolvedValue(mockInsight);
-
-      const data = {
-        production: [{ date: '2024-01-01', value: 100 }],
-        consumption: [{ date: '2024-01-01', value: 80 }],
-      };
-
-      const result = await sendLLMRequest(JSON.stringify(data));
-
-      expect(result).toBe(mockInsight);
-      expect(mockSendLLMRequest).toHaveBeenCalled();
-    });
-
-    it('should format prompt with energy data', () => {
-      const data = { production: 100, consumption: 80 };
-      const prompt = `Based on the following energy data for a renewable energy system, provide a brief insight and recommendation:
-
-${JSON.stringify(data, null, 2)}
-
-Please provide a concise insight (2-3 sentences) about the energy usage patterns and one actionable recommendation.`;
-
-      expect(prompt).toContain('Based on the following energy data');
-      expect(prompt).toContain('production');
-      expect(prompt).toContain('consumption');
-    });
-
-    it('should call LLM service with formatted message', async () => {
-      const message = 'Test energy data insight request';
-      mockSendLLMRequest.mockResolvedValue('Test insight response');
-
-      const result = await sendLLMRequest(message);
-
-      expect(mockSendLLMRequest).toHaveBeenCalledWith(message);
-      expect(result).toBe('Test insight response');
-    });
-
-    it('should handle LLM service errors gracefully', async () => {
-      mockSendLLMRequest.mockRejectedValue(new Error('LLM service unavailable'));
-
-      await expect(sendLLMRequest('test')).rejects.toThrow('LLM service unavailable');
     });
   });
 

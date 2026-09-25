@@ -26,3 +26,15 @@ export const acceptRecommendation = async (recommendationId: string): Promise<Re
     throw new Error(errorMessage(error));
   }
 };
+// Description: Dismiss optimization recommendation
+// Endpoint: POST /api/optimization/dismiss
+// Request: { recommendationId: string }
+// Response: { _id: string, status: 'dismissed' }
+export const dismissRecommendation = async (recommendationId: string): Promise<Recommendation> => {
+  try {
+    const response = await api.post('/api/optimization/dismiss', { recommendationId });
+    return response.data;
+  } catch (error) {
+    throw new Error(errorMessage(error));
+  }
+};
