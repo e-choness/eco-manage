@@ -38,7 +38,7 @@ const v2 = {
 
 const fixture = [
   { start: u('2026-09-10T19:15:00Z'), grid: 20, demandKw: 80 },
-  { start: u('2026-09-10T16:00:00Z'), grid: 10, export: 2, demandKw: 40 },
+  { start: u('2026-09-10T16:00:00Z'), grid: 10, export: 2, pv: 2, demandKw: 40 },
   { start: u('2026-09-12T19:00:00Z'), grid: 8, demandKw: 32 },
   { start: u('2026-09-17T19:15:00Z'), grid: 25, demandKw: 100 },
   { start: u('2026-09-17T07:00:00Z'), grid: 4, demandKw: 16, quality: 'estimated' },
@@ -136,6 +136,48 @@ describe('computeBill', () => {
     const period = billingPeriod(u('2026-07-10T12:00:00Z'), TZ, 1)
     const bill = computeBill(period, [{ start: u('2026-07-10T19:15:00Z'), grid: 20, export: 0, demandKw: 80, quality: 'ok' }], [v1] as never, TZ, NOW)
     expect(bill).toMatchObject({ unpricedIntervals: 1, totalCents: 0, tariffVersion: null })
+  })
+})
+
+describe('savings against the grid-only baseline (P2-04)', () => {
+  /*
+   * Thu Sep 10, tariff v1:
+   *   15:15 Peak 27¢     grid 20, pv 10, batt +5 (discharge)  load 35   solar 270, battery 135
+   *   03:00 Off-peak 9¢  grid 30, batt −10 (charge)           load 20   battery −90
+   *   12:00 Mid 16¢      grid 0, pv 15, export 3              load 12   solar 192 + credit 15
+   *
+   *   actual   = 540 + 270 energy + 120 kW × $14 + 9000 − 15 = 177795
+   *   baseline = 945 + 180 + 192 energy + 140 kW × $14 + 9000 = 206317
+   *   saved    = solar 477 + battery 45 + demand 28000 = 28522 = baseline − actual
+   */
+  const rows = [
+    { start: u('2026-09-10T19:15:00Z'), grid: 20, export: 0, pv: 10, batt: 5, demandKw: 80, quality: 'ok' },
+    { start: u('2026-09-10T07:00:00Z'), grid: 30, export: 0, pv: 0, batt: -10, demandKw: 120, quality: 'ok' },
+    { start: u('2026-09-10T16:00:00Z'), grid: 0, export: 3, pv: 15, batt: 0, demandKw: 0, quality: 'ok' },
+  ]
+  const period = billingPeriod(u('2026-09-10T12:00:00Z'), TZ, 1)
+
+  it('splits the saving into solar, battery shifting and demand avoided', () => {
+    const bill = computeBill(period, rows, [v1] as never, TZ, NOW, true)
+    expect(bill.totalCents).toBe(177_795)
+    expect(bill.savings).toEqual({ baselineCents: 206_317, solarCents: 477, batteryCents: 45, demandCents: 28_000, baselinePeakKw: 140 })
+    expect(bill.savedCents).toBe(28_522)
+  })
+
+  it('is left out when not asked for', () => {
+    expect(computeBill(period, rows, [v1] as never, TZ, NOW)).toMatchObject({ savedCents: null, savings: null })
+  })
+
+  it('stays hidden until the site has 7 days of intervals', async () => {
+    const site = (await Site.findById(siteId).lean())!
+    expect(await refreshBill(site, u('2026-09-20T12:00:00Z'), NOW)).toMatchObject({ savedCents: null, savings: null })
+    // A week of empty August quarter hours before the fixture
+    await Interval15.insertMany(
+      Array.from({ length: 7 * 96 }, (_, i) => ({ siteId, start: new Date(Date.parse('2026-08-01T04:00:00Z') + i * 15 * 60_000), costedAt: NOW }))
+    )
+    const bill = await refreshBill(site, u('2026-09-20T12:00:00Z'), NOW)
+    // The only PV in the fixture is the 2 kWh exported: only its credit (2 × 5¢) is saved
+    expect(bill).toMatchObject({ totalCents: 150_548, savedCents: 10, savings: { solarCents: 10, batteryCents: 0, demandCents: 0, baselineCents: 150_558 } })
   })
 })
 

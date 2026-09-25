@@ -220,6 +220,14 @@ the fixed fee use the version in force on the period's last day (today, for an o
 `peakKw` is the highest 15- or 30-minute demand (`periodPeak`). The bill also stores which
 versions priced it, the share of `estimated` intervals and any intervals no tariff covers.
 
+Savings (P2-04) compare each bill with the same site load bought entirely from the grid on the
+same tariff. Per interval, load = grid − export + pv + batt, so the energy saving splits exactly
+into **solar** (cost of pv − export at its period price, plus the export credit) and **battery
+shifting** (signed cost of battery kWh: discharge at dear periods minus charge at cheap ones).
+**Demand avoided** is the baseline peak (load × 4) minus the actual peak, at the demand rate.
+`savedCents` is the sum of the three and `baselineCents` = `totalCents` + `savedCents`. Both stay
+null until the site has 7 days (672) of intervals.
+
 ## Live view (P1-08)
 
 ```mermaid
