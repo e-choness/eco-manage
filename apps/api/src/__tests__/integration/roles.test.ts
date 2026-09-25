@@ -19,6 +19,7 @@ type Access = 'public' | 'user' | readonly Role[];
 const ALL: readonly Role[] = ['owner', 'manager', 'installer'];
 const MONEY: readonly Role[] = ['owner', 'manager'];
 const INSTALLER: readonly Role[] = ['installer'];
+const OWNER: readonly Role[] = ['owner'];
 
 // Who may call each route. 'public': no token; 'user': any signed-in user, no site needed.
 const ROUTES: Record<string, Access> = {
@@ -44,6 +45,9 @@ const ROUTES: Record<string, Access> = {
   'post /api/optimization/dismiss': MONEY,
   'get /api/site/snapshot': ALL,
   'get /api/site/stream': ALL,
+  'get /api/tariffs/': MONEY,
+  'get /api/tariffs/templates': OWNER,
+  'post /api/tariffs/': OWNER,
 };
 
 interface Layer {

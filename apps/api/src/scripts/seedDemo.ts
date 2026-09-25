@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { DEMO_DEVICES, DEMO_SITE, DEMO_SITE_ID, DEMO_USERS } from '@ecomanage/shared';
-import { Device as SiteDevice, Interval15, Membership, Site, Telemetry, initModels } from '@ecomanage/db';
+import { DEMO_DEVICES, DEMO_SITE, DEMO_SITE_ID, DEMO_USERS, TARIFF_TEMPLATES } from '@ecomanage/shared';
+import { Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, initModels } from '@ecomanage/db';
 import User from '../modules/auth/model';
 import Alert from '../modules/alerts/model';
 import Recommendation from '../modules/optimization/model';
@@ -50,6 +50,7 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       SiteDevice.deleteMany({ siteId: DEMO_SITE_ID }),
       Telemetry.deleteMany({ 'meta.siteId': new mongoose.Types.ObjectId(DEMO_SITE_ID) }),
       Interval15.deleteMany({ siteId: DEMO_SITE_ID }),
+      Tariff.deleteMany({ siteId: DEMO_SITE_ID }),
     ]);
     log('✅ Cleared existing demo data');
 
@@ -190,6 +191,20 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       }))
     );
     log(`✅ Created ${DEMO_SITE.name} with ${DEMO_DEVICES.length} devices`);
+
+    // Tariff history (App v2: version 3 valid from 1 Apr 2026; earlier rates were a little lower).
+    const tou = TARIFF_TEMPLATES[0].tariff;
+    const scaled = (f: number, demand: number) => ({
+      ...tou,
+      periods: tou.periods.map((p) => ({ ...p, rateCents: Math.round(p.rateCents * f * 10) / 10 })),
+      demandRateCents: demand,
+    });
+    await Tariff.insertMany([
+      { siteId: DEMO_SITE_ID, version: 1, validFrom: '2024-03-14', ...scaled(0.9, 1200) },
+      { siteId: DEMO_SITE_ID, version: 2, validFrom: '2025-04-01', ...scaled(0.94, 1300) },
+      { siteId: DEMO_SITE_ID, version: 3, validFrom: '2026-04-01', ...tou },
+    ]);
+    log('✅ Created tariff versions 1–3');
 
     const migration = await migrateToV2({ dropLegacy: true });
     log(`✅ Migration: ${migration.sitesCreated} sites created for users without one`);
