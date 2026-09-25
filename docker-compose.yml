@@ -1,32 +1,36 @@
-services:
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-    ports:
-      - "5173:5173"
-    depends_on:
-      - server
+x-workspace: &workspace
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
+  image: ecomanage-dev
+  working_dir: /repo
+  volumes:
+    - .:/repo
+    - /repo/node_modules
+    - /repo/apps/api/node_modules
+    - /repo/apps/web/node_modules
 
-  server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./server:/app
-      - /app/node_modules
+services:
+  api:
+    <<: *workspace
+    command: ["pnpm", "--filter", "@ecomanage/api", "dev"]
     ports:
       - "3000:3000"
-    env_file: ./server/.env
+    env_file: ./apps/api/.env
     environment:
       DATABASE_URL: mongodb://mongodb:27017/ecomanage
     depends_on:
       mongodb:
         condition: service_healthy
     restart: unless-stopped
+
+  web:
+    <<: *workspace
+    command: ["pnpm", "--filter", "@ecomanage/web", "dev"]
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
 
   mongodb:
     image: mongo:7
@@ -42,14 +46,9 @@ services:
     restart: unless-stopped
 
   mongo-seed:
-    build:
-      context: ./server
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./server:/app
-      - /app/node_modules
-    command: ["npx", "tsx", "src/scripts/seed.ts"]
-    env_file: ./server/.env
+    <<: *workspace
+    command: ["pnpm", "--filter", "@ecomanage/api", "seed"]
+    env_file: ./apps/api/.env
     environment:
       DATABASE_URL: mongodb://mongodb:27017/ecomanage
     depends_on:
