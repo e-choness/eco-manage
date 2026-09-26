@@ -109,7 +109,7 @@ export class SiteEngine {
   private readonly exportLimit = new Map<string, Override<number>>(); // pct of rating
   private readonly outputFactor = new Map<string, number>();
   private readonly evLimit = new Map<string, Override<number>>(); // amps
-  private readonly evSchedule = new Map<string, { at: number; amps: number }[]>();
+  private readonly evSchedule = new Map<string, { steps: { at: number; amps: number }[]; until: number | null }>();
   private readonly sessions = new Map<string, EvSession>();
   private readonly startedToday = new Set<string>();
   private sgMode: Override<number> | null = null;
@@ -266,8 +266,9 @@ export class SiteEngine {
   evLimitA(key: string): number {
     const nowMs = this.now.getTime();
     const schedule = this.evSchedule.get(key);
-    if (schedule?.length) {
-      const current = schedule.filter((s) => s.at <= nowMs).at(-1);
+    const steps = schedule && (schedule.until === null || nowMs < schedule.until) ? schedule.steps : [];
+    if (steps.length) {
+      const current = steps.filter((s) => s.at <= nowMs).at(-1);
       if (current) return current.amps;
     }
     const limit = this.evLimit.get(key);
@@ -496,6 +497,44 @@ export class SiteEngine {
     return { ...this.battery, socPct: this.soc, reservePct: this.reserve };
   }
 
+  /** What the cloud has set that is still in force (the gateway's view for safety, and tests). */
+  overrides(): {
+    battery: string | null;
+    reservePct: number;
+    exportLimits: string[];
+    evLimits: string[];
+    evSchedules: string[];
+    heatPump: string | null;
+  } {
+    const now = this.now.getTime();
+    const live = <T>(o: Override<T> | null | undefined) => !!o && (o.until === null || now < o.until);
+    const ev = [...this.evSchedule].filter(([, s]) => s.until === null || now < s.until).map(([k]) => k);
+    const sgScheduled = this.sgSchedule.length > 0 && (this.sgScheduleUntil === null || now < this.sgScheduleUntil);
+    return {
+      battery: live(this.batteryMode) ? this.batteryMode!.value.kind : null,
+      reservePct: this.reserve,
+      exportLimits: [...this.exportLimit].filter(([, o]) => live(o)).map(([k]) => k),
+      evLimits: [...this.evLimit].filter(([, o]) => live(o)).map(([k]) => k),
+      evSchedules: ev,
+      heatPump: live(this.sgMode) ? 'sg_mode' : sgScheduled ? 'sg_schedule' : null,
+    };
+  }
+
+  /**
+   * Back to the site's own behaviour: no forced battery mode, export limits, EV limits or schedules,
+   * or heat pump overrides, and the reserve to `reservePct` (never below the floor).
+   */
+  revertAll(reservePct: number): void {
+    this.batteryMode = null;
+    this.exportLimit.clear();
+    this.evLimit.clear();
+    this.evSchedule.clear();
+    this.sgMode = null;
+    this.sgSchedule = [];
+    this.sgScheduleUntil = null;
+    this.reserve = Math.max(this.battery.floorPct, reservePct);
+  }
+
   /** Hardware minimum reserve from the site config (P2-06). The reserve never sits below it. */
   setFloor(pct: number): void {
     this.battery = { ...this.battery, floorPct: pct };
@@ -549,7 +588,7 @@ export class SiteEngine {
         const schedule = (params.schedule as { start: string; limitA: number }[] | undefined) ?? [];
         this.evSchedule.set(
           key,
-          schedule.map((s) => ({ at: toMs(s.start) ?? 0, amps: Number(s.limitA) })).sort((a, b) => a.at - b.at)
+          { steps: schedule.map((s) => ({ at: toMs(s.start) ?? 0, amps: Number(s.limitA) })).sort((a, b) => a.at - b.at), until }
         );
         return { ok: true };
       }
