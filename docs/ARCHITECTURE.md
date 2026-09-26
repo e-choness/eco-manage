@@ -56,6 +56,10 @@ Modules: `health`, `auth`, `site`, `devices`, `alerts`,
 - **service.ts** holds the logic. It takes plain values (`userId`, inputs), returns data or `null`,
   and has no Express types.
 - **model.ts** is the Mongoose schema.
+- **Audit:** every service call that writes site data also calls `recordAudit` (`@ecomanage/db`)
+  with the before and after values. Owners read the log at `GET /api/audit` (P3-07).
+  `audit.test.ts` lists every write route with its action, so a new write route fails the tests
+  until it is audited, or its reason for not being audited is written down.
 
 ### Request flow
 

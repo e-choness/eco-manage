@@ -213,6 +213,7 @@ describe('manual requests (Devices page)', () => {
       { label: 'Device', value: 'Battery' },
     ]);
     expect(res.body.checks.every((c: { pass: boolean }) => c.pass)).toBe(true);
+    expect(await AuditEvent.countDocuments({ action: 'recommendation.request', target: `recommendation:${res.body.id}` })).toBe(1);
     expect((await as('manager', request(app).post('/api/recommendations')).send(body({ window: res.body.window }))).status).toBe(409);
   });
 

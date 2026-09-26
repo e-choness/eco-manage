@@ -172,6 +172,18 @@ Decisions waiting for someone, alerts, and commands waiting or running, in one l
 - **`InboxItem`:** `key` (`type:id`), `type`, `id`, `kind` (Decision, Alert, Info, Active, Closed), `title`, `deviceId`, `deviceName`, `sub` (one line, e.g. "Battery · expected saving $266" or "Battery · running until 17:00 · approved by Jamie Reyes"), `status`, `at`, and `due` (when a decision expires, or when a command ends).
 - **Order and paging:** newest first by when the item arrived (which never changes), same-moment items by key. `nextCursor` holds the last item's time and key, so items moving between open and closed while you page never repeat or go missing. A bad cursor is a `400`.
 
+## Audit log `/api/audit` 🔒 owner (v2, P3-07)
+
+Every write to a site records an `AuditEvent` `{siteId, userId, action, target, before, after, ts}` (plan §0.8). Owners read them here; nothing changes them through the API.
+
+| Method | Path | Query | Result |
+| ------ | ---- | ----- | ------ |
+| GET | `/` | `action` (one action such as `device.update`, or a group such as `device`), `userId`, `target` (e.g. `device:…`), `from`, `to` (ISO times, `to` exclusive), `limit` 1–200 (default 50), `cursor` | `{ items: AuditEntry[], nextCursor }`, newest first |
+
+- **`AuditEntry`:** `id`, `ts`, `action`, `target`, `user` (`{ id, name }`; `null` for the rules service, worker or gateway; "Former user" once the person's account is gone), `before`, `after`.
+- **Paging:** `nextCursor` holds the last entry's time and id, so entries written while you page don't shift the pages. A bad cursor or filter is a `400`.
+- **Actions recorded:** `alert.ack`, `.snooze`, `.resolve`, `.false-alarm`, `.fix`; `bill.utility.upload`, `.enter`; `calendar.update`; `command.cancel`; `device.create`, `.update`, `.delete`; `notifications.update`; `recommendation.request`, `.approve`, `.decline`; `site.update`, `site.pv-arrays`, `site.battery`; `tariff.create`; `site.create` (migration). `/api/auth/*` changes a person's own account, not a site, and isn't recorded.
+
 ## Server errors
 
 Each v1 route answers unexpected failures with its own `500` body, for example
