@@ -298,3 +298,30 @@ export const TARIFF_TEMPLATES: { id: string; name: string; tariff: Omit<TariffIn
     },
   },
 ];
+
+// ---- today's prices (P4-03) --------------------------------------------------------------------
+
+export interface PriceSegment {
+  name: string; // the tariff's period name
+  rateCents: number;
+  level: 'off' | 'mid' | 'peak'; // cheapest, in between, dearest rate of the day (a flat day is "mid")
+  start: string; // ISO instants; a DST day is 23 or 25 hours long
+  end: string;
+}
+
+/** The periods of one local day in order, for Home's price strip. Minute-exact, gaps throw. */
+export const dayPrices = (t: Pick<TariffInput, 'seasons' | 'periods' | 'holidays'>, date: string, tz: string): PriceSegment[] => {
+  const start = DateTime.fromISO(date, { zone: tz }).startOf('day');
+  const end = start.plus({ days: 1 });
+  const segments: Omit<PriceSegment, 'level'>[] = [];
+  for (let at = start; at < end; at = at.plus({ minutes: 1 })) {
+    const p = periodAt(t, at.toJSDate(), tz);
+    const next = at.plus({ minutes: 1 }).toUTC().toISO() as string;
+    const last = segments.at(-1);
+    if (last && last.name === p.name && last.rateCents === p.rateCents) last.end = next;
+    else segments.push({ name: p.name, rateCents: p.rateCents, start: at.toUTC().toISO() as string, end: next });
+  }
+  const rates = [...new Set(segments.map((s) => s.rateCents))].sort((a, b) => a - b);
+  const level = (rate: number): PriceSegment['level'] => (rates.length === 1 ? 'mid' : rate === rates[0] ? 'off' : rate === rates.at(-1) ? 'peak' : 'mid');
+  return segments.map((s) => ({ ...s, level: level(s.rateCents) }));
+};

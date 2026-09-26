@@ -1,7 +1,7 @@
 # Testing
 
-All suites run inside the dev container. As of P4-02: **api 280, web 40, ingest 29, simulator 32, rules 43, recs 33,
-shared 109, profiles 20, db 10, worker 50**, all passing. Lint and typecheck also pass. The api,
+All suites run inside the dev container. As of P4-03: **api 286, web 45, ingest 29, simulator 32, rules 43, recs 33,
+shared 116, profiles 20, db 11, worker 50**, all passing. Lint and typecheck also pass. The api,
 ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest and rules; the worker's SMTP test uses Mailpit).
 
 ```bash
@@ -53,7 +53,8 @@ docker compose run --rm --no-deps api pnpm --filter @ecomanage/web test:watch
 | `pages/Login.test.tsx`                 | App v2 sign-in: fields, landing Home or the page asked for, server message on failure, no sign-up |
 | `pages/InviteAccept.test.tsx`          | Invite link: new account (name, 8+ character password), existing account (its password), used/expired/unknown links |
 | `routes.test.tsx`                      | Old `/dashboard/…` addresses redirect to the top-level ones |
-| `pages/Live.test.tsx`, `Monitoring.test.tsx` | Live view from snapshot + stream (reducer, SSE parser), devices list and detail |
+| `pages/Home.test.tsx`                  | App v2 Home: flows (2D fallback in jsdom) and the flows table, demand, bill (not for installers), battery, Needs you with approve and decline-with-reason, price strip with the next peak, empty states |
+| `siteLive.test.ts`, `pages/Monitoring.test.tsx` | Stream events applied to the snapshot, SSE parser; devices list and detail |
 | `pages/p0-05-bugfixes.test.tsx`        | Dismissing a recommendation is saved |
 | `shell/AppShell.test.tsx`              | App v2 shell: rail by role (no Bills for installers), Inbox badge from counts then stream `inbox` events, saved theme applied and a switch saved on the user, avatar menu (role from the membership, Profile, Sign out), no-site screen |
 

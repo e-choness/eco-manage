@@ -126,3 +126,21 @@
     accent-color: #3ecf8e;
   }
 }
+
+/* Home's 2D site diagram (no WebGL): dashes move into the switchboard, or out for loads. */
+@keyframes flow-dash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+.flow-dash {
+  animation: flow-dash 0.9s linear infinite;
+}
+.flow-dash-out {
+  animation-direction: reverse;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-dash {
+    animation: none;
+  }
+}

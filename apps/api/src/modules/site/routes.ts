@@ -4,6 +4,10 @@ import type { GatewayLink } from '../../lib/gatewayLink';
 import type { JobClient } from '../../lib/jobs';
 import { siteController, type SiteControllerDeps } from './controller';
 import { settingsController } from './settingsController';
+import { handle } from '../../lib/http';
+import type { AuthenticatedRequest } from '../../middleware/auth';
+import type { Role } from '@ecomanage/shared';
+import { siteModel, siteToday } from './home';
 
 const ALL = ['owner', 'manager', 'installer'] as const;
 
@@ -19,5 +23,13 @@ export const siteRoutes = (deps: SiteControllerDeps & { gateway?: GatewayLink; j
   router.get('/gateway', ...requireRole(...ALL), settings.gateway);
   router.get('/snapshot', ...requireRole(...ALL), site.snapshot);
   router.get('/stream', ...requireRole(...ALL), site.stream);
+  // Home (P4-03)
+  const HOME_FALLBACK = { status: 500, body: { error: { code: 500, message: 'Failed to load Home' } } };
+  router.get('/model', ...requireRole(...ALL), handle(HOME_FALLBACK, async (req: AuthenticatedRequest, res) => void res.json(await siteModel(req.site!))));
+  router.get(
+    '/today',
+    ...requireRole(...ALL),
+    handle(HOME_FALLBACK, async (req: AuthenticatedRequest, res) => void res.json(await siteToday(req.site!, req.membership!.role as Role)))
+  );
   return router;
 };

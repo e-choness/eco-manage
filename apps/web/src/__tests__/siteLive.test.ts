@@ -1,14 +1,11 @@
+/**
+ * P1-08: the live view maths shared by Home: applying stream events to the snapshot, and reading
+ * the SSE stream in chunks.
+ */
 import { describe, it, expect } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { http, HttpResponse } from 'msw'
 import type { SiteSnapshot } from '@ecomanage/shared'
-import { server } from '../setup'
-import { Live } from '@/pages/Live'
-import { SiteStreamProvider } from '@/shell/SiteStreamProvider'
 import { applySiteEvent, createSseParser } from '@/lib/siteLive'
 
-const BASE = 'http://localhost:3000'
 const now = new Date()
 const ts = (msAgo = 1000) => new Date(now.getTime() - msAgo).toISOString()
 
@@ -58,39 +55,5 @@ describe('createSseParser', () => {
       { event: 'snapshot', data: { a: 1 } },
       { event: 'message', data: { b: 2 } },
     ])
-  })
-})
-
-describe('Live page', () => {
-  it('shows the snapshot, then values pushed over the stream', async () => {
-    server.use(
-      http.get(`${BASE}/api/site/snapshot`, () => HttpResponse.json(snapshot)),
-      http.get(`${BASE}/api/site/stream`, () => {
-        const enc = new TextEncoder()
-        const body = new ReadableStream({
-          start(c) {
-            c.enqueue(enc.encode(`event: snapshot\ndata: ${JSON.stringify(snapshot)}\n\n`))
-            setTimeout(() => {
-              c.enqueue(enc.encode(`event: telemetry\ndata: ${JSON.stringify({ type: 'telemetry', deviceId: 'pv', reading: { ts: new Date().toISOString(), p_kw: 44.4, q: 'ok' } })}\n\n`))
-            }, 50)
-          },
-        })
-        return new HttpResponse(body, { headers: { 'Content-Type': 'text/event-stream' } })
-      })
-    )
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <SiteStreamProvider>
-          <Live />
-        </SiteStreamProvider>
-      </QueryClientProvider>
-    )
-    expect(await screen.findByTestId('site-name')).toHaveTextContent('Maple Grove School')
-    expect(screen.getByTestId('flow-grid')).toHaveTextContent('12.8 kW import')
-    expect(screen.getByTestId('device-kw-e1')).toHaveTextContent('7.4 kW') // loads shown positive
-    expect(screen.getByTestId('demand-now')).toHaveTextContent('88.0 kW')
-
-    await waitFor(() => expect(screen.getByTestId('flow-pv')).toHaveTextContent('44.4 kW'))
-    expect(screen.getByTestId('live-status')).toHaveTextContent('Live')
   })
 })

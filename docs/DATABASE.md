@@ -61,7 +61,8 @@ services share them. Plain types live in `packages/shared/src/models.ts`.
 | `fleetVehicles`  | siteId, name, rfid (the charger idTag), capacityKwh, departure (local HH:mm) | {siteId, rfid} unique |
 | `recommendations` | siteId, ruleId (or `manual`), dedupeKey, deviceId, action, params, title, window {start, end}, inputs [{label, value}], checks [{text, pass}], calc, expectedSavingCents, status (proposed, approved, declined, expired, sent, acked, verified, failed, reverted, cancelled), proposedAt, expiresAt, decidedBy, decidedAt, declineReason, commandId, actualSavingCents, actualCalc, measuredAt, createdBy | {siteId, status}, dedupeKey; one open per (siteId, dedupeKey) (unique partial) |
 | `forecasts`      | siteId, kind (pv, load), issuedAt, source, points [{ts, kw}] (48 h, 15 min), weather [{ts, tempC, cloud, storm}] (PV), profiles [{date, label, days}] (load), accuracy {mape, n, evaluatedAt} | {siteId, kind, issuedAt: -1}; expires after 30 days |
-| `emails`         | key (unique claim), siteId, userId, kind (alert, escalation, daily, proposal), alertId, to, subject, status (sending, sent), sentAt, messageId | key unique, {siteId, createdAt: -1} |
+| `emails`         | key (unique claim), siteId, userId, kind (alert, escalation, daily, proposal, invite), alertId, to, subject, status (sending, sent), sentAt, messageId | key unique, {siteId, createdAt: -1} |
+| `siteModels`     | siteId, version, source (generated, upload), generated {}, upload {}, hub [x,y,z], anchors [{key (pv, battery, grid, ev, heatpump), at, label}], buildingLabel, camera {view}. Home uses the latest version, or the App v2 demo scene until one is saved (P4-03) | {siteId, version} unique |
 | `auditEvents`    | siteId, userId (null for system actions), action, target, before, after, ts | {siteId, ts: -1} |
 
 `initModels()` creates the collections and syncs the indexes. The time-series collection has to be
