@@ -445,3 +445,10 @@ The browser applies each event to the cached snapshot (react-query) with `applyS
 reuses the shared `siteFlows` / `batteryLive` functions, so its numbers match the API's.
 Measured through the web dev server's proxy: telemetry reaches the browser about 0.66 s after
 the simulator stamps it.
+
+**Inbox badge (P3-06):** the rules service and the API publish `inbox` notes (`{itemType, itemId}`)
+when a decision changes. The stream doesn't forward those notes. It collects them, together with
+every `alert` and `command` event, and sends one `inbox` event with fresh counts and the changed
+items, at most every 300 ms. It also sends one right after the snapshot, so the badge is right from
+the start. The Inbox list itself (`GET /api/inbox`) is ordered by arrival time and paged with a
+(time, key) cursor, so items closing while someone pages don't shift the pages.

@@ -55,6 +55,8 @@ const ROUTES: Record<string, Access> = {
   'get /api/commands/': ALL,
   'get /api/commands/:id': ALL,
   'post /api/commands/:id/cancel': MONEY,
+  'get /api/inbox/': ALL,
+  'get /api/inbox/counts': ALL,
   'get /api/site/': ALL,
   'patch /api/site/': OWNER,
   'put /api/site/pv-arrays': HARDWARE,
