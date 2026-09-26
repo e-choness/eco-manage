@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
-import { login as apiLogin, logout as apiLogout, register as apiRegister } from "../api/auth";
+import type { InviteAccept } from "@ecomanage/shared";
+import { login as apiLogin, logout as apiLogout } from "../api/auth";
+import { acceptInvite as apiAcceptInvite } from "../api/invites";
 import { errorMessage, refreshSession, setAccessToken, setSessionExpiredHandler } from "../api/api";
 import type { SessionUser } from "../api/types";
 
@@ -16,7 +18,7 @@ type AuthContextType = {
   isRestoring: boolean;
   user: UserData;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  acceptInvite: (token: string, body: InviteAccept) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (fields: Partial<NonNullable<UserData>>) => void;
 };
@@ -61,15 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Registration doesn't issue tokens, so sign in right after creating the account.
-  const register = async (email: string, password: string, name: string) => {
-    try {
-      await apiRegister(email, password, name);
-    } catch (error) {
-      clearSession();
-      throw new Error(errorMessage(error) || 'Registration failed');
-    }
-    await login(email, password);
+  // Invite links (P4-02): accepting creates the account or signs in the existing one, and the
+  // response is a session like login's. Errors keep their status (InviteError) for the page.
+  const acceptInvite = async (token: string, body: InviteAccept) => {
+    const { accessToken, ...rest } = await apiAcceptInvite(token, body);
+    setAccessToken(accessToken);
+    setUser(toUserData(rest));
   };
 
   const logout = async () => {
@@ -86,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated: !!user, isRestoring, user, login, register, logout, updateUser }}
+      value={{ isAuthenticated: !!user, isRestoring, user, login, acceptInvite, logout, updateUser }}
     >
       {children}
     </AuthContext.Provider>

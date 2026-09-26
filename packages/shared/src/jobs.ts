@@ -5,7 +5,7 @@ export const QUEUES = {
   billing: 'billing',
   /** On demand: statement PDFs, utility bill extraction. */
   documents: 'documents',
-  /** Repeating: alert emails, escalation, daily summaries (P2-09). */
+  /** Repeating: alert emails, escalation, daily summaries (P2-09). On demand: invites (P4-02). */
   email: 'email',
   /** Hourly PV and load forecasts, and on demand after calendar or array changes (P2-10). */
   forecast: 'forecast',
@@ -25,4 +25,10 @@ export interface UtilityBillJob {
 export interface DocumentJobs {
   statement: { data: StatementJob; result: { fileId: string } };
   'utility-bill': { data: UtilityBillJob; result: { status: 'done' | 'failed'; totalCents: number | null } };
+}
+
+/** `invite` on the email queue: the link's token travels only in the job, never stored. */
+export interface InviteJob {
+  inviteId: string;
+  token: string;
 }

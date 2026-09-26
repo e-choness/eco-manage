@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import UserService, { CreateUserInput } from './userService';
+import UserService from './userService';
 import { IUser } from './model';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../utils/auth';
 import { listMemberships } from '../site/service';
@@ -13,7 +13,7 @@ export interface Session {
 export type RefreshResult = { ok: true; session: Session } | { ok: false; reason: 'invalid' | 'expired' };
 
 // Issues a token pair and stores the refresh token so it can be rotated and revoked.
-const startSession = async (user: IUser): Promise<Session> => {
+export const startSession = async (user: IUser): Promise<Session> => {
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
   user.refreshToken = refreshToken;
@@ -34,7 +34,6 @@ export const login = async (email: string, password: string): Promise<Session | 
   return user ? startSession(user) : null;
 };
 
-export const register = (input: CreateUserInput): Promise<IUser> => UserService.create(input);
 
 export const refresh = async (token: string): Promise<RefreshResult> => {
   let sub: string;

@@ -1,243 +1,92 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+/**
+ * P4-02: App v2 Login. Signs in through the real AuthContext and API client (MSW), lands on Home
+ * or the page the person was sent away from, and shows the server's message on failure.
+ */
+import { describe, it, expect } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { http, HttpResponse } from 'msw'
+import { server } from '../setup'
 import { Login } from '@/pages/Login'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { BrowserRouter } from 'react-router-dom'
 
-// Mock the useNavigate hook
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom')
-  return {
-    ...actual,
-    useNavigate: () => vi.fn(),
-  }
-})
+const BASE = 'http://localhost:3000'
 
-// Mock the useToast hook
-vi.mock('@/hooks/useToast', () => ({
-  useToast: () => ({
-    toast: vi.fn(),
-  }),
-}))
-
-// Mock auth API
-vi.mock('@/api/auth', () => ({
-  login: vi.fn(),
-  register: vi.fn(),
-  logout: vi.fn(),
-}))
-
-function renderLogin() {
-  return render(
-    <BrowserRouter>
-      <AuthProvider>
-        <Login />
-      </AuthProvider>
-    </BrowserRouter>
+const renderLogin = (entry: string | { pathname: string; state: unknown } = '/login') =>
+  render(
+    <AuthProvider>
+      <MemoryRouter initialEntries={[entry]}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<p>Home page</p>} />
+          <Route path="/inbox" element={<p>Inbox page</p>} />
+        </Routes>
+      </MemoryRouter>
+    </AuthProvider>
   )
+
+const fill = async (email: string, password: string) => {
+  if (email) await userEvent.type(screen.getByLabelText('Email'), email)
+  if (password) await userEvent.type(screen.getByLabelText('Password'), password)
+  await userEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 }
 
-describe('Login Page', () => {
-  beforeEach(() => {
-    localStorage.clear()
-    vi.clearAllMocks()
+describe('Login', () => {
+  it('shows the App v2 sign-in panel', async () => {
+    renderLogin()
+    expect(await screen.findByRole('heading', { name: 'Sign in to your site' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email')
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password')
+    expect(screen.getByText('Demo account: demo@ecomanage.io · Demo1234!')).toBeInTheDocument()
+    expect(screen.getByText(/invite-only/)).toBeInTheDocument()
+    expect(screen.queryByText(/sign up/i)).toBeNull()
   })
 
-  describe('Form Rendering', () => {
-    it('should render login form with email and password fields', () => {
-      renderLogin()
-
-      expect(screen.getByPlaceholderText(/enter your email/i)).toBeInTheDocument()
-      expect(screen.getByPlaceholderText(/enter your password/i)).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
-    })
-
-    it('should render sign up link', () => {
-      renderLogin()
-
-      const signUpLink = screen.getByRole('button', { name: /don't have an account/i })
-      expect(signUpLink).toBeInTheDocument()
-    })
-
-    it('should have email input of type email', () => {
-      renderLogin()
-
-      const emailInput = screen.getByPlaceholderText(/enter your email/i) as HTMLInputElement
-      expect(emailInput.type).toBe('email')
-    })
-
-    it('should have password input of type password', () => {
-      renderLogin()
-
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i) as HTMLInputElement
-      expect(passwordInput.type).toBe('password')
-    })
+  it('signs in and goes Home', async () => {
+    let body: unknown
+    server.use(
+      http.post(`${BASE}/api/auth/login`, async ({ request }) => {
+        body = await request.json()
+        return HttpResponse.json({ _id: 'u1', email: 'jamie@example.com', accessToken: 'a' })
+      })
+    )
+    renderLogin()
+    await screen.findByLabelText('Email')
+    await fill(' jamie@example.com ', 'Demo1234!')
+    expect(await screen.findByText('Home page')).toBeInTheDocument()
+    expect(body).toEqual({ email: 'jamie@example.com', password: 'Demo1234!' })
   })
 
-  describe('Form Submission', () => {
-    it('should submit form with email and password', async () => {
-      const user = userEvent.setup()
-      const { login: loginMock } = await import('@/api/auth')
-      vi.mocked(loginMock).mockResolvedValue({
-        _id: 'user-1',
-        email: 'test@example.com',
-        accessToken: 'test-token',
-      })
-
-      renderLogin()
-
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
-      const submitButton = screen.getByRole('button', { name: /sign in/i })
-
-      await user.type(emailInput, 'test@example.com')
-      await user.type(passwordInput, 'password123')
-      await user.click(submitButton)
-
-      await waitFor(() => {
-        expect(loginMock).toHaveBeenCalledWith('test@example.com', 'password123')
-      })
-    })
-
-    it('should disable submit button while loading', async () => {
-      const user = userEvent.setup()
-      const { login: loginMock } = await import('@/api/auth')
-      vi.mocked(loginMock).mockImplementation(() => new Promise(resolve => {
-        setTimeout(() => resolve({ _id: 'user-1', email: 'test@example.com', accessToken: 'test' }), 100)
-      }))
-
-      renderLogin()
-
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
-      const submitButton = screen.getByRole('button', { name: /sign in/i })
-
-      await user.type(emailInput, 'test@example.com')
-      await user.type(passwordInput, 'password123')
-      await user.click(submitButton)
-
-      expect(submitButton).toBeDisabled()
-
-      await waitFor(() => {
-        expect(submitButton).not.toBeDisabled()
-      }, { timeout: 200 })
-    })
-
-    it('should show loading text while submitting', async () => {
-      const user = userEvent.setup()
-      const { login: loginMock } = await import('@/api/auth')
-      vi.mocked(loginMock).mockImplementation(() => new Promise(resolve => {
-        setTimeout(() => resolve({ _id: 'user-1', email: 'test@example.com', accessToken: 'test' }), 50)
-      }))
-
-      renderLogin()
-
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
-      const submitButton = screen.getByRole('button', { name: /sign in/i })
-
-      await user.type(emailInput, 'test@example.com')
-      await user.type(passwordInput, 'password123')
-      await user.click(submitButton)
-
-      expect(screen.getByText(/loading/i)).toBeInTheDocument()
-
-      await waitFor(() => {
-        expect(screen.queryByText(/loading/i)).not.toBeInTheDocument()
-      }, { timeout: 100 })
-    })
+  it('returns to the page the person was sent away from', async () => {
+    renderLogin({ pathname: '/login', state: { from: { pathname: '/inbox', search: '' } } })
+    await screen.findByLabelText('Email')
+    await fill('jamie@example.com', 'Demo1234!')
+    expect(await screen.findByText('Inbox page')).toBeInTheDocument()
   })
 
-  describe('Error Handling', () => {
-    it('should handle login errors', async () => {
-      const user = userEvent.setup()
-      const { login: loginMock } = await import('@/api/auth')
-      vi.mocked(loginMock).mockRejectedValue(new Error('Invalid credentials'))
-
-      renderLogin()
-
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
-      const submitButton = screen.getByRole('button', { name: /sign in/i })
-
-      await user.type(emailInput, 'test@example.com')
-      await user.type(passwordInput, 'wrongpassword')
-      await user.click(submitButton)
-
-      await waitFor(() => {
-        expect(loginMock).toHaveBeenCalled()
-      })
-    })
-
-    it('should not store tokens on failed login', async () => {
-      const user = userEvent.setup()
-      const { login: loginMock } = await import('@/api/auth')
-      vi.mocked(loginMock).mockRejectedValue(new Error('Login failed'))
-
-      renderLogin()
-
-      const emailInput = screen.getByPlaceholderText(/enter your email/i)
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i)
-      const submitButton = screen.getByRole('button', { name: /sign in/i })
-
-      await user.type(emailInput, 'test@example.com')
-      await user.type(passwordInput, 'password')
-      await user.click(submitButton)
-
-      await waitFor(() => {
-        expect(localStorage.getItem('accessToken')).toBeNull()
-      })
-    })
+  it("shows the server's message and stays signed out", async () => {
+    server.use(http.post(`${BASE}/api/auth/login`, () => HttpResponse.json({ message: 'Email or password is incorrect' }, { status: 400 })))
+    renderLogin()
+    await screen.findByLabelText('Email')
+    await fill('jamie@example.com', 'wrong')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Email or password is incorrect')
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled()
+    expect(screen.queryByText('Home page')).toBeNull()
   })
 
-  describe('Field Interactions', () => {
-    it('should clear field values after successful submission', async () => {
-      const user = userEvent.setup()
-      const { login: loginMock } = await import('@/api/auth')
-      vi.mocked(loginMock).mockResolvedValue({
-        _id: 'user-1',
-        email: 'test@example.com',
-        accessToken: 'test-token',
+  it('asks for both fields before calling the server', async () => {
+    let called = false
+    server.use(
+      http.post(`${BASE}/api/auth/login`, () => {
+        called = true
+        return HttpResponse.json({})
       })
-
-      renderLogin()
-
-      const emailInput = screen.getByPlaceholderText(/enter your email/i) as HTMLInputElement
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i) as HTMLInputElement
-      const submitButton = screen.getByRole('button', { name: /sign in/i })
-
-      await user.type(emailInput, 'test@example.com')
-      await user.type(passwordInput, 'password123')
-      await user.click(submitButton)
-
-      await waitFor(() => {
-        expect(loginMock).toHaveBeenCalled()
-      })
-
-      // React Hook Form may or may not clear fields based on implementation
-      // Just verify the submit was called
-      expect(loginMock).toHaveBeenCalledWith('test@example.com', 'password123')
-    })
-
-    it('should accept valid email formats', async () => {
-      const user = userEvent.setup()
-      renderLogin()
-
-      const emailInput = screen.getByPlaceholderText(/enter your email/i) as HTMLInputElement
-
-      await user.type(emailInput, 'test+tag@domain.co.uk')
-      expect(emailInput.value).toBe('test+tag@domain.co.uk')
-    })
-
-    it('should allow password input with special characters', async () => {
-      const user = userEvent.setup()
-      renderLogin()
-
-      const passwordInput = screen.getByPlaceholderText(/enter your password/i) as HTMLInputElement
-
-      await user.type(passwordInput, 'P@ssw0rd!#$%')
-      expect(passwordInput.value).toBe('P@ssw0rd!#$%')
-    })
+    )
+    renderLogin()
+    await screen.findByLabelText('Email')
+    await fill('jamie@example.com', '')
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter your email and password.')
+    await waitFor(() => expect(called).toBe(false))
   })
 })

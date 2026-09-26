@@ -4,12 +4,12 @@ import { Queue, Worker } from 'bullmq';
 import pino from 'pino';
 import { z } from 'zod';
 import { initModels } from '@ecomanage/db';
-import { QUEUES } from '@ecomanage/shared';
+import { QUEUES, type InviteJob } from '@ecomanage/shared';
 import { costPendingIntervals, nightlyBills } from './billing';
 import { measureSavings } from './savings';
 import { statementJob, utilityBillJob } from './documents';
 import { createMailer } from './email/mailer';
-import { dailySummaries, notifyAlerts, notifyProposals } from './email/notify';
+import { dailySummaries, notifyAlerts, notifyProposals, sendInvite } from './email/notify';
 import { forecastAll, forecastSite } from './forecast/run';
 import { openMeteoWeather, simulatedWeather } from './forecast/weather';
 
@@ -98,7 +98,13 @@ const main = async () => {
   await emailQueue.upsertJobScheduler('notify', { every: env.EMAIL_EVERY_MS }, { name: 'notify' });
   const email = new Worker(
     QUEUES.email,
-    async () => {
+    async (job) => {
+      // On demand: an owner just invited someone (P4-02).
+      if (job.name === 'invite') {
+        const invited = await sendInvite(mailer, env.APP_URL, job.data as InviteJob);
+        log.info({ inviteId: (job.data as InviteJob).inviteId, sent: invited }, 'invite email');
+        return { invite: invited };
+      }
       const sent = await notifyAlerts(mailer, env.APP_URL);
       const daily = await dailySummaries(mailer, env.APP_URL);
       const proposals = await notifyProposals(mailer, env.APP_URL);

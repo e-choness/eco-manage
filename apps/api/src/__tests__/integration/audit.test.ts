@@ -17,7 +17,6 @@ import { generatePasswordHash } from '../../utils/password';
 // Every route that writes, and the audit action(s) it records, or why it records none.
 const WRITES: Record<string, string[] | string> = {
   'post /api/auth/login': 'signing in changes no site data',
-  'post /api/auth/register': 'creates an account; it has no site until invited',
   'post /api/auth/logout': 'signing out changes no site data',
   'post /api/auth/refresh': 'renews a session; no site data',
   'put /api/auth/password': "the person's own account, not a site",
@@ -41,6 +40,8 @@ const WRITES: Record<string, string[] | string> = {
   'post /api/bills/:period/utility-bill': ['bill.utility.upload', 'bill.utility.enter'],
   'put /api/calendar/': ['calendar.update'],
   'patch /api/me/notifications': ['notifications.update'],
+  'post /api/site/invites/': ['invite.create'],
+  'post /api/invites/:token/accept': ['invite.accept'],
 };
 
 const siteId = new mongoose.Types.ObjectId();

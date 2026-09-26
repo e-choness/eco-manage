@@ -25,7 +25,7 @@ const localApi = axios.create({
   transformResponse: [(data) => (data ? JSONbig.parse(data) : data)],
 });
 
-const NO_REFRESH_URLS = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/auth/logout'];
+const NO_REFRESH_URLS = ['/api/auth/login', '/api/invites/', '/api/auth/refresh', '/api/auth/logout'];
 
 export interface Session {
   accessToken: string;

@@ -2,6 +2,7 @@ import mongoose, { type Types } from 'mongoose';
 import {
   Alert,
   Email,
+  Invite,
   Interval15,
   Membership,
   Recommendation,
@@ -10,6 +11,7 @@ import {
   Site,
   Tariff,
   type AlertDoc,
+  type InviteDoc,
   type MembershipDoc,
   type NotificationPrefsDoc,
   type RecommendationDoc,
@@ -30,9 +32,10 @@ import {
   type IntervalLike,
   type NotificationPrefs as Prefs,
   type ApprovalConfig,
+  type InviteJob,
 } from '@ecomanage/shared';
 import type { Mailer, Message } from './mailer';
-import { alertEmail, dailyEmail, escalationEmail, proposalEmail, type DailySummary } from './templates';
+import { alertEmail, dailyEmail, escalationEmail, inviteEmail, proposalEmail, type DailySummary } from './templates';
 
 // Alert emails, escalation and the daily summary (plan P2-09). Runs every 30 s from the worker;
 // everything it sends is claimed in `emails` first, so each email goes out once.
@@ -86,7 +89,7 @@ export const recipients = async (siteId: string, now: Date): Promise<Recipient[]
  */
 export const sendOnce = async (
   mailer: Mailer,
-  claim: { key: string; siteId: string; userId: string | null; kind: 'alert' | 'escalation' | 'daily' | 'proposal'; alertId?: string },
+  claim: { key: string; siteId: string; userId: string | null; kind: 'alert' | 'escalation' | 'daily' | 'proposal' | 'invite'; alertId?: string },
   message: Message,
   now: Date
 ): Promise<boolean> => {
@@ -225,4 +228,23 @@ export const notifyProposals = async (mailer: Mailer, appUrl: string, now = new 
       }
   }
   return sent;
+};
+
+/**
+ * P4-02: emails an invite link. The token comes only in the job; an invite that was replaced,
+ * used or has expired in the meantime isn't sent.
+ */
+export const sendInvite = async (mailer: Mailer, appUrl: string, job: InviteJob, now = new Date()): Promise<boolean> => {
+  const invite = await Invite.findById(job.inviteId).lean<InviteDoc>();
+  if (!invite || invite.acceptedAt || invite.expiresAt <= now) return false;
+  const site = await Site.findById(invite.siteId).lean<SiteDoc>();
+  if (!site) return false;
+  const by = invite.invitedBy ? await mongooseUsers().findById(invite.invitedBy).lean<UserLean>() : null;
+  const url = `${appUrl}/invite/${encodeURIComponent(job.token)}`;
+  return sendOnce(
+    mailer,
+    { key: `invite:${invite._id}`, siteId: String(invite.siteId), userId: null, kind: 'invite' },
+    inviteEmail(site, invite, by ? by.name || by.email : null, url),
+    now
+  );
 };

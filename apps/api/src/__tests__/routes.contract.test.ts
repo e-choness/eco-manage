@@ -103,16 +103,9 @@ describe('auth', () => {
     expect(res.body).toEqual({ message: 'Email or password is incorrect' });
   });
 
-  it('register validates input', async () => {
-    const res = await request(app).post('/api/auth/register').send({ password: 'x' });
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ message: 'Email and password are required' });
-  });
-
-  it('register reports duplicate emails as 400 with the service message', async () => {
-    const res = await request(app).post('/api/auth/register').send({ email: 'demo@ecomanage.io', password: 'pw' });
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ message: 'User with this email already exists' });
+  it('has no open registration: accounts come from invites (P4-02)', async () => {
+    const res = await request(app).post('/api/auth/register').send({ email: 'someone@example.com', password: 'password1' });
+    expect(res.status).toBe(404);
   });
 
   it('me returns the user without secrets', async () => {

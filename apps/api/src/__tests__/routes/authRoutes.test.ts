@@ -52,65 +52,10 @@ describe('Auth Routes Integration Tests', () => {
   });
 
   describe('POST /api/auth/register', () => {
-    it('should register a new user successfully', async () => {
-      mockUserService.create.mockResolvedValue(mockUser as any);
-
-      const response = await request(app).post('/api/auth/register').send({
-        email: 'newuser@example.com',
-        password: 'password123',
-        name: 'New User',
-      });
-
-      expect(response.status).toBe(201);
-      expect(response.body).toHaveProperty('email', 'test@example.com');
-      expect(response.body).not.toHaveProperty('password');
-      expect(mockUserService.create).toHaveBeenCalledWith({
-        email: 'newuser@example.com',
-        password: 'password123',
-        name: 'New User',
-      });
-    });
-
-    it('should return 400 if email is missing', async () => {
-      const response = await request(app).post('/api/auth/register').send({
-        password: 'password123',
-      });
-
-      expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty('message');
-      expect(response.body.message).toContain('Email and password are required');
-    });
-
-    it('should return 400 if password is missing', async () => {
-      const response = await request(app).post('/api/auth/register').send({
-        email: 'test@example.com',
-      });
-
-      expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty('message');
-    });
-
-    it('should return 400 if user already exists', async () => {
-      mockUserService.create.mockRejectedValue(new Error('User with this email already exists'));
-
-      const response = await request(app).post('/api/auth/register').send({
-        email: 'existing@example.com',
-        password: 'password123',
-      });
-
-      expect(response.status).toBe(400);
-      expect(response.body.message).toContain('User with this email already exists');
-    });
-
-    it('should not expose password in response', async () => {
-      mockUserService.create.mockResolvedValue(mockUser as any);
-
-      const response = await request(app).post('/api/auth/register').send({
-        email: 'newuser@example.com',
-        password: 'password123',
-      });
-
-      expect(response.body).not.toHaveProperty('password');
+    it('is gone: accounts are created by accepting an invite (P4-02)', async () => {
+      const response = await request(app).post('/api/auth/register').send({ email: 'new@example.com', password: 'password123' });
+      expect(response.status).toBe(404);
+      expect(mockUserService.create).not.toHaveBeenCalled();
     });
   });
 
@@ -216,9 +161,11 @@ describe('Auth Routes Integration Tests', () => {
 
   describe('Response Format', () => {
     it('should not include password in user responses', async () => {
-      mockUserService.create.mockResolvedValue(mockUser as any);
+      mockUserService.authenticateWithPassword.mockResolvedValue(mockUser as any);
+      mockAuthUtils.generateAccessToken.mockReturnValue('access');
+      mockAuthUtils.generateRefreshToken.mockReturnValue('refresh');
 
-      const response = await request(app).post('/api/auth/register').send({
+      const response = await request(app).post('/api/auth/login').send({
         email: 'test@example.com',
         password: 'password123',
       });

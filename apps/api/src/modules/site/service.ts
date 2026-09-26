@@ -8,7 +8,7 @@ export interface SiteContext {
 }
 
 // An installer's access (or anyone's) ends at `until`; an expired membership counts as none.
-const activeFilter = (now: Date) => ({ $or: [{ until: null }, { until: { $gt: now } }] });
+export const activeFilter = (now: Date) => ({ $or: [{ until: null }, { until: { $gt: now } }] });
 
 /**
  * The site a request acts on. With `requestedSiteId` (the X-Site-Id header) it must be one the

@@ -23,3 +23,4 @@ export * from './recommendations';
 export * from './api/recommendations';
 export * from './api/inbox';
 export * from './api/audit';
+export * from './api/invites';
