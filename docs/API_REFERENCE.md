@@ -141,13 +141,23 @@ Devices page. Nothing reaches a device until someone approves.
 
 - **Approve:**
   - It runs every check again against the site as it is now. If one fails, the answer is `409` with the failing checks in `details.checks`.
-  - It creates the Command (`status: created`), which P3-04 sends. The command expires 15 minutes after the window starts (or after now, if the window has started) and reverts at the window end.
+  - It creates the Command (`status: created`, `sendAt` = the window start). The rules service sends it then (see Commands). The command expires 15 minutes after the window starts (or after now, if the window has started) and reverts at the window end.
   - Two approvers racing get one `200` and one `409`.
 - **Who may approve:** when the approval setting says "Owner only", managers get `403`. Installers never decide.
 - **Refusals:** a proposal that is not `proposed`, or has expired, answers `409`.
 - **Manual requests:** the checks cover what the device profile supports, its parameter limits and longest duration, a window still ahead, and the battery's hardware floor. Failing checks are recorded and block approval. The same open request twice answers `409`.
 - **Expiry:** the rules service marks proposals past `expiresAt` as `expired` on its sweep.
 - **Audit and live stream:** every action is audited (`recommendation.request`, `.approve`, `.decline`) and published on the live stream (`inbox`, and `command` for an approval).
+
+## Commands `/api/commands` 🔒 (v2, P3-04)
+
+What is waiting, on its way or running on devices (ARCHITECTURE, Commands). The rules service sends, verifies and reverts commands; these endpoints show them and stop them early.
+
+| Method | Path | Roles | Result |
+| ------ | ---- | ----- | ------ |
+| GET | `/` | all | `{ items: CommandView[] }`: commands created, sent, acked or verified (not reverts) |
+| GET | `/:id` | all | `CommandView`: action, params, status, `sendAt`, `sentAt`, `ackedAt`, `verifiedAt`, `failedAt`, `error`, `expiresAt`, `revertAt`, `revertedAt`, `cancelledAt`, its `recommendation`, and its `revert` once there is one |
+| POST | `/:id/cancel` | owner, manager | Cancels it and returns the `CommandView`. A command not sent yet is dropped; one already out gets its revert. `409` for a finished command or a revert. Audited as `command.cancel` |
 
 ## Server errors
 

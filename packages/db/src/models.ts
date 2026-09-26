@@ -400,15 +400,25 @@ const commandSchema = new Schema(
     expiresAt: { type: Date, required: true },
     revertAt: { type: Date, default: null },
     status: { type: String, enum: ['created', 'sent', 'acked', 'failed', 'verified', 'reverted', 'cancelled'], default: 'created' },
+    sendAt: { type: Date, default: null }, // publish from then on (the window start); null = now
     sentAt: { type: Date, default: null },
     ackedAt: { type: Date, default: null },
     failedAt: { type: Date, default: null },
+    verifiedAt: { type: Date, default: null }, // telemetry showed the device doing it
+    revertedAt: { type: Date, default: null },
+    cancelledAt: { type: Date, default: null },
+    cancelledBy: { type: ObjectId, ref: 'User', default: null },
+    // A revert is its own command: revertOf points at the one it undoes. revertParams (e.g. the
+    // reserve before a set_reserve) says what to go back to; without it the device's own revert runs.
+    revertOf: { type: ObjectId, ref: 'Command', default: null },
+    revertParams: { type: Schema.Types.Mixed, default: null },
     error: { type: String, default: null },
     createdBy: { type: ObjectId, ref: 'User', default: null },
   },
   { timestamps: true }
 );
 commandSchema.index({ siteId: 1, status: 1 });
+commandSchema.index({ status: 1, sendAt: 1 });
 export type CommandDoc = InferSchemaType<typeof commandSchema> & { _id: Types.ObjectId };
 export const Command = mongoose.model('Command', commandSchema, 'commands');
 
@@ -514,7 +524,9 @@ const recommendationSchema = new Schema(
     decidedAt: { type: Date, default: null },
     declineReason: { type: String, default: null },
     commandId: { type: ObjectId, ref: 'Command', default: null },
-    actualSavingCents: { type: Number, default: null },
+    actualSavingCents: { type: Number, default: null }, // measured the day after the window (P3-04)
+    actualCalc: { type: String, default: null },
+    measuredAt: { type: Date, default: null },
     createdBy: { type: ObjectId, ref: 'User', default: null }, // manual requests
   },
   { timestamps: true }

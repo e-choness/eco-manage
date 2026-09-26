@@ -385,6 +385,31 @@ The six App v2 rules (P3-02) live in `packages/recs/src/rules`, with defaults fr
   - Triggers when the export rate is at or below `belowCents` and the forecast shows a surplus the battery can't take.
 - Every rule is a pure function of the context. The tests give each rule fixtures for triggering, for no trigger and for a failing check.
 
+
+### Commands (P3-04)
+
+The same loop dispatches commands every tick (`src/commands`), publishing as the `svc-rules` MQTT identity. Its ACL may only write `site/+/cmd/+`.
+
+- **Send:** approving creates the command with `sendAt` = the window start. From then on it is published and marked `sent`.
+  - It is marked `sent` before publishing, because the gateway can acknowledge within milliseconds. For the same reason ingest takes acks for commands still marked `created`.
+  - If the broker is unreachable, it goes back to `created` and is retried until `expiresAt`, then it fails ("Expired before it could be sent").
+  - A `set_reserve` waits for a reading of the current reserve, so the change can be undone.
+- **Acknowledgement:** ingest records the gateway's ack (`acked`, or `failed` with the gateway's reason). With none within 60 s the command is `failed`, and the `command-failed` alert opens.
+- **Verification:** an acknowledged command is checked against telemetry newer than the ack (`verify.ts`):
+  - battery power for force charge or discharge
+  - `reserve_pct`, `limit_a`, `sg_mode`
+  - inverter output for export limits
+  - a schedule's step in force
+  - A command not followed within 5 minutes is `failed`, and its revert is sent.
+- **Revert:** at `revertAt`, a running command gets its revert. The revert is a command of its own (`revertOf`), sent and acknowledged the same way; once it is acknowledged the original is `reverted`.
+  - The revert uses the device's `revert` action, or for a reserve change `set_reserve` back to the reserve recorded before it (`revertParams`).
+- **Cancel:** `POST /api/commands/:id/cancel` drops a command not sent yet. For one already out, it asks for the revert.
+- **Recommendations** follow their command: sent, acked, verified, failed, reverted, cancelled. Each change is a `command` event, and an `inbox` event for the recommendation.
+- **Measured saving:** the worker measures what a peak-shaving recommendation actually saved once its day is over.
+  - Without the battery's discharge, the site's demand in each interval would have been (grid − export + battery) × 4.
+  - `actualSavingCents` = the period's demand charge without it − with it, with the sum in `actualCalc`.
+  - The other rules keep only their expected saving until they have a clean counterfactual.
+
 ## Live view (P1-08)
 
 ```mermaid
