@@ -13,6 +13,7 @@ export const meResponse = z.object({
   _id: z.string(),
   email: z.string(),
   name: z.string().optional(),
+  theme: z.enum(['dark', 'light']).nullable().optional(), // saved App v2 theme (P4-01); null follows the system
   memberships: z.array(membershipSummary),
 });
 export type MeResponse = z.infer<typeof meResponse>;

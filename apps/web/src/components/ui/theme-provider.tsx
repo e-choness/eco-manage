@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 
 type Theme = "dark" | "light" | "system"
 
@@ -10,64 +10,55 @@ type ThemeProviderProps = {
 
 type ThemeProviderState = {
   theme: Theme
+  // What is on screen: "system" resolved through prefers-color-scheme
+  resolvedTheme: "dark" | "light"
   setTheme: (theme: Theme) => void
 }
 
-const initialState: ThemeProviderState = {
-  theme: "system",
-  setTheme: () => null,
+const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined)
+
+const systemTheme = (): "dark" | "light" =>
+  window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+
+const readStored = (key: string): Theme | null => {
+  try {
+    const v = localStorage.getItem(key)
+    return v === "dark" || v === "light" || v === "system" ? v : null
+  } catch {
+    return null
+  }
 }
 
-const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
-
-export function ThemeProvider({
-  children,
-  defaultTheme = "system",
-  storageKey = "vite-ui-theme",
-  ...props
-}: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  )
+// The class on <html> (dark or light) switches the colour tokens in index.css. The choice is kept
+// in localStorage for the next visit; the shell also saves it on the user (P4-01).
+export function ThemeProvider({ children, defaultTheme = "system", storageKey = "vite-ui-theme" }: ThemeProviderProps) {
+  const [theme, setThemeState] = useState<Theme>(() => readStored(storageKey) ?? defaultTheme)
+  const resolvedTheme = theme === "system" ? systemTheme() : theme
 
   useEffect(() => {
     const root = window.document.documentElement
-
     root.classList.remove("light", "dark")
+    root.classList.add(resolvedTheme)
+  }, [resolvedTheme])
 
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light"
-
-      root.classList.add(systemTheme)
-      return
-    }
-
-    root.classList.add(theme)
-  }, [theme])
-
-  const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
+  const setTheme = useCallback(
+    (next: Theme) => {
+      try {
+        localStorage.setItem(storageKey, next)
+      } catch {
+        // private mode: the choice lasts for this visit
+      }
+      setThemeState(next)
     },
-  }
-
-  return (
-    <ThemeProviderContext.Provider {...props} value={value}>
-      {children}
-    </ThemeProviderContext.Provider>
+    [storageKey]
   )
+
+  const value = useMemo(() => ({ theme, resolvedTheme, setTheme }), [theme, resolvedTheme, setTheme])
+  return <ThemeProviderContext.Provider value={value}>{children}</ThemeProviderContext.Provider>
 }
 
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext)
-
-  if (context === undefined)
-    throw new Error("useTheme must be used within a ThemeProvider")
-
+  if (context === undefined) throw new Error("useTheme must be used within a ThemeProvider")
   return context
 }

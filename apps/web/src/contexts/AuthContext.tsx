@@ -7,6 +7,7 @@ type UserData = {
   id: string;
   email: string;
   name?: string;
+  theme?: "dark" | "light" | null;
 } | null;
 
 type AuthContextType = {
@@ -22,7 +23,7 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const toUserData = (u: SessionUser): UserData => ({ id: u._id, email: u.email, name: u.name });
+const toUserData = (u: SessionUser): UserData => ({ id: u._id, email: u.email, name: u.name, theme: u.theme ?? null });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserData>(null);

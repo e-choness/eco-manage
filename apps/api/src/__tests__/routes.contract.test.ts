@@ -150,6 +150,19 @@ describe('auth', () => {
     expect(res.status).toBe(200);
     expect(update).toHaveBeenCalledWith({ _id: String(userId) }, { name: 'New' }, { new: true, upsert: false });
   });
+
+  it('profile saves the theme on its own, and null to follow the system (P4-01)', async () => {
+    const update = jest
+      .spyOn(model('User'), 'findOneAndUpdate')
+      .mockResolvedValue({ toJSON: () => ({ theme: 'light' }) } as never);
+    expect((await authed(request(app).put('/api/auth/profile')).send({ theme: 'light' })).body).toEqual({ theme: 'light' });
+    expect(update).toHaveBeenLastCalledWith({ _id: String(userId) }, { theme: 'light' }, { new: true, upsert: false });
+    await authed(request(app).put('/api/auth/profile')).send({ theme: null });
+    expect(update).toHaveBeenLastCalledWith({ _id: String(userId) }, { theme: null }, { new: true, upsert: false });
+    const bad = await authed(request(app).put('/api/auth/profile')).send({ theme: 'blue' });
+    expect(bad.status).toBe(400);
+    expect(bad.body).toEqual({ message: 'Theme must be dark, light or null' });
+  });
 });
 
 // v2 devices (P1-09), alerts (P2-08) and recommendations (P3-03) are covered in integration/.

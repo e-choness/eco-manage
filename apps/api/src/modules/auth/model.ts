@@ -6,6 +6,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   name?: string;
+  theme?: 'dark' | 'light' | null; // App v2 theme, saved per user (P4-01); null follows the system
   createdAt: Date;
   lastLoginAt: Date;
   isActive: boolean;
@@ -25,6 +26,11 @@ const schema = new Schema<IUser>(
       type: String,
       trim: true,
       maxlength: 100,
+    },
+    theme: {
+      type: String,
+      enum: ['dark', 'light', null],
+      default: null,
     },
     password: {
       type: String,

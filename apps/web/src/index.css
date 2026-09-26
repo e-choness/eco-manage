@@ -1,56 +1,106 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * App v2 colours (EcoManage App v2.dc.html, THEMES). The short names follow the design:
+ * bg page, gr page gradient, pn floating panel, ps solid panel, ln line, l2 divider, tx text,
+ * sb secondary text, dm dim text, ch chip / selected, tr track, rl rail, hv hover, *T tag text,
+ * op / md / pk off-peak, mid-peak and peak price cells. Tailwind exposes them as app-*, tag-* and
+ * price-* colours. The shadcn tokens below are the same palette as HSL, so ui/ components match.
+ */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --bg: #f2f4f7;
+    --gr: radial-gradient(90% 70% at 42% 45%, #ffffff 0%, #eef1f5 65%, #e6e9ee 100%);
+    --pn: rgba(255, 255, 255, 0.88);
+    --ps: #ffffff;
+    --ln: rgba(20, 30, 50, 0.12);
+    --l2: #e3e7ed;
+    --tx: #172031;
+    --sb: #566174;
+    --dm: #7d8798;
+    --ch: #e4e9f2;
+    --tr: #e3e7ee;
+    --rl: rgba(255, 255, 255, 0.85);
+    --hv: #f2f4f7;
+    --pvT: #9a6a0c;
+    --btT: #16875a;
+    --gdT: #2c64c9;
+    --evT: #6b47c2;
+    --hpT: #c2482a;
+    --op: #e3ecfb;
+    --md: #eceff4;
+    --pk: #fbe6df;
+
+    --background: 216 24% 96%;
+    --foreground: 219 36% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 219 36% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
+    --popover-foreground: 219 36% 14%;
+    --primary: 153 60% 53%;
+    --primary-foreground: 150 54% 5%;
+    --secondary: 219 35% 92%;
+    --secondary-foreground: 219 36% 14%;
+    --muted: 219 35% 92%;
+    --muted-foreground: 218 15% 40%;
+    --accent: 219 35% 92%;
+    --accent-foreground: 219 36% 14%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
+    --border: 216 22% 91%;
+    --input: 216 22% 91%;
+    --ring: 153 60% 53%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --radius: 0.625rem;
   }
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --bg: #0a0f1c;
+    --gr: radial-gradient(90% 70% at 42% 45%, #101c35 0%, #0a0f1c 65%, #070b15 100%);
+    --pn: rgba(12, 18, 33, 0.82);
+    --ps: #0f1628;
+    --ln: rgba(140, 165, 215, 0.16);
+    --l2: #18223a;
+    --tx: #e8ecf4;
+    --sb: #8d9bb5;
+    --dm: #65728c;
+    --ch: #1c2742;
+    --tr: #1d2842;
+    --rl: rgba(9, 14, 26, 0.72);
+    --hv: #141d33;
+    --pvT: #f2b33d;
+    --btT: #3ecf8e;
+    --gdT: #8fb4ff;
+    --evT: #b48cff;
+    --hpT: #ff8a6b;
+    --op: #14243f;
+    --md: #1b2740;
+    --pk: #3a1d18;
+
+    --background: 223 47% 7%;
+    --foreground: 220 35% 93%;
+    --card: 223 45% 11%;
+    --card-foreground: 220 35% 93%;
+    --popover: 223 45% 11%;
+    --popover-foreground: 220 35% 93%;
+    --primary: 153 60% 53%;
+    --primary-foreground: 150 54% 5%;
+    --secondary: 223 40% 18%;
+    --secondary-foreground: 220 35% 93%;
+    --muted: 223 40% 18%;
+    --muted-foreground: 219 21% 63%;
+    --accent: 223 40% 18%;
+    --accent-foreground: 220 35% 93%;
+    --destructive: 0 62.8% 45%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --border: 222 41% 16%;
+    --input: 222 41% 16%;
+    --ring: 153 60% 53%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -63,8 +113,16 @@
   * {
     @apply border-border;
   }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  input[type='range'] {
+    accent-color: #3ecf8e;
   }
 }
-

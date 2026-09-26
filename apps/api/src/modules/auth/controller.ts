@@ -7,6 +7,7 @@ const credentials = z.object({ email: z.string().min(1), password: z.string().mi
 const registration = credentials.extend({ name: z.string().optional() });
 const passwordChange = z.object({ currentPassword: z.string().min(1), newPassword: z.string().min(1) });
 const profile = z.object({ name: z.string().trim().min(1).optional() });
+const themeChoice = z.object({ theme: z.enum(['dark', 'light']).nullable().optional() });
 
 const REQUIRED = { message: 'Email and password are required' };
 
@@ -65,7 +66,8 @@ export const changePassword = handle({ status: 500, body: { message: 'Failed to 
 
 export const updateProfile = handle({ status: 500, body: { message: 'Failed to update profile' } }, async (req, res) => {
   const { name } = parse(profile, req.body, 400, { message: 'Name must be a non-empty string' });
-  const updated = await authService.updateProfile(userIdOf(req), name);
+  const { theme } = parse(themeChoice, req.body, 400, { message: 'Theme must be dark, light or null' });
+  const updated = await authService.updateProfile(userIdOf(req), { name, theme });
   if (!updated) throw new HttpError(404, { message: 'User not found' });
   res.status(200).json(updated.toJSON());
 });

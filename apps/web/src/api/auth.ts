@@ -29,9 +29,9 @@ export const register = async (email: string, password: string, name: string): P
 
 // Description: Update user profile
 // Endpoint: PUT /api/auth/profile
-// Request: { name?: string }
+// Request: { name?: string, theme?: "dark" | "light" | null }
 // Response: updated user object
-export const updateProfile = async (data: { name?: string }) => {
+export const updateProfile = async (data: { name?: string; theme?: "dark" | "light" | null }) => {
   try {
     const response = await api.put('/api/auth/profile', data);
     return response.data;
