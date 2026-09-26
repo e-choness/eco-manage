@@ -5,8 +5,7 @@ import { z } from 'zod';
 import { Site, initModels } from '@ecomanage/db';
 import { quarterOf, type SiteEvent } from '@ecomanage/shared';
 import { RulesService } from './service';
-import { RULES } from './recs/registry';
-import { proposeForSite } from './recs/runner';
+import { RULES, expireRecommendations, proposeForSite } from '@ecomanage/recs';
 
 const siteIds = async () => (await Site.find().select('_id').lean()).map((s) => String(s._id));
 
@@ -52,12 +51,14 @@ const main = async () => {
       if (quarter > lastQuarter) {
         lastQuarter = quarter;
         for (const siteId of await siteIds())
-          await proposeForSite(siteId, now, { redis, logger: log, rules: RULES, demand: rules.demandOf(siteId) }).catch((err: Error) =>
+          await proposeForSite(siteId, now, { redis, logger: log, rules: RULES, demand: rules.demandOf(siteId) ?? undefined }).catch((err: Error) =>
             log.error({ siteId, err: err.message }, 'recommendation run failed')
           );
       } else if (now.getTime() - lastSweep >= env.RULES_SWEEP_MS) {
         lastSweep = now.getTime();
         await rules.runAll(await siteIds(), now);
+        const expired = await expireRecommendations(redis, now);
+        if (expired) log.info({ expired }, 'proposals expired');
       } else {
         await rules.runDirty(now);
       }

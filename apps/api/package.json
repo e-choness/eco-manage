@@ -21,6 +21,7 @@
   "dependencies": {
     "@ecomanage/db": "workspace:*",
     "@ecomanage/profiles": "workspace:*",
+    "@ecomanage/recs": "workspace:*",
     "@ecomanage/shared": "workspace:*",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.21.0",

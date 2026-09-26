@@ -334,7 +334,7 @@ device, rule). A unique partial index enforces this, even if two rules processes
 
 ### Recommendations (P3-01)
 
-Once per quarter hour (:00, :15, :30, :45 site time; every time zone is a whole number of quarters from UTC), the same loop runs the recommendation rules for every site (`src/recs`).
+Once per quarter hour (:00, :15, :30, :45 site time; every time zone is a whole number of quarters from UTC), the same loop runs the recommendation rules for every site. The rules, their context and the runner live in `packages/recs` (`@ecomanage/recs`), so the API runs exactly the same checks again at approval (P3-03). On its 15 s sweep the loop also marks proposals past `expiresAt` as `expired`.
 
 - **Rule shape:** a rule is `{ id, evaluate(ctx, params), check(ctx, action, params), saving(ctx, action, params) }`. All three are pure functions of a `RecContext`, so the same state always gives the same proposal.
 - **`RecContext`** is loaded as of the quarter:
@@ -358,7 +358,7 @@ Once per quarter hour (:00, :15, :30, :45 site time; every time zone is a whole 
 - **Proposal emails:** the worker's email job emails the approvers named in the approval settings who have "New proposals" on. Quiet hours apply.
 - **Rules only propose:** nothing in this service talks to a device.
 
-The six App v2 rules (P3-02) live in `src/recs/rules`, with defaults from Settings → Rules (`RULE_DEFAULTS`). Each proposal's params are exactly the device profile's action params, so approving one turns it straight into a command.
+The six App v2 rules (P3-02) live in `packages/recs/src/rules`, with defaults from Settings → Rules (`RULE_DEFAULTS`). Each proposal's params are exactly the device profile's action params, so approving one turns it straight into a command.
 - **Peak shaving** (`force_discharge {kw, until}`):
   - Triggers when the forecast net load (load − solar) in the next tariff peak period goes over cap − margin.
   - The window covers the steps that go over. kW = ⌈(peak − cap) / 5⌉ × 5 + margin, at most `maxKw`.

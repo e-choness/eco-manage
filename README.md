@@ -86,6 +86,7 @@ packages/
   shared/     types, zod schemas, MQTT topics, units, sign rules, site-time and live helpers
   db/         Mongoose models for the v2 data model
   profiles/   device profiles (register maps, write limits, fixes)
+  recs/       recommendation rules and their context (rules service proposes, API re-checks)
 infra/        docker-compose.yml (the root compose file includes it), Mosquitto config and ACL
 e2e/          Playwright suite (outdated; replaced in P1-12)
 docs/         architecture, API, database, testing and ops notes

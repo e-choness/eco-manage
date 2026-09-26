@@ -16,6 +16,7 @@ x-workspace: &workspace
     - /repo/packages/shared/node_modules
     - /repo/packages/db/node_modules
     - /repo/packages/profiles/node_modules
+    - /repo/packages/recs/node_modules
     - /repo/apps/simulator/node_modules
     - /repo/apps/ingest/node_modules
     - /repo/apps/worker/node_modules
@@ -142,6 +143,7 @@ services:
       - /repo/packages/shared/node_modules
       - /repo/packages/db/node_modules
       - /repo/packages/profiles/node_modules
+      - /repo/packages/recs/node_modules
       - /repo/apps/simulator/node_modules
       - /repo/apps/ingest/node_modules
       - /repo/apps/worker/node_modules

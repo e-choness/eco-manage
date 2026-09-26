@@ -11,6 +11,7 @@ COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
 COPY packages/db/package.json packages/db/
 COPY packages/profiles/package.json packages/profiles/
+COPY packages/recs/package.json packages/recs/
 COPY apps/simulator/package.json apps/simulator/
 COPY apps/ingest/package.json apps/ingest/
 COPY apps/worker/package.json apps/worker/

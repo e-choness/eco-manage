@@ -17,7 +17,7 @@ export interface MigrationSummary {
  * (they have a userId and no siteId) move to `legacy_<name>`:
  * - `devices`: `--drop-legacy` removes `legacy_devices` with the other retired collections.
  * - `alerts`: v1 per-user alerts; v2 site alerts replaced them (P2-08).
- * - `recommendations`: the v1 optimization routes read `legacy_recommendations` until P3-03.
+ * - `recommendations`: v1 per-user recommendations; v2 site recommendations replaced them (P3-03).
  */
 const moveLegacy = async (from: 'devices' | 'alerts' | 'recommendations'): Promise<number> => {
   const db = mongoose.connection.db;
@@ -64,8 +64,8 @@ const syncProfiles = async (): Promise<number> => {
 
 // v1 collections replaced by the v2 model (P1-10): readings by telemetry, weather by forecasts,
 // financial records by intervals x tariff, per-user devices by site devices, per-user alerts by
-// site alerts (P2-08).
-export const LEGACY_COLLECTIONS = ['energyreadings', 'weathers', 'financialrecords', 'legacy_devices', 'legacy_alerts'] as const;
+// site alerts (P2-08), per-user recommendations by site recommendations (P3-03).
+export const LEGACY_COLLECTIONS = ['energyreadings', 'weathers', 'financialrecords', 'legacy_devices', 'legacy_alerts', 'legacy_recommendations'] as const;
 
 const dropLegacyCollections = async (): Promise<string[]> => {
   const db = mongoose.connection.db;

@@ -1,8 +1,7 @@
 import mongoose from 'mongoose';
 import { DEMO_CALENDAR_INPUT, DEMO_DEVICES, DEMO_SITE, DEMO_SITE_ID, DEMO_USERS, TARIFF_TEMPLATES } from '@ecomanage/shared';
-import { Alert as SiteAlert, Bill, Calendar, Command, Email, FleetVehicle, Maintenance, NotificationPrefs, Recommendation as SiteRecommendation, RuleConfig, RuleMute, Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, deleteSiteFiles, initModels } from '@ecomanage/db';
+import { Alert as SiteAlert, Bill, Calendar, Command, Email, FleetVehicle, Maintenance, NotificationPrefs, Recommendation, RuleConfig, RuleMute, Device as SiteDevice, Interval15, Membership, Site, Tariff, Telemetry, deleteSiteFiles, initModels } from '@ecomanage/db';
 import User from '../modules/auth/model';
-import Recommendation from '../modules/optimization/model';
 import { generatePasswordHash } from '../utils/password';
 import { migrateToV2 } from './migrateV2';
 
@@ -24,7 +23,7 @@ export interface SeedSummary {
 
 type Log = (message: string) => void;
 
-// Resets the demo accounts, their recommendations, and the v2 demo site (with its alerts). Expects an open connection.
+// Resets the demo accounts and the v2 demo site (with its alerts and recommendations). Expects an open connection.
 export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
     log('🌱 Starting database seeding...');
     await initModels();
@@ -34,7 +33,6 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       const existingUser = await User.findOne({ email: account.email });
       if (existingUser) {
         log(`🔄 Clearing existing demo data for ${account.email}...`);
-        await Recommendation.deleteMany({ userId: existingUser._id });
         const memberships = await Membership.find({ userId: existingUser._id });
         const ownSites = memberships.filter((m) => m.role === 'owner' && String(m.siteId) !== DEMO_SITE_ID).map((m) => m.siteId);
         await Site.deleteMany({ _id: { $in: ownSites } });
@@ -55,7 +53,7 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       Maintenance.deleteMany({ siteId: DEMO_SITE_ID }),
       NotificationPrefs.deleteMany({ siteId: DEMO_SITE_ID }),
       Email.deleteMany({ siteId: DEMO_SITE_ID }),
-      SiteRecommendation.deleteMany({ siteId: DEMO_SITE_ID }),
+      Recommendation.deleteMany({ siteId: DEMO_SITE_ID }),
       RuleConfig.deleteMany({ siteId: DEMO_SITE_ID }),
       FleetVehicle.deleteMany({ siteId: DEMO_SITE_ID }),
       RuleMute.deleteMany({ siteId: DEMO_SITE_ID }),
@@ -74,57 +72,7 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
     });
     log(`✅ Created user: ${DEMO_EMAIL}`);
 
-    // 2. Create 4 recommendations
-    log('\n💡 Creating recommendations...');
-    const recommendations = await Recommendation.create([
-      {
-        userId: demoUser._id,
-        title: 'Install Additional Solar Panels',
-        description:
-          'Adding 5 more solar panels could increase daily production by 25% and reduce grid dependency.',
-        priority: 'high',
-        estimatedSavings: 500,
-        difficulty: 'medium',
-        category: 'Solar Expansion',
-        status: 'pending',
-      },
-      {
-        userId: demoUser._id,
-        title: 'Upgrade Battery Storage',
-        description:
-          'Current battery capacity could be doubled to store more excess energy during peak production.',
-        priority: 'high',
-        estimatedSavings: 300,
-        difficulty: 'hard',
-        category: 'Energy Storage',
-        status: 'pending',
-      },
-      {
-        userId: demoUser._id,
-        title: 'Schedule Maintenance for Solar Panel B',
-        description:
-          'Panel B efficiency has dropped. Professional cleaning and inspection recommended.',
-        priority: 'medium',
-        estimatedSavings: 50,
-        difficulty: 'easy',
-        category: 'Maintenance',
-        status: 'pending',
-      },
-      {
-        userId: demoUser._id,
-        title: 'Optimize Peak Hour Usage',
-        description:
-          'Shift major appliance usage to off-peak hours to reduce consumption during 6-9pm window.',
-        priority: 'medium',
-        estimatedSavings: 75,
-        difficulty: 'easy',
-        category: 'Usage Optimization',
-        status: 'pending',
-      },
-    ]);
-    log(`✅ Created ${recommendations.length} recommendations`);
-
-    // 4. Other demo accounts (v2 members of the demo site, and two users with their own sites)
+    // 2. Other demo accounts (v2 members of the demo site, and two users with their own sites)
     log('👥 Creating additional demo accounts...');
     const others = new Map<string, mongoose.Types.ObjectId>();
     for (const account of DEMO_ACCOUNTS.slice(1)) {
@@ -134,7 +82,7 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
       log(`✅ Created user: ${account.email} (${account.name})`);
     }
 
-    // 5. v2 demo site (Maple Grove School) with its devices and memberships
+    // 3. v2 demo site (Maple Grove School) with its devices and memberships
     log('🏫 Creating the demo site...');
     await Site.create({ _id: DEMO_SITE_ID, ...DEMO_SITE });
     const userIdOf = (email: string) => (email === DEMO_EMAIL ? (demoUser._id as mongoose.Types.ObjectId) : others.get(email));
