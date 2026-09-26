@@ -160,7 +160,19 @@ handling as a real one, so the backend can't tell the two apart.
 - Faults (`POST /sim/faults {type, device?, minutes?}`): `device-offline`, `meter-gap`,
   `gateway-offline`, `command-rejected`, `output-drop`. A `reset` or `restart` command brings an
   offline device back. `DELETE /sim/faults` clears them, `POST /sim/clock {speed}` changes the
-  speed (1–60), `GET /sim/state` shows time, weather, battery and faults.
+  speed (1–60), `GET /sim/state` shows time, weather, battery, faults, the safety state and what
+  the cloud currently has in force (`overrides`).
+- Gateway-side safety (P3-05, `packages/profiles/src/safety.ts`, which the real gateway agent will
+  share). The gateway enforces these itself, whatever the cloud sends:
+  - It refuses expired commands, including ones held in a queue during an outage.
+  - Settings must be within the profile's limits.
+  - No reserve may go below the hardware minimum (the site's battery floor).
+  - Nothing runs longer than the action's `maxDurationMin`. The end is `until`, `validTo` or else
+    the command's `revertAt`; an action sent with no end gets the maximum.
+  - A reserve change is put back at its `revertAt` even if the cloud's revert never arrives.
+  - After 15 minutes without the cloud it undoes everything the cloud set: forced battery modes, export
+    limits, EV limits and schedules, heat pump modes, and the reserve.
+  - Forced discharge never takes the battery below its reserve.
 - Start options: `--speed`, `--seed`, `--start` (or `SIM_SPEED`, `SIM_SEED`, `SIM_START`).
 - Energy counters behave like real ones. They start from the site's average power since
   commissioning (14 Mar 2024). Counters and battery charge are saved every 30 s to

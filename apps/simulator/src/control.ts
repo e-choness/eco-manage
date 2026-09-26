@@ -39,6 +39,8 @@ export const createControlServer = (engine: SiteEngine, gateway: Gateway, clock:
           weather: engine.weather(),
           battery: engine.batteryState(),
           faults: gateway.activeFaults(),
+          safety: gateway.safetyState(),
+          overrides: engine.overrides(),
           buffered: gateway.bufferedCount(),
         });
       }

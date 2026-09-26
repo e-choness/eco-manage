@@ -226,7 +226,7 @@ describe('commands', () => {
     send(gateway, 'bad', 'launch', {})
     expect(sent.map((s) => (s.payload as { error: string }).error)).toEqual([
       'expired',
-      'pct must be at least 10%',
+      'pct must be at least 10%; reserve 5% is below the 10% hardware minimum',
       'action launch not supported by sunspec-storage-802@2',
     ])
   })

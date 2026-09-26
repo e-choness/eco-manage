@@ -8,7 +8,7 @@ import {
   type DemoDevice,
   type TelemetryReading,
 } from '@ecomanage/shared';
-import { checkWriteParams, getProfile } from '@ecomanage/profiles';
+import { OFFLINE_REVERT_MS, checkCommandSafety, getProfile } from '@ecomanage/profiles';
 import type { SiteEngine } from './engine/site';
 
 // Behaves like the edge gateway (spec §4): publishes readings per device, keeps them while the
@@ -52,6 +52,10 @@ export class Gateway {
   private readonly lastPublished = new Map<string, number>();
   private readonly startedAt: number;
   private wasOffline = false;
+  // Gateway-side safety (P3-05): when the cloud went away, and the reserve to go back to.
+  private offlineSince: number | null = null;
+  private lastSafetyRevert: Date | null = null;
+  private reserveUndo: { pct: number; at: number | null } | null = null;
 
   constructor(
     private readonly engine: SiteEngine,
@@ -118,6 +122,7 @@ export class Gateway {
       this.publishGatewayStatus();
     }
     if (!this.isOnline()) this.wasOffline = true;
+    this.enforceSafety();
     // Resend what was kept first, a batch per tick; new readings queue behind it (FIFO), so
     // everything arrives in time order.
     if (this.isOnline() && this.buffer.length > 0) this.flush();
@@ -218,16 +223,56 @@ export class Gateway {
       this.clearFaults((f) => f.id === rejection.id);
       return this.ack(commandId, false, 'rejected by device');
     }
-    if (cmd.action !== 'revert') {
-      const action = getProfile(device.profileId)?.write[cmd.action];
-      if (!action) return this.ack(commandId, false, `action ${cmd.action} not supported by ${device.profileId}`);
-      const problems = checkWriteParams(action, cmd.params);
-      if (problems.length) return this.ack(commandId, false, problems.join('; '));
+    const write = getProfile(device.profileId)?.write[cmd.action];
+    if (cmd.action !== 'revert' && !write) return this.ack(commandId, false, `action ${cmd.action} not supported by ${device.profileId}`);
+    const verdict = checkCommandSafety(cmd, write, { now: this.engine.now.getTime(), batteryFloorPct: this.engine.batteryState().floorPct });
+    if (verdict.problems.length) return this.ack(commandId, false, verdict.problems.join('; '));
+    // A time-limited action sent without an end gets one: nothing runs open-ended.
+    const params = verdict.endsAt !== null && cmd.params.until === undefined && cmd.params.validTo === undefined ? { ...cmd.params, until: new Date(verdict.endsAt).toISOString() } : cmd.params;
+    // A reserve change with a revert time is undone here at that time even if the cloud's revert never
+    // arrives; one without (a permanent setting, or the cloud's own revert) replaces any pending undo.
+    if (device.type === 'battery' && cmd.action === 'set_reserve') {
+      const at = cmd.revertAt ? Date.parse(cmd.revertAt) : null;
+      this.reserveUndo = at === null ? null : { pct: this.reserveUndo?.pct ?? this.engine.batteryState().reservePct, at };
     }
     // A reset or restart brings a silent device back, which is how an alert's Fix button works.
     if (cmd.action === 'reset' || cmd.action === 'restart') this.clearFaults((f) => f.type === 'device-offline' && f.device === device.key);
-    const result = this.engine.apply(device.key, cmd.action, cmd.params);
+    const result = this.engine.apply(device.key, cmd.action, params);
     this.ack(commandId, result.ok, result.error);
+  }
+
+  /**
+   * Runs every tick: a reserve change is undone at its revert time, and after 15 minutes without
+   * the cloud everything the cloud set is undone, so a lost connection can't leave the site in a
+   * forced state (plan P3-05).
+   */
+  private enforceSafety(): void {
+    const now = this.engine.now.getTime();
+    const battery = [...this.engine.devices.values()].find((d) => d.type === 'battery');
+    const undo = this.reserveUndo;
+    if (undo && undo.at !== null && now >= undo.at && battery) {
+      this.engine.apply(battery.key, 'set_reserve', { pct: undo.pct });
+      this.reserveUndo = null;
+    }
+    if (this.isOnline()) {
+      this.offlineSince = null;
+      return;
+    }
+    this.offlineSince ??= now;
+    if (now - this.offlineSince >= OFFLINE_REVERT_MS && (!this.lastSafetyRevert || this.lastSafetyRevert.getTime() < this.offlineSince)) {
+      this.engine.revertAll(this.reserveUndo?.pct ?? this.engine.batteryState().reservePct);
+      this.reserveUndo = null;
+      this.lastSafetyRevert = this.engine.now;
+    }
+  }
+
+  /** For the control API and tests. */
+  safetyState(): { offlineSince: string | null; lastSafetyRevert: string | null; reserveUndo: { pct: number; at: string | null } | null } {
+    return {
+      offlineSince: this.offlineSince === null ? null : new Date(this.offlineSince).toISOString(),
+      lastSafetyRevert: this.lastSafetyRevert?.toISOString() ?? null,
+      reserveUndo: this.reserveUndo ? { pct: this.reserveUndo.pct, at: this.reserveUndo.at === null ? null : new Date(this.reserveUndo.at).toISOString() } : null,
+    };
   }
 
   private handleJob(jobId: string, payload: unknown): void {

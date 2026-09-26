@@ -65,3 +65,4 @@ export const checkWriteParams = (action: WriteAction, params: Record<string, unk
   for (const name of Object.keys(params)) if (!(name in action.params)) problems.push(`${name} is not a parameter of this action`);
   return problems;
 };
+export * from './safety';
