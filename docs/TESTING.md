@@ -1,7 +1,7 @@
 # Testing
 
-All suites run inside the dev container. As of P3-06: **api 269, web 50, ingest 29, simulator 32, rules 43, recs 33,
-shared 106, profiles 20, db 10, worker 48**, all passing. Lint and typecheck also pass. The api,
+All suites run inside the dev container. As of P3-07: **api 277, web 50, ingest 29, simulator 32, rules 43, recs 33,
+shared 109, profiles 20, db 10, worker 48**, all passing. Lint and typecheck also pass. The api,
 ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest and rules; the worker's SMTP test uses Mailpit).
 
 ```bash
@@ -24,7 +24,7 @@ docker compose run --rm api pnpm --filter @ecomanage/api test:coverage   # 55% g
 | Suite                                  | What it checks                                                    |
 | -------------------------------------- | ----------------------------------------------------------------- |
 | `routes.contract.test.ts`              | Every v1 endpoint through `createApp()`: status codes, bodies, auth guard. Models are stubbed via `mongoose.model(name)` |
-| `integration/*.test.ts`                | Against a **real MongoDB** (and Redis): role matrix over every route, migration, site snapshot and SSE stream, v2 devices, P0-05 fixes still in use |
+| `integration/*.test.ts`                | Against a **real MongoDB** (and Redis): role matrix over every route, an audit inventory (`audit.test.ts`: every write route lists its audit action, or why it has none, and each action is checked by a test), migration, site snapshot and SSE stream, v2 devices, P0-05 fixes still in use |
 | `security.test.ts`                     | Refresh cookie flags and rotation, logout revocation, 429 limits, CORS, helmet, no credentials in logs |
 | `middleware/auth.test.ts`              | `requireUser`: 401 cases, and DB errors passed to the error handler |
 | `routes/authRoutes.test.ts`            | Auth routes with a mocked user service                            |

@@ -22,3 +22,4 @@ export * from './api/forecast';
 export * from './recommendations';
 export * from './api/recommendations';
 export * from './api/inbox';
+export * from './api/audit';

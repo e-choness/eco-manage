@@ -168,6 +168,7 @@ describe('pause emails', () => {
     const until = (await Alert.findById(a._id).lean())!.snoozedUntil!.getTime();
     expect(until - before).toBeGreaterThanOrEqual(24 * HOUR - 1000);
     expect(until - before).toBeLessThan(24 * HOUR + 5000);
+    expect(await AuditEvent.countDocuments({ action: 'alert.snooze', target: `alert:${a._id}` })).toBe(1);
     const cleared = await alert({ ruleId: 'command-ack-slow', condition: 'cleared' });
     expect((await as('manager', request(app).post(`/api/alerts/${cleared._id}/snooze`))).status).toBe(409);
   });

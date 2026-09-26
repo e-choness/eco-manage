@@ -9,6 +9,7 @@ import type { Express } from 'express';
 import { Membership, Site } from '@ecomanage/db';
 import type { Role } from '@ecomanage/shared';
 import { connectTestDb, disconnectTestDb } from './db';
+import { listRoutes } from './routes';
 import { createApp } from '../../app';
 import User from '../../modules/auth/model';
 import { generatePasswordHash } from '../../utils/password';
@@ -57,6 +58,7 @@ const ROUTES: Record<string, Access> = {
   'post /api/commands/:id/cancel': MONEY,
   'get /api/inbox/': ALL,
   'get /api/inbox/counts': ALL,
+  'get /api/audit/': OWNER,
   'get /api/site/': ALL,
   'patch /api/site/': OWNER,
   'put /api/site/pv-arrays': HARDWARE,
@@ -79,30 +81,6 @@ const ROUTES: Record<string, Access> = {
   'get /api/forecast/': ALL,
 };
 
-interface Layer {
-  route?: { path: string; methods: Record<string, boolean> };
-  name: string;
-  regexp: RegExp;
-  handle: { stack?: Layer[] };
-}
-
-// Lists "method /path" for every route registered on the app, including mounted routers.
-const listRoutes = (app: Express): string[] => {
-  const out: string[] = [];
-  const mountOf = (re: RegExp) =>
-    re.source === '^\\/?(?=\\/|$)' ? '' : re.source.replace('^\\', '').replace('\\/?(?=\\/|$)', '').replace(/\\\//g, '/');
-  const walk = (stack: Layer[], prefix: string) => {
-    for (const layer of stack) {
-      if (layer.route) {
-        for (const m of Object.keys(layer.route.methods)) out.push(`${m} ${prefix}${layer.route.path}`);
-      } else if (layer.name === 'router' && layer.handle.stack) {
-        walk(layer.handle.stack, prefix + mountOf(layer.regexp));
-      }
-    }
-  };
-  walk((app as unknown as { _router: { stack: Layer[] } })._router.stack, '');
-  return out;
-};
 
 const pathFor = (route: string) =>
   route.split(' ')[1].replace(':id', new mongoose.Types.ObjectId().toString()).replace(':period', '2026-01');
