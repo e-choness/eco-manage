@@ -7,13 +7,13 @@
  */
 import { describe, expect, it } from 'vitest'
 import { RULE_DEFAULTS, TARIFF_TEMPLATES, type Proposal, type Tariff } from '@ecomanage/shared'
-import { evLimitNearCap } from '../recs/rules/evLimitNearCap'
-import { evOffpeak } from '../recs/rules/evOffpeak'
-import { hpPrecondition } from '../recs/rules/hpPrecondition'
-import { peakShaving } from '../recs/rules/peakShaving'
-import { stormReserve } from '../recs/rules/stormReserve'
-import { zeroExportLowPrice } from '../recs/rules/zeroExportLowPrice'
-import type { DeviceCtx, EvSession, ForecastStep, RecContext } from '../recs/types'
+import { evLimitNearCap } from '../rules/evLimitNearCap'
+import { evOffpeak } from '../rules/evOffpeak'
+import { hpPrecondition } from '../rules/hpPrecondition'
+import { peakShaving } from '../rules/peakShaving'
+import { stormReserve } from '../rules/stormReserve'
+import { zeroExportLowPrice } from '../rules/zeroExportLowPrice'
+import type { DeviceCtx, EvSession, ForecastStep, RecContext } from '../types'
 
 const u = (iso: string) => new Date(iso)
 const Q = 15 * 60_000

@@ -37,7 +37,7 @@ beforeAll(() => {
   process.env.REFRESH_TOKEN_SECRET = 'contract-refresh';
   token = jwt.sign({ sub: String(userId) }, 'contract-jwt');
   // Loaded by createApp's imports; referenced here so the names are registered.
-  ['User', 'LegacyRecommendation'].forEach(model);
+  ['User'].forEach(model);
 });
 
 // Site access (P1-04): the caller is a member of one site with this role.
@@ -75,8 +75,8 @@ describe('authentication guard', () => {
     ['put', '/api/auth/profile'],
     ['get', '/api/alerts'],
     ['post', '/api/alerts/650000000000000000000999/ack'],
-    ['get', '/api/optimization/recommendations'],
-    ['post', '/api/optimization/accept'],
+    ['get', '/api/recommendations'],
+    ['post', '/api/recommendations/650000000000000000000999/approve'],
   ] as const)('%s %s needs a token', async (method, path) => {
     const res = await request(app)[method](path);
     expect(res.status).toBe(401);
@@ -152,28 +152,6 @@ describe('auth', () => {
   });
 });
 
-// v2 devices (P1-09) and alerts (P2-08) are covered in integration/.
-
-describe('optimization', () => {
-  it('lists open recommendations', async () => {
-    const find = jest.spyOn(model('LegacyRecommendation'), 'find').mockImplementation(() => query([{ title: 'r' }]) as never);
-    const res = await authed(request(app).get('/api/optimization/recommendations'));
-    expect(res.body).toEqual({ recommendations: [{ title: 'r' }] });
-    expect(find).toHaveBeenCalledWith({ userId: expect.anything(), status: { $in: ['pending', 'accepted'] } });
-  });
-
-  it('accept: 400, 404, 200', async () => {
-    const update = jest.spyOn(model('LegacyRecommendation'), 'findOneAndUpdate');
-    const bad = await authed(request(app).post('/api/optimization/accept')).send({});
-    expect(bad.body).toEqual({ error: 'Missing recommendationId' });
-
-    update.mockResolvedValueOnce(null as never);
-    expect((await authed(request(app).post('/api/optimization/accept')).send({ recommendationId: 'r' })).status).toBe(404);
-
-    update.mockResolvedValueOnce({ status: 'accepted' } as never);
-    const ok = await authed(request(app).post('/api/optimization/accept')).send({ recommendationId: 'r' });
-    expect(ok.body).toEqual({ status: 'accepted' });
-  });
-});
+// v2 devices (P1-09), alerts (P2-08) and recommendations (P3-03) are covered in integration/.
 
 // Financial, analytics and dashboard left with the v1 data model (P1-10).

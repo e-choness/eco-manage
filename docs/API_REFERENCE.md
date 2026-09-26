@@ -125,15 +125,29 @@ happening.
 - Every action is audited (`alert.ack`, `alert.snooze`, `alert.resolve`, `alert.false-alarm`,
   `alert.fix`) and published on the live stream (`alert`, and `command` for a fix).
 
-## Optimization `/api/optimization` 🔒
+## Recommendations `/api/recommendations` 🔒 (v2, P3-03)
 
-| Method | Path               | Body                   | Success |
-| ------ | ------------------ | ---------------------- | ------- |
-| GET    | `/recommendations` | —                      | `200 {"recommendations":[…]}`, pending and accepted, sorted by the priority string (so `medium` sorts before `high`; P3-03 replaces this module) |
-| POST   | `/accept`          | `{ recommendationId }` | `200` recommendation with `status: "accepted"` |
-| POST   | `/dismiss`         | `{ recommendationId }` | `200` recommendation with `status: "dismissed"` |
+Decisions proposed by the rules service (ARCHITECTURE, Recommendations) or requested on the
+Devices page. Nothing reaches a device until someone approves.
 
-Errors: `400 {"error":"Missing recommendationId"}`, `404 {"error":"Recommendation not found"}`.
+| Method | Path | Roles | Body → result |
+| ------ | ---- | ----- | ------------- |
+| GET | `/?state=open\|closed&limit=50&before=<iso>` | all | `{ items: RecommendationView[], counts: { open, closed } }`. Open means proposed, approved, sent or acked. Newest first |
+| GET | `/:id` | all | `RecommendationDetail`: the view plus `inputs`, `checks`, `calc`, `decidedBy`, `decidedAt`, `declineReason`, `commandId`, the `payload` approving would send, and `canApprove` for the caller |
+| POST | `/` | owner, manager | `{ deviceId, action, params, window: { start, end } }` → `201`, a manual request (`ruleId: "manual"`) with its checks |
+| POST | `/:id/check` | owner, manager | `{ params? }` → `{ checks, expectedSavingCents, calc, allPass }` for the action as adjusted (e.g. the kW slider). Writes nothing |
+| POST | `/:id/approve` | owner, manager, per Settings → Rules → Who can approve | `{ params? }` → `{ recommendation, commandId }` |
+| POST | `/:id/decline` | owner, manager | `{ reason }` (3–500 characters) → the declined recommendation |
+
+- **Approve:**
+  - It runs every check again against the site as it is now. If one fails, the answer is `409` with the failing checks in `details.checks`.
+  - It creates the Command (`status: created`), which P3-04 sends. The command expires 15 minutes after the window starts (or after now, if the window has started) and reverts at the window end.
+  - Two approvers racing get one `200` and one `409`.
+- **Who may approve:** when the approval setting says "Owner only", managers get `403`. Installers never decide.
+- **Refusals:** a proposal that is not `proposed`, or has expired, answers `409`.
+- **Manual requests:** the checks cover what the device profile supports, its parameter limits and longest duration, a window still ahead, and the battery's hardware floor. Failing checks are recorded and block approval. The same open request twice answers `409`.
+- **Expiry:** the rules service marks proposals past `expiresAt` as `expired` on its sweep.
+- **Audit and live stream:** every action is audited (`recommendation.request`, `.approve`, `.decline`) and published on the live stream (`inbox`, and `command` for an approval).
 
 ## Server errors
 

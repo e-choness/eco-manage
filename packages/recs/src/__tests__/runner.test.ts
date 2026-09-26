@@ -8,11 +8,11 @@ import { Redis } from 'ioredis'
 import pino from 'pino'
 import { Calendar, Command, Device, FleetVehicle, Forecast, Interval15, Recommendation, RuleConfig, Site, Tariff, Telemetry, initModels } from '@ecomanage/db'
 import { DEMO_CALENDAR_INPUT, TARIFF_TEMPLATES, dedupeKeyOf, siteEventsChannel, type Proposal } from '@ecomanage/shared'
-import { resolveRuleConfig } from '../recs/config'
-import { loadRecContext } from '../recs/context'
-import { proposeForSite } from '../recs/runner'
-import { RULES } from '../recs/registry'
-import type { RecContext, Rule } from '../recs/types'
+import { resolveRuleConfig } from '../config'
+import { loadRecContext } from '../context'
+import { expireRecommendations, proposeForSite } from '../runner'
+import { RULES } from '../registry'
+import type { RecContext, Rule } from '../types'
 
 const MONGO = `${process.env.MONGO_TEST_URL || 'mongodb://mongodb:27017'}/ecomanage_test_rules_recs`
 const REDIS = process.env.REDIS_TEST_URL?.replace(/\/\d+$/, '/9') || 'redis://redis:6379/9'
@@ -251,5 +251,22 @@ describe('the App v2 rules through the runner (P3-02)', () => {
     const made = await proposeForSite(sid, NOW, { redis, logger: log, rules: RULES })
     expect(made.map((r) => [r.ruleId, r.title, r.expectedSavingCents])).toEqual([['peak-shaving', 'Discharge battery at 25 kW, 15:15–15:30', 26_600]])
     expect(made[0].checks.every((c) => c.pass)).toBe(true)
+  })
+})
+
+describe('expiry (P3-03)', () => {
+  it('marks proposals nobody decided on in time as expired, and tells the Inbox', async () => {
+    await forecastWithPeak(140)
+    const [r] = await proposeForSite(sid, NOW, { redis, logger: log, rules: [standIn] })
+    const sub = redis.duplicate()
+    const events: unknown[] = []
+    await sub.subscribe(siteEventsChannel(sid))
+    sub.on('message', (_c, m) => events.push(JSON.parse(m)))
+    expect(await expireRecommendations(redis, new Date(r.expiresAt.getTime() - 1000))).toBe(0)
+    expect(await expireRecommendations(redis, r.expiresAt)).toBe(1)
+    expect((await Recommendation.findById(r._id).lean())!.status).toBe('expired')
+    await new Promise((res) => setTimeout(res, 100))
+    expect(events).toEqual([{ type: 'inbox', itemType: 'decide', itemId: String(r._id) }])
+    sub.disconnect()
   })
 })

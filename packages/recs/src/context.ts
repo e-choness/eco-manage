@@ -20,6 +20,7 @@ import {
 } from '@ecomanage/db';
 import { billingPeriod, siteDate, siteDayClass, siteMinuteOfDay, tariffFromDoc, tariffOn, type ApprovalConfig, type DemandNow, type TelemetryReading } from '@ecomanage/shared';
 import type { DeviceCtx, EvSession, ForecastStep, RecContext } from './types';
+import { currentDemand } from './demand';
 
 // Loads a site's state for the recommendation rules at one quarter hour.
 
@@ -53,7 +54,8 @@ const forecastFrom = (pv: ForecastDoc | null, load: ForecastDoc | null, now: Dat
 export const loadRecContext = async (
   siteId: string,
   now: Date,
-  deps: { redis: Redis; demand: DemandNow | null; approval: ApprovalConfig }
+  /** `demand`: the latest demand event when the caller has one; otherwise worked out from the meter. */
+  deps: { redis: Redis; demand?: DemandNow | null; approval: ApprovalConfig }
 ): Promise<RecContext | null> => {
   const site = await Site.findById(siteId).lean<SiteDoc>();
   if (!site) return null;
@@ -79,6 +81,8 @@ export const loadRecContext = async (
     latest: parse<TelemetryReading>(latest[i] ?? null),
   }));
   const bat = ctxDevices.find((d) => d.type === 'battery');
+  const meter = ctxDevices.find((d) => d.type === 'meter');
+  const demand = deps.demand ?? (meter ? await currentDemand(meter.id, meter.latest, site.tz) : null);
   const today = siteDate(now, site.tz);
   const cal = calendar
     ? { terms: calendar.terms as never, daysOff: calendar.daysOff as never, weekends: calendar.weekends as 'open' | 'closed', open: calendar.open, close: calendar.close }
@@ -91,7 +95,7 @@ export const loadRecContext = async (
     calendar: cal,
     tariff: tariffOn(tariffs.map(tariffFromDoc), today),
     period: { start: period.start, end: period.end, peakKw: peak?.demandKw ?? 0, peakAt: peak?.start ?? null },
-    demand: deps.demand,
+    demand,
     devices: ctxDevices,
     battery: bat
       ? {

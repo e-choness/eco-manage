@@ -75,8 +75,8 @@ safe to run repeatedly:
 1. v1 documents in `devices` (the ones with a `userId`) move to `legacy_devices`, which the v1
    modules now use (model `LegacyDevice`). Likewise v1 per-user `alerts` move to
    `legacy_alerts`. Nothing reads them since the v2 Alerts API replaced the v1 routes (P2-08).
-   v1 `recommendations` move to `legacy_recommendations`, which the v1 optimization routes read
-   until the v2 Recommendations API replaces them (P3-03).
+   v1 `recommendations` move to `legacy_recommendations`; nothing reads them since the v2
+   Recommendations API replaced the v1 optimization routes (P3-03).
 2. The v2 collections and indexes are created.
 3. Every user without a membership gets a site named "<name>'s site" and an owner membership,
    recorded as an audit event. The site's time zone is UTC until the owner sets it.
@@ -87,4 +87,4 @@ too; the installer's access ends on 31 Dec 2026. The fixture is in `packages/sha
 
 ## Retired v1 collections
 
-`energyreadings`, `weathers`, `financialrecords` and `legacy_devices` were removed in P1-10 (and `legacy_alerts` in P2-08); telemetry, forecasts (P2-10) and intervals × tariff (P2-03) replace them. `migrate -- --drop-legacy` deletes them from an existing database (the seed does this).
+`energyreadings`, `weathers`, `financialrecords` and `legacy_devices` were removed in P1-10 (and `legacy_alerts` in P2-08, `legacy_recommendations` in P3-03); telemetry, forecasts (P2-10) and intervals × tariff (P2-03) replace them. `migrate -- --drop-legacy` deletes them from an existing database (the seed does this).

@@ -1,12 +1,14 @@
 {
-  "name": "@ecomanage/rules",
+  "name": "@ecomanage/recs",
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Rules service: alert checks on every reading (P2-07); recommendations follow in Phase 3",
+  "description": "Recommendation rules and their context, shared by the rules service (proposes) and the API (checks again at approval)",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
   "scripts": {
-    "dev": "tsx watch src/main.ts",
-    "start": "tsx src/main.ts",
     "build": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src",
@@ -15,18 +17,20 @@
   "license": "ISC",
   "dependencies": {
     "@ecomanage/db": "workspace:*",
-    "@ecomanage/recs": "workspace:*",
-    "@ecomanage/shared": "workspace:*",
+    "@ecomanage/profiles": "workspace:*",
+    "@ecomanage/shared": "workspace:*"
+  },
+  "peerDependencies": {
+    "ioredis": "^5.4.1",
+    "mongoose": "^8.1.1",
+    "pino": "^9.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "eslint": "^9.13.0",
     "ioredis": "^5.4.1",
     "mongoose": "^8.1.1",
     "pino": "^9.5.0",
-    "tsx": "^4.7.0",
-    "zod": "^3.23.8"
-  },
-  "devDependencies": {
-    "@ecomanage/simulator": "workspace:*",
-    "@types/node": "^20.11.5",
-    "eslint": "^9.13.0",
     "typescript": "~5.6.2",
     "vitest": "^1.6.1"
   }

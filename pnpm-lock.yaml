@@ -38,6 +38,9 @@ importers:
       '@ecomanage/profiles':
         specifier: workspace:*
         version: link:../../packages/profiles
+      '@ecomanage/recs':
+        specifier: workspace:*
+        version: link:../../packages/recs
       '@ecomanage/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -181,6 +184,9 @@ importers:
       '@ecomanage/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@ecomanage/recs':
+        specifier: workspace:*
+        version: link:../../packages/recs
       '@ecomanage/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -565,6 +571,40 @@ importers:
       vitest:
         specifier: ^1.6.1
         version: 1.6.1(@types/node@22.20.4)(@vitest/ui@1.6.1)(jsdom@23.2.0(canvas@2.11.2))
+
+  packages/recs:
+    dependencies:
+      '@ecomanage/db':
+        specifier: workspace:*
+        version: link:../db
+      '@ecomanage/profiles':
+        specifier: workspace:*
+        version: link:../profiles
+      '@ecomanage/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^20.11.5
+        version: 20.19.43
+      eslint:
+        specifier: ^9.13.0
+        version: 9.39.5(jiti@1.21.7)
+      ioredis:
+        specifier: ^5.4.1
+        version: 5.11.1
+      mongoose:
+        specifier: ^8.1.1
+        version: 8.24.4(socks@2.8.10)
+      pino:
+        specifier: ^9.5.0
+        version: 9.14.0
+      typescript:
+        specifier: ~5.6.2
+        version: 5.6.3
+      vitest:
+        specifier: ^1.6.1
+        version: 1.6.1(@types/node@20.19.43)(@vitest/ui@1.6.1)(jsdom@23.2.0(canvas@2.11.2))
 
   packages/shared:
     dependencies:

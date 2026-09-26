@@ -19,33 +19,34 @@ const BASE = 'http://localhost:3000'
 const renderPage = (page: JSX.Element) => render(<MemoryRouter>{page}</MemoryRouter>)
 
 describe('Optimization', () => {
-  it('saves a dismissal on the server', async () => {
+  it('saves a dismissal on the server as a decline with a reason', async () => {
     let dismissed: unknown = null
+    const view = {
+      id: 'rec-1',
+      ruleId: 'peak-shaving',
+      ruleTitle: 'Peak shaving',
+      deviceId: 'bat',
+      deviceName: 'Battery',
+      action: 'force_discharge',
+      params: { kw: 25 },
+      title: 'Discharge battery at 25 kW, 14:00–17:00',
+      window: { start: '2026-09-24T18:00:00.000Z', end: '2026-09-24T21:00:00.000Z' },
+      expectedSavingCents: 26_600,
+      status: 'proposed',
+      proposedAt: '2026-09-24T16:30:00.000Z',
+      expiresAt: '2026-09-24T17:45:00.000Z',
+    }
     server.use(
-      http.get(`${BASE}/api/optimization/recommendations`, () =>
-        HttpResponse.json({
-          recommendations: [
-            {
-              _id: 'rec-1',
-              title: 'Shift laundry',
-              description: 'Run it at noon',
-              priority: 'low',
-              estimatedSavings: 5,
-              difficulty: 'easy',
-              category: 'load',
-              status: 'pending',
-            },
-          ],
-        })
-      ),
-      http.post(`${BASE}/api/optimization/dismiss`, async ({ request }) => {
+      http.get(`${BASE}/api/recommendations`, () => HttpResponse.json({ items: [view], counts: { open: 1, closed: 0 } })),
+      http.post(`${BASE}/api/recommendations/rec-1/decline`, async ({ request }) => {
         dismissed = await request.json()
-        return HttpResponse.json({ _id: 'rec-1', status: 'dismissed' })
+        return HttpResponse.json({ ...view, status: 'declined' })
       })
     )
     renderPage(<Optimization />)
+    expect(await screen.findByText('$266')).toBeInTheDocument()
     await userEvent.click(await screen.findByRole('button', { name: /dismiss/i }))
-    await waitFor(() => expect(dismissed).toEqual({ recommendationId: 'rec-1' }))
-    await waitFor(() => expect(screen.queryByText('Shift laundry')).not.toBeInTheDocument())
+    await waitFor(() => expect(dismissed).toEqual({ reason: 'Dismissed on the Optimization page' }))
+    await waitFor(() => expect(screen.queryByText('Discharge battery at 25 kW, 14:00–17:00')).not.toBeInTheDocument())
   })
 })
