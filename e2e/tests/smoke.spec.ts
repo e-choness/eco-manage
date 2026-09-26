@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
-// P1-12 smoke test (login and addresses updated in P4-02): log in, Home shows live values from
-// the simulator, and they change within 10 seconds (plan §6, simulator E2E 1). Needs the demo
+// P1-12 smoke test (login and addresses from P4-02, Home from P4-03): log in, Home shows live
+// values from the simulator, and they keep changing (plan §6, simulator E2E 1). Needs the demo
 // seed and the simulator running.
 
 test('the manager sees live values from the simulated site', async ({ page }) => {
@@ -13,22 +13,22 @@ test('the manager sees live values from the simulated site', async ({ page }) =>
   await expect(page).toHaveURL(/:\d+\/$/)
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible()
   await expect(page.getByTestId('site-name')).toHaveText('Maple Grove School')
-  await expect(page.getByTestId('live-status')).toHaveText('Live')
+  await expect(page.getByTestId('live-status')).toHaveText('live')
 
-  // Values come from the simulator through the broker, ingest, Redis and the SSE stream. A newer
-  // meter reading must arrive within 10 s (compare timestamps: one-decimal kW can repeat).
-  await expect(page.getByTestId('flow-grid')).toHaveText(/\d+\.\d kW (import|export)/)
-  const meter = page.getByRole('row', { name: /Grid meter/ }).locator('[data-ts]')
-  await expect(meter).not.toHaveAttribute('data-ts', '')
-  const first = Date.parse((await meter.getAttribute('data-ts')) ?? '')
-  await expect
-    .poll(async () => Date.parse((await meter.getAttribute('data-ts')) ?? ''), { timeout: 10_000, intervals: [500] })
-    .toBeGreaterThan(first)
-
-  // Every simulated device is listed with a live status.
-  for (const name of ['Inverter A', 'Battery', 'Grid meter', 'EV charger 1', 'Heat pump']) {
-    await expect(page.getByRole('row', { name: new RegExp(name) })).toContainText('live')
+  // Home (P4-03): every simulated source and load is labelled on the site, with its power.
+  for (const key of ['pv', 'battery', 'grid', 'ev', 'heatpump']) {
+    await expect(page.getByTestId(`scene-label-${key}`)).toContainText(/\d+\.\d\s*kW/)
   }
+  await expect(page.getByRole('region', { name: 'Demand' })).toContainText('cap 120 kW')
+  await expect(page.getByRole('region', { name: 'Needs you' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Electricity price today' })).toBeVisible()
+
+  // Values come from the simulator through the broker, ingest, Redis and the SSE stream: newer
+  // events must keep arriving (the stream stamps the time of the last one it applied).
+  const status = page.getByTestId('live-status')
+  await expect(status).not.toHaveAttribute('data-last-event', '')
+  const first = Number(await status.getAttribute('data-last-event'))
+  await expect.poll(async () => Number(await status.getAttribute('data-last-event')), { timeout: 10_000, intervals: [500] }).toBeGreaterThan(first)
 })
 
 test('a signed-out visitor is sent to sign in, and old addresses still work', async ({ page }) => {

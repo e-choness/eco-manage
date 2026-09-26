@@ -219,6 +219,13 @@ Each v1 route answers unexpected failures with its own `500` body, for example
 - Every change is audited: `site.update` records only the changed fields, and there are also `site.pv-arrays` and `site.battery`.
 
 
+### Home (P4-03)
+
+| Method | Path | Roles | Result |
+| ------ | ---- | ----- | ------ |
+| GET | `/model` | all | `SiteModel { version, source, hub, anchors [{ key, at, label }], buildingLabel, camera { view } }`: the latest saved model, or the App v2 demo scene (`version: 0`, `source: "default"`) |
+| GET | `/today` | all | `SiteToday { date, currency, prices, bill }`. `prices`: today's tariff periods in order `[{ name, rateCents, level (off, mid, peak), start, end }]` covering the whole local day (23 or 25 h on DST days), or `null` without a tariff or with a gap today. `bill`: the open period `{ period, totalCents, projectedCents, savedCents }` for owners and managers; `null` for installers or before the first bill |
+
 ### `GET /snapshot`
 Everything the live view needs on load (type `SiteSnapshot` in `@ecomanage/shared`):
 

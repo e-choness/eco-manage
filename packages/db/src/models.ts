@@ -1,5 +1,5 @@
 import mongoose, { InferSchemaType, Schema, Types } from 'mongoose';
-import { RECOMMENDATION_STATUSES, ALERT_RULE_IDS, ALERT_SEVERITIES, ALERT_STATES, DEVICE_STATUSES, DEVICE_TYPES, QUALITY, ROLES } from '@ecomanage/shared';
+import { RECOMMENDATION_STATUSES, ALERT_RULE_IDS, ALERT_SEVERITIES, ALERT_STATES, DEVICE_STATUSES, DEVICE_TYPES, FLOW_KEYS, QUALITY, ROLES, SCENE_VIEWS } from '@ecomanage/shared';
 
 // v2 data model (plan §2). Models are registered on the default mongoose connection; the app that
 // imports them owns connecting. Collection names are given explicitly so they match the plan.
@@ -568,6 +568,32 @@ forecastSchema.index({ issuedAt: 1 }, { expireAfterSeconds: 30 * 24 * 3600 });
 export type ForecastDoc = InferSchemaType<typeof forecastSchema> & { _id: Types.ObjectId };
 export const Forecast = mongoose.model('Forecast', forecastSchema, 'forecasts');
 
+// ---- site models (P4-03) -------------------------------------------------------------------------
+
+// The 3D scene of a site: hub, anchors, camera. Versions only grow; the latest is used. Home falls
+// back to DEFAULT_SITE_MODEL (@ecomanage/shared) until one is saved (P4-08 editor, P5-02/03).
+const vec3 = { type: [Number], validate: (v: number[]) => v.length === 3 };
+const siteModelSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    version: { type: Number, required: true },
+    source: { type: String, enum: ['generated', 'upload'], required: true },
+    generated: { type: Schema.Types.Mixed, default: null }, // footprint, roof rows … (P5-03)
+    upload: { type: Schema.Types.Mixed, default: null }, // file, triangles, thumbnail (P5-02)
+    hub: vec3,
+    anchors: {
+      type: [new Schema({ key: { type: String, enum: FLOW_KEYS, required: true }, at: vec3, label: vec3 }, { _id: false })],
+      default: [],
+    },
+    buildingLabel: vec3,
+    camera: { type: new Schema({ view: { type: String, enum: SCENE_VIEWS, default: 'fit' } }, { _id: false }), default: () => ({}) },
+  },
+  { timestamps: true }
+);
+siteModelSchema.index({ siteId: 1, version: 1 }, { unique: true });
+export type SiteModelDoc = InferSchemaType<typeof siteModelSchema> & { _id: Types.ObjectId };
+export const SiteModel = mongoose.model('SiteModel', siteModelSchema, 'siteModels');
+
 // ---- audit ------------------------------------------------------------------------------------
 
 const auditSchema = new Schema(
@@ -586,7 +612,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, FleetVehicle, Recommendation, AuditEvent] as const;
+export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, FleetVehicle, Recommendation, SiteModel, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

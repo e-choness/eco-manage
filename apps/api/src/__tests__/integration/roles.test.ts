@@ -66,6 +66,8 @@ const ROUTES: Record<string, Access> = {
   'put /api/site/pv-arrays': HARDWARE,
   'patch /api/site/battery': HARDWARE,
   'get /api/site/gateway': ALL,
+  'get /api/site/model': ALL,
+  'get /api/site/today': ALL,
   'get /api/site/snapshot': ALL,
   'get /api/site/stream': ALL,
   'get /api/tariffs/': MONEY,

@@ -7,8 +7,8 @@ import { Login } from "./pages/Login"
 import { InviteAccept } from "./pages/InviteAccept"
 import { ProtectedRoute } from "./components/ProtectedRoute"
 import { AppShell, PageFrame, RequireRole, ScreenPlaceholder } from "./shell/AppShell"
+import { Home } from "./pages/Home"
 import { Monitoring } from "./pages/Monitoring"
-import { Live } from "./pages/Live"
 import { Alerts } from "./pages/Alerts"
 import { Settings } from "./pages/Settings"
 
@@ -33,7 +33,7 @@ function App() {
             <Route path="/invite/:token" element={<InviteAccept />} />
             <Route path="/dashboard/*" element={<FromDashboard />} />
             <Route path="/" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
-              <Route index element={<Interim><Live /></Interim>} />
+              <Route index element={<Home />} />
               <Route path="devices" element={<Interim><Monitoring /></Interim>} />
               <Route path="history" element={<PageFrame title="History"><ScreenPlaceholder text="Energy history for any period, with compare and CSV export, will be shown here." /></PageFrame>} />
               <Route

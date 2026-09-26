@@ -120,9 +120,9 @@ shell/          App v2 shell (P4-01): AppShell, Rail, AvatarMenu, ProfileDialog,
                 SiteStreamProvider (the one SSE connection), useThemeToggle
 hooks/          useMe (user, membership, role), useSiteStream (stream state, Inbox counts),
                 useSiteLive (snapshot)
-components/     energy flow diagram, shadcn/ui in ui/ (themed from the App v2 palette)
-pages/          Login, InviteAccept (auth/ layout), and the pages shown in the shell until their App v2
-                screens replace them: Live (home), Monitoring (devices), Alerts (inbox), Settings
+components/     scene/ (SiteScene: three.js engine + 2D fallback), shadcn/ui in ui/ (App v2 palette)
+pages/          Login, InviteAccept (auth/ layout), Home (home/ parts), and the pages shown in the
+                shell until their App v2 screens replace them: Monitoring (devices), Alerts (inbox), Settings
 ```
 
 Routes: `/login`, `/invite/:token`, and the signed-in app at the top level: `/` (Home),
@@ -137,6 +137,22 @@ the site picture beside it (the SiteScene arrives with Home in P4-03). There is 
 (name and password) or asks for the existing account's password, and signs in to the new site.
 Used, expired or unknown links say why and point to sign in.
 
+**Home (P4-03).** As App v2: the site in 3D fills the page; on the left, demand (bar against the
+cap, marker at the month's peak, projection for the quarter hour), the bill so far and where it is
+heading (owners and managers), and the battery; on the right, "Needs you", the top five open
+decisions and alerts from the Inbox, with Approve and Decline (a reason is required) on decisions
+for owners and managers, and one line for commands waiting or running; at the bottom, today's price
+strip with the next peak. Data: the snapshot and stream (`useSiteLive`), `GET /api/site/model` and
+`GET /api/site/today`, and the Inbox queries that the stream's `inbox` events refresh.
+
+- **Scene:** `components/scene/sceneEngine.ts` is `site-scene.js` from the design, ported to
+  TypeScript with three.js loaded on demand (its own chunk). The static site (building, roof array,
+  one device per model anchor) is built per theme and model; flows (particles along a path from
+  each anchor to the hub, faster and denser with more kW, towards the hub for sources and away for
+  loads) and the floating labels update in place as live data arrives. Drag turns the site; it sways
+  slowly unless reduced motion is on. `sceneFlows` (shared) turns the snapshot into labels.
+- **Without WebGL** (or if three.js fails to load), `SiteFlow2D` draws the same flows flat with
+  moving dashes. A visually hidden table always lists the flows for screen readers.
 **Shell (P4-01).** A 68 px icon rail as in App v2: Home, Devices, History, Bills, Inbox,
 Settings. Installers don't get Bills (`RequireRole` sends them Home, and the API refuses them
 anyway). The role comes from `/auth/me`: the first active membership, the same rule the API uses.
