@@ -159,6 +159,19 @@ What is waiting, on its way or running on devices (ARCHITECTURE, Commands). The 
 | GET | `/:id` | all | `CommandView`: action, params, status, `sendAt`, `sentAt`, `ackedAt`, `verifiedAt`, `failedAt`, `error`, `expiresAt`, `revertAt`, `revertedAt`, `cancelledAt`, its `recommendation`, and its `revert` once there is one |
 | POST | `/:id/cancel` | owner, manager | Cancels it and returns the `CommandView`. A command not sent yet is dropped; one already out gets its revert. `409` for a finished command or a revert. Audited as `command.cancel` |
 
+## Inbox `/api/inbox` 🔒 all roles (v2, P3-06)
+
+Decisions waiting for someone, alerts, and commands waiting or running, in one list (App v2 Inbox).
+
+| Method | Path | Query | Result |
+| ------ | ---- | ----- | ------ |
+| GET | `/` | `state` open\|closed (default open), `type` decide\|alert\|active\|all (default all), `limit` 1–100 (default 30), `cursor` | `{ items: InboxItem[], counts, nextCursor }` |
+| GET | `/counts` | | `{ open, closed }`, each `{ decide, alert, active, all }` |
+
+- **What is open:** a proposed recommendation; an alert that is open or acknowledged; a command that is created, sent, acked, or verified and still running until its revert. Declined and expired recommendations, resolved alerts, and finished, failed or cancelled commands are closed. Revert commands are not listed on their own.
+- **`InboxItem`:** `key` (`type:id`), `type`, `id`, `kind` (Decision, Alert, Info, Active, Closed), `title`, `deviceId`, `deviceName`, `sub` (one line, e.g. "Battery · expected saving $266" or "Battery · running until 17:00 · approved by Jamie Reyes"), `status`, `at`, and `due` (when a decision expires, or when a command ends).
+- **Order and paging:** newest first by when the item arrived (which never changes), same-moment items by key. `nextCursor` holds the last item's time and key, so items moving between open and closed while you page never repeat or go missing. A bad cursor is a `400`.
+
 ## Server errors
 
 Each v1 route answers unexpected failures with its own `500` body, for example
@@ -215,6 +228,7 @@ client reads the stream with `fetch`. Events:
 | `device`    | `{ type, deviceId, status }` when a device goes live, stale or offline |
 | `alert`     | `{ type, alert: AlertView }` when an alert opens, resolves, counts a repeat, or someone acts on it (P2-07, P2-08) |
 | `command`   | `{ type, commandId, deviceId, status }` when a command is sent, acked or fails (P2-08) |
+| `inbox`     | `{ counts, changed: [{ type, id }] }`: Inbox counts right after the snapshot, then at most one every 300 ms while decisions, alerts or commands change (P3-06) |
 
 A `: heartbeat` comment is sent every 20 s. Events published while the snapshot is being built are
 held back and sent right after it.

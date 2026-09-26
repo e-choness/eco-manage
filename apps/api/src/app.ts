@@ -10,6 +10,7 @@ import { alertsRoutes } from './modules/alerts/routes';
 import { devicesRoutes } from './modules/devices/routes';
 import { recommendationsRoutes } from './modules/recommendations/routes';
 import { commandsRoutes } from './modules/commands/routes';
+import inboxRoutes from './modules/inbox/routes';
 import { siteRoutes } from './modules/site/routes';
 import tariffRoutes from './modules/tariffs/routes';
 import { billsRoutes } from './modules/bills/routes';
@@ -56,6 +57,7 @@ export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogg
   app.use('/api/devices', devicesRoutes(redis));
   app.use('/api/recommendations', recommendationsRoutes({ redis }));
   app.use('/api/commands', commandsRoutes(redis));
+  app.use('/api/inbox', inboxRoutes);
   app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs, gateway, jobs }));
   app.use('/api/tariffs', tariffRoutes);
   app.use('/api/bills', billsRoutes(jobs));

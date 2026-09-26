@@ -196,6 +196,35 @@ describe('GET /api/site/stream', () => {
     expect(telemetry[0].at - published[0]).toBeLessThan(2000); // plan: within 5 s end to end
   });
 
+  it('sends Inbox counts after the snapshot, then one inbox event per burst of changes (P3-06)', async () => {
+    const pub = new Redis(REDIS);
+    const publishing = (async () => {
+      for (let i = 0; i < 50 && hub.listenerCount(SITE_ID) === 0; i++) await new Promise((r) => setTimeout(r, 20));
+      await new Promise((r) => setTimeout(r, 100));
+      const ch = siteEventsChannel(SITE_ID);
+      await pub.publish(ch, JSON.stringify({ type: 'inbox', itemType: 'decide', itemId: 'r1' }));
+      await pub.publish(ch, JSON.stringify({ type: 'alert', alert: { id: 'a1', state: 'open' } }));
+      await pub.publish(ch, JSON.stringify({ type: 'command', commandId: 'c1', deviceId: 'bat', status: 'sent' }));
+      await pub.publish(ch, JSON.stringify({ type: 'inbox', itemType: 'decide', itemId: 'r1' })); // same item again
+    })();
+    const { events } = await collect((e) => e.filter((x) => x.event === 'inbox').length >= 2);
+    await publishing;
+    await pub.quit();
+
+    const names = events.map((e) => e.event);
+    expect(names.slice(0, 2)).toEqual(['snapshot', 'inbox']);
+    const first = events[1].data as { counts: { open: { all: number } }; changed: unknown[] };
+    expect(first).toEqual({ counts: expect.objectContaining({ open: expect.objectContaining({ all: 0 }) }), changed: [] });
+    expect(names.filter((n) => n === 'alert' || n === 'command')).toEqual(['alert', 'command']); // still sent as themselves
+    expect(names).not.toContain('decide');
+    const burst = events.filter((e) => e.event === 'inbox')[1].data as { changed: unknown[] };
+    expect(burst.changed).toEqual([
+      { type: 'decide', id: 'r1' },
+      { type: 'alert', id: 'a1' },
+      { type: 'active', id: 'c1' },
+    ]);
+  });
+
   it('sends heartbeats and releases the subscription when the client leaves', async () => {
     const { heartbeats } = await collect(() => false, 700);
     expect(heartbeats).toBeGreaterThanOrEqual(2);

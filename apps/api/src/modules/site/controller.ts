@@ -1,11 +1,14 @@
 import type { RequestHandler, Response } from 'express';
 import type { Redis } from 'ioredis';
 import type { SiteDoc } from '@ecomanage/db';
-import type { SiteEvent } from '@ecomanage/shared';
+import type { InboxEvent, InboxType, SiteEvent } from '@ecomanage/shared';
 import { handle, HttpError } from '../../lib/http';
 import type { SiteEventHub } from '../../lib/siteEvents';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import { buildSnapshot } from './snapshot';
+import { inboxCounts } from '../inbox/service';
+
+const INBOX_DEBOUNCE_MS = 300;
 
 export interface SiteControllerDeps {
   redis?: Redis;
@@ -45,12 +48,38 @@ export const siteController = ({ redis, hub, heartbeatMs = 20_000 }: SiteControl
     // Subscribe before building the snapshot so nothing is missed, but hold events back until the
     // snapshot has gone out: clients apply events on top of it.
     let queued: SiteEvent[] | null = [];
-    const unsubscribe = await hub.subscribe(String(site._id), (e) => (queued ? queued.push(e) : send(e.type, e)));
+    // Inbox changes (a decision, alert or command) become one `inbox` event with fresh counts,
+    // at most every INBOX_DEBOUNCE_MS; alert and command events also go out as themselves.
+    let changed: InboxEvent['changed'] = [];
+    let inboxTimer: NodeJS.Timeout | null = null;
+    const sendInbox = async () => {
+      if (inboxTimer) clearTimeout(inboxTimer);
+      inboxTimer = null;
+      const batch = changed;
+      changed = [];
+      try {
+        if (!closed) send('inbox', { counts: await inboxCounts(site), changed: batch } satisfies InboxEvent);
+      } catch {
+        // counts come again with the next change
+      }
+    };
+    const noteInbox = (type: InboxType, id: string) => {
+      if (!changed.some((c) => c.type === type && c.id === id)) changed.push({ type, id });
+      inboxTimer ??= setTimeout(() => void sendInbox(), INBOX_DEBOUNCE_MS);
+    };
+    const deliver = (e: SiteEvent) => {
+      if (e.type === 'inbox') return noteInbox(e.itemType, e.itemId);
+      if (e.type === 'alert') noteInbox('alert', e.alert.id);
+      if (e.type === 'command') noteInbox('active', e.commandId);
+      send(e.type, e);
+    };
+    const unsubscribe = await hub.subscribe(String(site._id), (e) => (queued ? queued.push(e) : deliver(e)));
     const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), heartbeatMs);
     // The response's 'close' is the documented signal that the client has gone away.
     res.on('close', () => {
       closed = true;
       clearInterval(heartbeat);
+      if (inboxTimer) clearTimeout(inboxTimer);
       unsubscribe();
     });
     try {
@@ -60,7 +89,9 @@ export const siteController = ({ redis, hub, heartbeatMs = 20_000 }: SiteControl
     }
     const pending = queued;
     queued = null;
-    for (const e of pending) send(e.type, e);
+    for (const e of pending) deliver(e);
+    // The Inbox badge needs its counts from the start.
+    if (!closed) await sendInbox();
   };
 
   return { snapshot, stream };
