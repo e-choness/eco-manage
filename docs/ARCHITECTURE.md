@@ -115,16 +115,35 @@ the v2 shape: 404 for unknown routes, 429 for rate limits, 500 for unhandled err
 
 ```
 api/            axios wrappers per module, types.ts (response shapes), api.ts (token + refresh)
-contexts/       AuthContext: session restore, login/register/logout, user
-components/     layout, header (alert badge), energy flow diagram, shadcn/ui in ui/
-pages/          Landing, Login, Register, Live (home), Monitoring (devices), Optimization,
-                Alerts, Settings
-lib/            utils, alertEvents (header refresh + 30 s poll interval)
+contexts/       AuthContext: session restore, login/register/logout, user (with saved theme)
+shell/          App v2 shell (P4-01): AppShell, Rail, AvatarMenu, ProfileDialog, nav.ts,
+                SiteStreamProvider (the one SSE connection), useThemeToggle
+hooks/          useMe (user, membership, role), useSiteStream (stream state, Inbox counts),
+                useSiteLive (snapshot)
+components/     energy flow diagram, shadcn/ui in ui/ (themed from the App v2 palette)
+pages/          Landing, Login, Register, and the pages shown in the shell until their App v2
+                screens replace them: Live (home), Monitoring (devices), Alerts (inbox), Settings
 ```
 
-Routes: `/`, `/login`, `/register`, and `/dashboard` (the live view) with the children
-`monitoring`, `optimization`, `alerts` and `settings`. `ProtectedRoute` waits for the session
-restore before redirecting.
+Routes: `/`, `/login`, `/register`, and `/dashboard` (Home) with the children `devices`,
+`history`, `bills`, `inbox` and `settings`. Older addresses (`monitoring`, `alerts`,
+`optimization`, `live`) redirect. `ProtectedRoute` waits for the session restore before
+redirecting.
+
+**Shell (P4-01).** A 68 px icon rail as in App v2: Home, Devices, History, Bills, Inbox,
+Settings. Installers don't get Bills (`RequireRole` sends them Home, and the API refuses them
+anyway). The role comes from `/auth/me`: the first active membership, the same rule the API uses.
+There is no role switcher. The Inbox badge counts decisions waiting and open alerts; it loads
+`GET /api/inbox/counts` once and then follows the stream's `inbox` events. `SiteStreamProvider`
+holds the one SSE connection for the signed-in app and writes the snapshot, the Inbox counts and
+Inbox list invalidations into the react-query cache. The theme toggle sets the `dark`/`light` class
+on `<html>`, keeps the choice in localStorage and saves it on the user
+(`PUT /api/auth/profile {theme}`); a saved theme wins on the next sign-in anywhere. The avatar
+menu shows the person, role and site, and opens Profile (name) or signs out.
+
+**Styling.** App v2's dark and light colours are CSS variables in `index.css` (`--bg`, `--pn`,
+`--tx`, …), exposed to Tailwind as `app-*`, `tag-*`, `price-*` and `flow-*`. The shadcn tokens are
+the same palette in HSL, so `ui/` components match. The font is Geist (and Geist Mono).
 
 ## Data
 

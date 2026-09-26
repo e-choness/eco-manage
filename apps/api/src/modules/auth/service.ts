@@ -66,8 +66,8 @@ export const changePassword = async (user: IUser, currentPassword: string, newPa
   return true;
 };
 
-export const updateProfile = (userId: string, name: string | undefined): Promise<IUser | null> =>
-  UserService.update(userId, { name });
+export const updateProfile = (userId: string, patch: { name?: string; theme?: 'dark' | 'light' | null }): Promise<IUser | null> =>
+  UserService.update(userId, Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)));
 
 /** The signed-in user with the sites they can access and their role on each (GET /auth/me). */
 export const profile = async (user: IUser) => ({

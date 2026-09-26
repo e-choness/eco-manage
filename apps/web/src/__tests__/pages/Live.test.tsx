@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw'
 import type { SiteSnapshot } from '@ecomanage/shared'
 import { server } from '../setup'
 import { Live } from '@/pages/Live'
+import { SiteStreamProvider } from '@/shell/SiteStreamProvider'
 import { applySiteEvent, createSseParser } from '@/lib/siteLive'
 
 const BASE = 'http://localhost:3000'
@@ -79,7 +80,9 @@ describe('Live page', () => {
     )
     render(
       <QueryClientProvider client={new QueryClient()}>
-        <Live />
+        <SiteStreamProvider>
+          <Live />
+        </SiteStreamProvider>
       </QueryClientProvider>
     )
     expect(await screen.findByTestId('site-name')).toHaveTextContent('Maple Grove School')

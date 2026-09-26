@@ -25,4 +25,5 @@ export interface SessionUser {
   _id: string
   email: string
   name?: string
+  theme?: 'dark' | 'light' | null
 }

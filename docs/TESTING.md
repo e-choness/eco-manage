@@ -1,6 +1,6 @@
 # Testing
 
-All suites run inside the dev container. As of P3-07: **api 277, web 50, ingest 29, simulator 32, rules 43, recs 33,
+All suites run inside the dev container. As of P4-01: **api 278, web 52, ingest 29, simulator 32, rules 43, recs 33,
 shared 109, profiles 20, db 10, worker 48**, all passing. Lint and typecheck also pass. The api,
 ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest and rules; the worker's SMTP test uses Mailpit).
 
@@ -53,7 +53,7 @@ docker compose run --rm --no-deps api pnpm --filter @ecomanage/web test:watch
 | `pages/Login.test.tsx`, `Register.test.tsx` | Forms, validation, loading states                          |
 | `pages/Live.test.tsx`, `Monitoring.test.tsx` | Live view from snapshot + stream (reducer, SSE parser), devices list and detail |
 | `pages/p0-05-bugfixes.test.tsx`        | Dismissing a recommendation is saved |
-| `components/DashboardHeader.test.tsx`  | Alert poll never faster than 30 s, refresh on the alerts-changed event |
+| `shell/AppShell.test.tsx`              | App v2 shell: rail by role (no Bills for installers), Inbox badge from counts then stream `inbox` events, saved theme applied and a switch saved on the user, avatar menu (role from the membership, Profile, Sign out), no-site screen |
 
 `src/__tests__/setup.ts` starts an MSW server (base `http://localhost:3000`), mocks `localStorage`
 and `matchMedia`, and stubs `ResizeObserver` for Recharts. If a page lists `toast` as an effect

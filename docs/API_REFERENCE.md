@@ -58,7 +58,7 @@ No body. Reads the `em_rt` cookie, rotates it, and returns a new access token.
 Revokes the session that owns the `em_rt` cookie and clears the cookie. Always `200 {"message":"User logged out successfully."}`.
 
 ### 🔒 `GET /me`
-`200` user fields plus `memberships: [{ siteId, siteName, role, until }]` (active ones only).
+`200` user fields (including `theme`: `"dark"`, `"light"` or `null`) plus `memberships: [{ siteId, siteName, role, until }]` (active ones only). The web app uses the first membership, as the API does.
 
 ### 🔒 `PUT /password`
 Body `{ currentPassword, newPassword }`.
@@ -68,9 +68,10 @@ Body `{ currentPassword, newPassword }`.
 - `400 {"message":"Current password is incorrect"}`
 
 ### 🔒 `PUT /profile`
-Body `{ name? }` (trimmed; must not be blank if present).
+Body `{ name?, theme? }`. `name` is trimmed and must not be blank if present; `theme` is `"dark"`, `"light"` or `null` (follow the system), saved per user by the App v2 theme toggle (P4-01).
 - `200` user fields
 - `400 {"message":"Name must be a non-empty string"}`
+- `400 {"message":"Theme must be dark, light or null"}`
 
 ## Devices `/api/devices` 🔒 (v2, P1-09)
 
