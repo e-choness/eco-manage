@@ -78,7 +78,7 @@ const renderAt = (path: string) =>
           <MemoryRouter initialEntries={[path]}>
             <Routes>
               <Route path="/login" element={<p>Sign in page</p>} />
-              <Route path="/dashboard" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
+              <Route path="/" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
                 <Route index element={<p>Home page</p>} />
                 <Route path="inbox" element={<p>Inbox page</p>} />
                 <Route path="bills" element={<RequireRole roles={['owner', 'manager']}><p>Bills page</p></RequireRole>} />
@@ -101,7 +101,7 @@ beforeEach(() => {
 describe('rail', () => {
   it('shows every screen to a manager, with the Inbox badge kept current by the stream', async () => {
     setup({ streamed: counts(2, 3) })
-    renderAt('/dashboard')
+    renderAt('/')
     const nav = await rail()
     expect(nav.getAllByRole('link').map((a) => a.getAttribute('title'))).toEqual(['Home', 'Devices', 'History', 'Bills', 'Inbox', 'Settings'])
     expect(nav.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
@@ -112,7 +112,7 @@ describe('rail', () => {
 
   it('has no Bills for an installer, and sends them Home from its address', async () => {
     setup({ role: 'installer', inbox: counts(0, 0, 4) })
-    renderAt('/dashboard/bills')
+    renderAt('/bills')
     expect(await screen.findByText('Home page')).toBeInTheDocument()
     const nav = await rail()
     expect(nav.queryByRole('link', { name: 'Bills' })).toBeNull()
@@ -121,7 +121,7 @@ describe('rail', () => {
 
   it('explains when the account has no site', async () => {
     setup({ role: null })
-    renderAt('/dashboard')
+    renderAt('/')
     expect(await screen.findByRole('heading', { name: 'No site yet' })).toBeInTheDocument()
     expect(screen.queryByRole('navigation')).toBeNull()
   })
@@ -130,7 +130,7 @@ describe('rail', () => {
 describe('theme', () => {
   it("applies the user's saved theme, and saves a switch on the user", async () => {
     setup({ theme: 'light' })
-    renderAt('/dashboard')
+    renderAt('/')
     await rail()
     await waitFor(() => expect(document.documentElement).toHaveClass('light'))
     await userEvent.click(screen.getByRole('button', { name: 'Switch to dark theme' }))
@@ -144,7 +144,7 @@ describe('theme', () => {
 describe('avatar menu', () => {
   it('shows who is signed in and their role from the membership, and signs out', async () => {
     setup()
-    renderAt('/dashboard')
+    renderAt('/')
     await rail()
     const avatar = screen.getByRole('button', { name: 'Account: Jamie Reyes, Manager' })
     expect(avatar).toHaveTextContent('JR')
@@ -159,7 +159,7 @@ describe('avatar menu', () => {
 
   it('edits the name in Profile', async () => {
     setup()
-    renderAt('/dashboard')
+    renderAt('/')
     await rail()
     await userEvent.click(screen.getByRole('button', { name: 'Account: Jamie Reyes, Manager' }))
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Profile' }))

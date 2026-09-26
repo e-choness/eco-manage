@@ -49,7 +49,7 @@ export function PageFrame({ title, children }: { title: string; children: ReactN
 /** A page some roles don't get (Bills for installers) sends them Home; the API refuses them too. */
 export function RequireRole({ roles, children }: { roles: readonly Role[]; children: ReactNode }) {
   const { role } = useMe()
-  if (!role || !roles.includes(role)) return <Navigate to="/dashboard" replace />
+  if (!role || !roles.includes(role)) return <Navigate to="/" replace />
   return <>{children}</>
 }
 

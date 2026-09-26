@@ -43,12 +43,6 @@ export const server = setupServer(
     })
   }),
 
-  http.post('http://localhost:3000/api/auth/register', () => {
-    return HttpResponse.json({
-      email: 'test@example.com',
-    })
-  }),
-
   http.post('http://localhost:3000/api/auth/logout', () => {
     return HttpResponse.json({
       success: true,

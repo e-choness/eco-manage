@@ -9,7 +9,7 @@ import { server } from './setup'
 const BASE = 'http://localhost:3000'
 
 function TestComponent() {
-  const { isAuthenticated, isRestoring, user, login, register, logout } = useAuth()
+  const { isAuthenticated, isRestoring, user, login, acceptInvite, logout } = useAuth()
   return (
     <div>
       <div data-testid="restoring">{isRestoring ? 'restoring' : 'ready'}</div>
@@ -27,12 +27,12 @@ function TestComponent() {
       </button>
       <button
         onClick={() =>
-          register('new@example.com', 'password', 'New User').catch((e: Error) => {
+          acceptInvite('tok', { name: 'New User', password: 'password1' }).catch((e: Error) => {
             screen.getByTestId('error').textContent = e.message
           })
         }
       >
-        register
+        accept invite
       </button>
       <button onClick={() => logout()}>logout</button>
     </div>
@@ -115,30 +115,34 @@ describe('AuthContext', () => {
     })
   })
 
-  describe('register', () => {
-    it('creates the account and then signs in', async () => {
+  describe('acceptInvite (P4-02)', () => {
+    it('starts a session from the accept response', async () => {
+      server.use(
+        http.post(`${BASE}/api/invites/tok/accept`, () => HttpResponse.json({ _id: 'u2', email: 'new@example.com', accessToken: 'invite-token' }))
+      )
       await renderAuth()
-      await userEvent.click(screen.getByText('register'))
+      await userEvent.click(screen.getByText('accept invite'))
       await waitFor(() => expect(status()).toHaveTextContent('authenticated'))
+      expect(screen.getByTestId('email')).toHaveTextContent('new@example.com')
     })
 
-    it('does not sign in when registration fails', async () => {
-      let loginCalled = false
+    it('stays signed out and reports why the invite failed, without trying a refresh', async () => {
+      let refreshes = 0
       server.use(
-        http.post(`${BASE}/api/auth/register`, () =>
-          HttpResponse.json({ message: 'User with this email already exists' }, { status: 400 })
+        http.post(`${BASE}/api/invites/tok/accept`, () =>
+          HttpResponse.json({ error: { code: 410, message: 'This invite has expired. Ask the site owner to send a new one.' } }, { status: 410 })
         ),
-        http.post(`${BASE}/api/auth/login`, () => {
-          loginCalled = true
-          return HttpResponse.json({})
+        http.post(`${BASE}/api/auth/refresh`, () => {
+          refreshes++
+          return HttpResponse.json({ message: 'Refresh token is required' }, { status: 401 })
         })
       )
       await renderAuth()
-      await userEvent.click(screen.getByText('register'))
-
-      await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent('already exists'))
-      expect(loginCalled).toBe(false)
+      const before = refreshes
+      await userEvent.click(screen.getByText('accept invite'))
+      await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent('This invite has expired'))
       expect(status()).toHaveTextContent('not-authenticated')
+      expect(refreshes).toBe(before)
     })
   })
 

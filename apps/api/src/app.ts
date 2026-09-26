@@ -12,6 +12,7 @@ import { recommendationsRoutes } from './modules/recommendations/routes';
 import { commandsRoutes } from './modules/commands/routes';
 import inboxRoutes from './modules/inbox/routes';
 import auditRoutes from './modules/audit/routes';
+import { inviteRoutes, siteInviteRoutes } from './modules/invites/routes';
 import { siteRoutes } from './modules/site/routes';
 import tariffRoutes from './modules/tariffs/routes';
 import { billsRoutes } from './modules/bills/routes';
@@ -50,7 +51,7 @@ export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogg
   app.use(basicRoutes);
   app.use('/api', rateLimiter({ windowMs: window, max: env.RATE_LIMIT_MAX, prefix: 'rl:api:', redis }));
   app.use(
-    ['/api/auth/login', '/api/auth/register', '/api/auth/refresh'],
+    ['/api/auth/login', '/api/auth/refresh', '/api/invites'],
     rateLimiter({ windowMs: window, max: env.AUTH_RATE_LIMIT_MAX, prefix: 'rl:auth:', redis })
   );
   app.use('/api/auth', authRoutes);
@@ -60,6 +61,8 @@ export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogg
   app.use('/api/commands', commandsRoutes(redis));
   app.use('/api/inbox', inboxRoutes);
   app.use('/api/audit', auditRoutes);
+  app.use('/api/site/invites', siteInviteRoutes(jobs));
+  app.use('/api/invites', inviteRoutes());
   app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs, gateway, jobs }));
   app.use('/api/tariffs', tariffRoutes);
   app.use('/api/bills', billsRoutes(jobs));

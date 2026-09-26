@@ -1,7 +1,7 @@
 # Testing
 
-All suites run inside the dev container. As of P4-01: **api 278, web 52, ingest 29, simulator 32, rules 43, recs 33,
-shared 109, profiles 20, db 10, worker 48**, all passing. Lint and typecheck also pass. The api,
+All suites run inside the dev container. As of P4-02: **api 280, web 40, ingest 29, simulator 32, rules 43, recs 33,
+shared 109, profiles 20, db 10, worker 50**, all passing. Lint and typecheck also pass. The api,
 ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest and rules; the worker's SMTP test uses Mailpit).
 
 ```bash
@@ -24,7 +24,7 @@ docker compose run --rm api pnpm --filter @ecomanage/api test:coverage   # 55% g
 | Suite                                  | What it checks                                                    |
 | -------------------------------------- | ----------------------------------------------------------------- |
 | `routes.contract.test.ts`              | Every v1 endpoint through `createApp()`: status codes, bodies, auth guard. Models are stubbed via `mongoose.model(name)` |
-| `integration/*.test.ts`                | Against a **real MongoDB** (and Redis): role matrix over every route, an audit inventory (`audit.test.ts`: every write route lists its audit action, or why it has none, and each action is checked by a test), migration, site snapshot and SSE stream, v2 devices, P0-05 fixes still in use |
+| `integration/*.test.ts`                | Against a **real MongoDB** (and Redis): role matrix over every route, an audit inventory (`audit.test.ts`: every write route lists its audit action, or why it has none, and each action is checked by a test), invites (token only hashed, single use, expiry, existing accounts), migration, site snapshot and SSE stream, v2 devices, P0-05 fixes still in use |
 | `security.test.ts`                     | Refresh cookie flags and rotation, logout revocation, 429 limits, CORS, helmet, no credentials in logs |
 | `middleware/auth.test.ts`              | `requireUser`: 401 cases, and DB errors passed to the error handler |
 | `routes/authRoutes.test.ts`            | Auth routes with a mocked user service                            |
@@ -50,7 +50,9 @@ docker compose run --rm --no-deps api pnpm --filter @ecomanage/web test:watch
 | Suite                                  | What it checks                                                  |
 | -------------------------------------- | --------------------------------------------------------------- |
 | `AuthContext.test.tsx`                 | Session restore from the cookie, in-memory token, refresh-and-retry on 401, logout |
-| `pages/Login.test.tsx`, `Register.test.tsx` | Forms, validation, loading states                          |
+| `pages/Login.test.tsx`                 | App v2 sign-in: fields, landing Home or the page asked for, server message on failure, no sign-up |
+| `pages/InviteAccept.test.tsx`          | Invite link: new account (name, 8+ character password), existing account (its password), used/expired/unknown links |
+| `routes.test.tsx`                      | Old `/dashboard/…` addresses redirect to the top-level ones |
 | `pages/Live.test.tsx`, `Monitoring.test.tsx` | Live view from snapshot + stream (reducer, SSE parser), devices list and detail |
 | `pages/p0-05-bugfixes.test.tsx`        | Dismissing a recommendation is saved |
 | `shell/AppShell.test.tsx`              | App v2 shell: rail by role (no Bills for installers), Inbox badge from counts then stream `inbox` events, saved theme applied and a switch saved on the user, avatar menu (role from the membership, Profile, Sign out), no-site screen |

@@ -4,7 +4,6 @@ import { currentUser, handle, HttpError, parse, userIdOf } from '../../lib/http'
 import { clearRefreshCookie, readCookie, REFRESH_COOKIE, setRefreshCookie } from '../../utils/cookies';
 
 const credentials = z.object({ email: z.string().min(1), password: z.string().min(1) });
-const registration = credentials.extend({ name: z.string().optional() });
 const passwordChange = z.object({ currentPassword: z.string().min(1), newPassword: z.string().min(1) });
 const profile = z.object({ name: z.string().trim().min(1).optional() });
 const themeChoice = z.object({ theme: z.enum(['dark', 'light']).nullable().optional() });
@@ -20,15 +19,6 @@ export const login = handle({ status: 400, body: { message: 'Login failed' } }, 
   setRefreshCookie(res, session.refreshToken);
   res.json({ ...session.user.toJSON(), accessToken: session.accessToken });
 });
-
-export const register = handle(
-  (err) => ({ status: 400, body: { message: err.message } }),
-  async (req, res) => {
-    const input = parse(registration, req.body, 400, REQUIRED);
-    const user = await authService.register(input);
-    res.status(201).json(user.toJSON());
-  }
-);
 
 export const logout = handle({ status: 500, body: { message: 'Logout failed' } }, async (req, res) => {
   try {

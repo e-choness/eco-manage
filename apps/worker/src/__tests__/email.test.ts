@@ -4,10 +4,10 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import mongoose from 'mongoose'
-import { Alert, Email, Interval15, Membership, NotificationPrefs, Recommendation, RuleConfig, Site, Tariff, initModels } from '@ecomanage/db'
+import { Alert, Email, Interval15, Invite, Membership, NotificationPrefs, Recommendation, RuleConfig, Site, Tariff, initModels } from '@ecomanage/db'
 import { TARIFF_TEMPLATES } from '@ecomanage/shared'
 import { createMailer, type Mailer, type Message } from '../email/mailer'
-import { dailySummaries, notifyAlerts, notifyProposals, sendOnce } from '../email/notify'
+import { dailySummaries, notifyAlerts, notifyProposals, sendInvite, sendOnce } from '../email/notify'
 
 const MONGO = `${process.env.MONGO_TEST_URL || 'mongodb://mongodb:27017'}/ecomanage_test_worker_email`
 const MAILPIT = process.env.MAILPIT_URL || 'http://mailpit:8025'
@@ -260,5 +260,48 @@ describe('proposal emails (P3-01)', () => {
     await proposal({ expiresAt: new Date(NOON.getTime() - 60_000) })
     await proposal({ status: 'declined' })
     expect(await notifyProposals(mailer(), APP, NOON)).toBe(0)
+  })
+})
+
+describe('invite emails (P4-02)', () => {
+  const invite = (over: object = {}) =>
+    Invite.create({
+      siteId,
+      email: 'sam@test.example',
+      role: 'installer',
+      until: new Date('2026-12-31T05:00:00Z'),
+      invitedBy: ids.owner,
+      tokenHash: 'x'.repeat(64),
+      expiresAt: new Date(NOON.getTime() + 7 * 24 * 60 * MIN),
+      ...over,
+    })
+
+  beforeEach(async () => {
+    await Invite.deleteMany({})
+  })
+
+  it('sends the single-use link once, saying who invited them and until when', async () => {
+    const m = mailer()
+    const i = await invite()
+    expect(await sendInvite(m, APP, { inviteId: String(i._id), token: 'tok/en' }, NOON)).toBe(true)
+    expect(await sendInvite(m, APP, { inviteId: String(i._id), token: 'tok/en' }, NOON)).toBe(false) // a job retry
+    expect(m.sent).toHaveLength(1)
+    const [msg] = m.sent
+    expect(msg.to).toBe('sam@test.example')
+    expect(msg.subject).toBe('Priya Shah invited you to Maple Grove School on EcoManage')
+    expect(msg.text).toContain("You're invited to Maple Grove School as installer, with access until 31 December 2026.")
+    expect(msg.text).toContain('The link works once and expires on 1 October 2026.')
+    expect(msg.text).toContain('Accept the invite: http://app.test/invite/tok%2Fen')
+    expect(msg.text).not.toContain('Settings → Notifications')
+    expect(await Email.findOne({ key: `invite:${i._id}` }).lean()).toMatchObject({ kind: 'invite', status: 'sent', userId: null })
+  })
+
+  it('skips invites that were replaced, used or have expired', async () => {
+    const m = mailer()
+    const used = await invite({ acceptedAt: NOON })
+    const expired = await invite({ email: 'late@test.example', expiresAt: new Date(NOON.getTime() - MIN) })
+    for (const i of [used, expired]) expect(await sendInvite(m, APP, { inviteId: String(i._id), token: 't' }, NOON)).toBe(false)
+    expect(await sendInvite(m, APP, { inviteId: String(new mongoose.Types.ObjectId()), token: 't' }, NOON)).toBe(false)
+    expect(m.sent).toHaveLength(0)
   })
 })

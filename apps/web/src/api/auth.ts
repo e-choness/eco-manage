@@ -14,19 +14,6 @@ export const login = async (email: string, password: string): Promise<SessionUse
   }
 };
 
-// Description: Register user functionality
-// Endpoint: POST /api/auth/register
-// Request: { email: string, password: string, name: string }
-// Response: { email: string }
-export const register = async (email: string, password: string, name: string): Promise<SessionUser> => {
-  try {
-    const response = await api.post('/api/auth/register', { email, password, name });
-    return response.data;
-  } catch (error) {
-    throw new Error(errorMessage(error));
-  }
-};
-
 // Description: Update user profile
 // Endpoint: PUT /api/auth/profile
 // Request: { name?: string, theme?: "dark" | "light" | null }

@@ -115,20 +115,27 @@ the v2 shape: 404 for unknown routes, 429 for rate limits, 500 for unhandled err
 
 ```
 api/            axios wrappers per module, types.ts (response shapes), api.ts (token + refresh)
-contexts/       AuthContext: session restore, login/register/logout, user (with saved theme)
+contexts/       AuthContext: session restore, login, invite accept, logout, user (with saved theme)
 shell/          App v2 shell (P4-01): AppShell, Rail, AvatarMenu, ProfileDialog, nav.ts,
                 SiteStreamProvider (the one SSE connection), useThemeToggle
 hooks/          useMe (user, membership, role), useSiteStream (stream state, Inbox counts),
                 useSiteLive (snapshot)
 components/     energy flow diagram, shadcn/ui in ui/ (themed from the App v2 palette)
-pages/          Landing, Login, Register, and the pages shown in the shell until their App v2
+pages/          Login, InviteAccept (auth/ layout), and the pages shown in the shell until their App v2
                 screens replace them: Live (home), Monitoring (devices), Alerts (inbox), Settings
 ```
 
-Routes: `/`, `/login`, `/register`, and `/dashboard` (Home) with the children `devices`,
-`history`, `bills`, `inbox` and `settings`. Older addresses (`monitoring`, `alerts`,
-`optimization`, `live`) redirect. `ProtectedRoute` waits for the session restore before
-redirecting.
+Routes: `/login`, `/invite/:token`, and the signed-in app at the top level: `/` (Home),
+`/devices`, `/history`, `/bills`, `/inbox`, `/settings`, the same paths the worker's emails link
+to. Addresses from before P4-02 (`/dashboard/…`, including `monitoring`, `alerts`,
+`optimization`, `live`) redirect. `ProtectedRoute` waits for the session restore, then sends
+signed-out visitors to `/login`, which returns them to the page they asked for.
+
+**Login and invites (P4-02).** Both use the App v2 Login layout: a 520 px panel with the form, and
+the site picture beside it (the SiteScene arrives with Home in P4-03). There is no sign-up:
+`/invite/:token` shows who invited whom to which site and role, then either creates the account
+(name and password) or asks for the existing account's password, and signs in to the new site.
+Used, expired or unknown links say why and point to sign in.
 
 **Shell (P4-01).** A 68 px icon rail as in App v2: Home, Devices, History, Bills, Inbox,
 Settings. Installers don't get Bills (`RequireRole` sends them Home, and the API refuses them
@@ -300,6 +307,7 @@ The `email` queue (P2-09) runs every 30 s and sends through SMTP (Mailpit in dev
   - A paused (snoozed) alert sends nothing.
   - Alerts older than 24 h aren't emailed.
 - **Escalation:** an alert still `open` (not acknowledged) after the owner's `escalateMin` is emailed to the owner once.
+- **Invites (P4-02):** on demand, an `invite` job (from `POST /api/site/invites`) carries the invite id and the plain token; the worker emails the link `{APP_URL}/invite/{token}` unless the invite was replaced, used or has expired meanwhile. The job is removed once done, so the token isn't kept. Key `invite:{inviteId}`.
 - **Daily summary:** in the hour after 07:00 site time, once per site and day. It covers yesterday's energy cost, grid kWh, peak demand, and solar and battery savings (computed with the shared bill maths), plus open alerts.
 - **Sending once:** each email's key is first claimed in `emails` (unique), then the mail is sent and marked `sent`. A failed send drops the claim so the next pass retries, and a restart or a second worker never sends twice. Keys:
   - `alert:{alertId}:{userId}`

@@ -1,7 +1,7 @@
 import { logger } from '../config/logger';
 import { Queue, QueueEvents } from 'bullmq';
 import { Redis } from 'ioredis';
-import { QUEUES, type DocumentJobs } from '@ecomanage/shared';
+import { QUEUES, type DocumentJobs, type InviteJob } from '@ecomanage/shared';
 
 // Producer side of the worker's `documents` queue. Controllers get it through createApp, so tests
 // can pass a stand-in that runs the job in process (or never answers).
@@ -15,6 +15,8 @@ export interface JobClient {
   run<N extends DocumentJobName>(name: N, data: DocumentJobs[N]['data'], timeoutMs: number): Promise<DocumentJobs[N]['result']>;
   /** Asks the worker to redo one site's forecasts now (after calendar or solar array changes). */
   requestForecast(siteId: string): Promise<void>;
+  /** Asks the worker to email an invite link (P4-02). */
+  sendInvite(job: InviteJob): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -24,6 +26,7 @@ export const createJobClient = (redisUrl: string): JobClient => {
   const connection = new Redis(redisUrl, { maxRetriesPerRequest: null });
   const queue = new Queue(QUEUES.documents, { connection });
   const forecastQueue = new Queue(QUEUES.forecast, { connection });
+  const emailQueue = new Queue(QUEUES.email, { connection });
   // QueueEvents blocks on its connection, so it gets its own.
   const events = new QueueEvents(QUEUES.documents, { connection: connection.duplicate() });
   const opts = { attempts: 2, backoff: { type: 'fixed', delay: 2000 }, removeOnComplete: 100, removeOnFail: 500 };
@@ -45,10 +48,15 @@ export const createJobClient = (redisUrl: string): JobClient => {
       // Saves within the same minute share one rerun (same job id).
       await forecastQueue.add('forecast-site', { siteId }, { ...opts, jobId: `forecast-${siteId}-${Math.floor(Date.now() / 60_000)}` });
     },
+    async sendInvite(job) {
+      // No copy of the token is kept once the email has gone.
+      await emailQueue.add('invite', job, { attempts: 3, backoff: { type: 'fixed', delay: 5000 }, removeOnComplete: true, removeOnFail: true });
+    },
     async close() {
       await events.close();
       await queue.close();
       await forecastQueue.close();
+      await emailQueue.close();
       connection.disconnect();
     },
   };

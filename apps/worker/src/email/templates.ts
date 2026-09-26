@@ -25,17 +25,42 @@ const time = (at: Date, tz: string) =>
 const longDate = (date: string) =>
   new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`));
 
+const SETTINGS_FOOTER = 'Change what you receive in Settings → Notifications.';
+
 /** Builds text and HTML from the same lines; the last line is the call to action. */
-const message = (to: string, subject: string, lines: string[], link: { label: string; url: string }): Message => ({
+const message = (to: string, subject: string, lines: string[], link: { label: string; url: string }, footer: string = SETTINGS_FOOTER): Message => ({
   to,
   subject,
-  text: [...lines, '', `${link.label}: ${link.url}`, '', 'Change what you receive in Settings → Notifications.'].join('\n'),
+  text: [...lines, '', `${link.label}: ${link.url}`, '', footer].join('\n'),
   html: [
     ...lines.map((l) => (l ? `<p style="margin:0 0 8px">${escape(l)}</p>` : '')),
     `<p style="margin:16px 0"><a href="${escape(link.url)}">${escape(link.label)}</a></p>`,
-    '<p style="margin:0;color:#888;font-size:12px">Change what you receive in Settings → Notifications.</p>',
+    `<p style="margin:0;color:#888;font-size:12px">${escape(footer)}</p>`,
   ].join('\n'),
 });
+
+const ROLE_NAME: Record<string, string> = { owner: 'owner', manager: 'manager', installer: 'installer' };
+
+const day = (at: Date, tz: string) => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: tz }).format(at);
+
+/** P4-02: the invite link. It goes to someone without an account yet, so no settings footer. */
+export const inviteEmail = (
+  site: Pick<SiteDoc, 'name' | 'tz'>,
+  invite: { email: string; role: string; until?: Date | null; expiresAt: Date },
+  invitedBy: string | null,
+  url: string
+): Message =>
+  message(
+    invite.email,
+    `${invitedBy ?? 'The site owner'} invited you to ${site.name} on EcoManage`,
+    [
+      `You're invited to ${site.name} as ${ROLE_NAME[invite.role] ?? invite.role}${invite.until ? `, with access until ${day(invite.until, site.tz)}` : ''}.`,
+      'EcoManage shows the site’s live power, cost and the changes waiting for approval.',
+      `The link works once and expires on ${day(invite.expiresAt, site.tz)}.`,
+    ],
+    { label: 'Accept the invite', url },
+    "If you weren't expecting this invite, you can ignore this email."
+  );
 
 const alertLink = (appUrl: string, a: AlertDoc) => ({ label: 'Open it in the Inbox', url: `${appUrl}/inbox?alert=${a._id}` });
 

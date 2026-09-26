@@ -18,7 +18,7 @@ Base URL: `http://localhost:3000` (the web dev server proxies `/api` there).
   | `/auth/me`, `/auth/password`, `/auth/profile` | any signed-in user |
 
   v1 data is still stored per user; the role only decides access.
-- Rate limits per client IP per minute: 300 on `/api/*`, and 10 on login, register and refresh.
+- Rate limits per client IP per minute: 300 on `/api/*`, and 10 on login, refresh and the invite link (`/api/invites`).
   Over the limit: `429 {"error":{"code":429,"message":"Too many requests, try again later."}}`.
 - Unknown routes: `404 {"error":{"code":404,"message":"Not found"}}`.
 - Power is in kW and energy in kWh. Timestamps are UTC ISO strings.
@@ -42,11 +42,8 @@ Body `{ email, password }`.
 - `400 {"message":"Email and password are required"}`
 - `400 {"message":"Email or password is incorrect"}`
 
-### `POST /register`
-Body `{ email, password, name? }`. Doesn't sign in; the web client calls `/login` next.
-- `201` user fields
-- `400 {"message":"Email and password are required"}`
-- `400 {"message":"User with this email already exists"}`
+There is no `POST /register` (removed in P4-02): EcoManage is invite-only, and accounts are created
+by accepting an invite (`/api/invites`, below).
 
 ### `POST /refresh`
 No body. Reads the `em_rt` cookie, rotates it, and returns a new access token.
@@ -183,7 +180,19 @@ Every write to a site records an `AuditEvent` `{siteId, userId, action, target, 
 
 - **`AuditEntry`:** `id`, `ts`, `action`, `target`, `user` (`{ id, name }`; `null` for the rules service, worker or gateway; "Former user" once the person's account is gone), `before`, `after`.
 - **Paging:** `nextCursor` holds the last entry's time and id, so entries written while you page don't shift the pages. A bad cursor or filter is a `400`.
-- **Actions recorded:** `alert.ack`, `.snooze`, `.resolve`, `.false-alarm`, `.fix`; `bill.utility.upload`, `.enter`; `calendar.update`; `command.cancel`; `device.create`, `.update`, `.delete`; `notifications.update`; `recommendation.request`, `.approve`, `.decline`; `site.update`, `site.pv-arrays`, `site.battery`; `tariff.create`; `site.create` (migration). `/api/auth/*` changes a person's own account, not a site, and isn't recorded.
+- **Actions recorded:** `alert.ack`, `.snooze`, `.resolve`, `.false-alarm`, `.fix`; `bill.utility.upload`, `.enter`; `calendar.update`; `command.cancel`; `device.create`, `.update`, `.delete`; `notifications.update`; `recommendation.request`, `.approve`, `.decline`; `site.update`, `site.pv-arrays`, `site.battery`; `tariff.create`; `invite.create`, `.accept`; `site.create` (migration). `/api/auth/*` changes a person's own account, not a site, and isn't recorded.
+
+## Invites (v2, P4-02)
+
+EcoManage is invite-only. An owner invites an email address with a role; the worker emails a link
+to `{APP_URL}/invite/{token}`. The token is 32 random bytes; only its SHA-256 is stored, and the
+plain token exists only in the email job and the email. Links expire after 7 days and work once.
+
+| Method | Path | Who | Body → result |
+| ------ | ---- | --- | ------------- |
+| POST | `/api/site/invites` | 🔒 owner | `{ email, role, until? }` → `201 InviteView { id, email, role, until, expiresAt, invitedBy }`. A new invite replaces any unused one for the same address. `409` if the person already has access, `400` for an `until` in the past, `503` when the email can't be queued (no Redis). Audited as `invite.create` |
+| GET | `/api/invites/:token` | the link | `InvitePreview { siteName, email, role, until, expiresAt, invitedBy, hasAccount }`. `404` unknown link, `410` used or expired (the message says which) |
+| POST | `/api/invites/:token/accept` | the link | New account: `{ name, password }` (at least 8 characters). Existing account for that email: `{ password }`, its own. → user fields + `accessToken`, and sets `em_rt`, like login. Adds the membership with the invited role and `until`. `400` wrong password or missing name, `404`/`410` as above. Audited as `invite.accept` |
 
 ## Server errors
 
