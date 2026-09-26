@@ -14,6 +14,10 @@ topic read site/+/cmd/+/ack
 topic read site/+/job/+/result
 topic read site/+/gw/status
 
+# The rules service sends approved commands (P3-04); acks come back through ingest.
+user svc-rules
+topic write site/+/cmd/+
+
 user svc-health
 topic read $SYS/#
 

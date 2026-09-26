@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { initModels } from '@ecomanage/db';
 import { QUEUES } from '@ecomanage/shared';
 import { costPendingIntervals, nightlyBills } from './billing';
+import { measureSavings } from './savings';
 import { statementJob, utilityBillJob } from './documents';
 import { createMailer } from './email/mailer';
 import { dailySummaries, notifyAlerts, notifyProposals } from './email/notify';
@@ -41,7 +42,8 @@ const main = async () => {
 
   const queue = new Queue(QUEUE, { connection });
   await queue.upsertJobScheduler('cost-intervals', { every: env.COST_EVERY_MS }, { name: 'cost-intervals' });
-  // Hourly; each site is recomputed in the hour its local clock reads 01:xx.
+  // Hourly; each site is recomputed in the hour its local clock reads 01:xx, and yesterday's
+  // carried-out recommendations get their measured saving.
   await queue.upsertJobScheduler('nightly-bills', { pattern: '5 * * * *' }, { name: 'nightly-bills' });
 
   const worker = new Worker(
@@ -60,6 +62,9 @@ const main = async () => {
       }
       if (job.name === 'nightly-bills') {
         const sites = await nightlyBills();
+        // The day after a carried-out recommendation, what it actually saved.
+        const measured = await measureSavings();
+        if (measured) log.info({ measured }, 'recommendation savings measured');
         if (sites) log.info({ sites }, 'nightly bills');
         return sites;
       }

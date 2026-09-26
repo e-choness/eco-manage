@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { Site, initModels } from '@ecomanage/db';
 import { quarterOf, type SiteEvent } from '@ecomanage/shared';
 import { RulesService } from './service';
+import { CommandDispatcher } from './commands/dispatcher';
+import { createCommandLink } from './commands/link';
 import { RULES, expireRecommendations, proposeForSite } from '@ecomanage/recs';
 
 const siteIds = async () => (await Site.find().select('_id').lean()).map((s) => String(s._id));
@@ -16,6 +18,8 @@ const env = z
     LOG_LEVEL: z.string().default('info'),
     RULES_TICK_MS: z.coerce.number().int().positive().default(2000),
     RULES_SWEEP_MS: z.coerce.number().int().positive().default(15_000),
+    MQTT_URL: z.string().optional(),
+    MQTT_CERT_DIR: z.string().default('/repo/infra/mosquitto/certs'),
   })
   .parse(process.env);
 
@@ -38,6 +42,11 @@ const main = async () => {
       // not ours to judge; ingest validates what it publishes
     }
   });
+
+  // Commands go out over MQTT as the svc-rules identity (P3-04). Without a broker nothing is sent.
+  const link = env.MQTT_URL ? createCommandLink(env.MQTT_URL, env.MQTT_CERT_DIR) : null;
+  if (!link) log.warn('MQTT_URL not set: approved commands are not sent');
+  const dispatcher = link ? new CommandDispatcher({ redis, link, logger: log }) : null;
 
   // One loop, so a site is never evaluated twice at once: new readings every tick, every site on
   // the sweep for the time-based checks, and the recommendation rules once per quarter hour.
@@ -62,6 +71,7 @@ const main = async () => {
       } else {
         await rules.runDirty(now);
       }
+      await dispatcher?.tick(now).catch((err: Error) => log.error({ err: err.message }, 'command dispatch failed'));
       await new Promise((r) => setTimeout(r, env.RULES_TICK_MS));
     }
   };
@@ -73,6 +83,7 @@ const main = async () => {
 
   const stop = async () => {
     stopped = true;
+    await link?.close();
     sub.disconnect();
     redis.disconnect();
     await mongoose.disconnect();

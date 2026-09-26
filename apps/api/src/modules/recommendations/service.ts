@@ -196,7 +196,8 @@ export const approve = async (deps: RecDeps, site: SiteDoc, userId: string, role
 
   const times = commandTimes(action.window, now);
   const [command] = await Command.create([
-    { siteId: site._id, deviceId: rec.deviceId, recommendationId: rec._id, action: rec.action, params: action.params, ...times, status: 'created', createdBy: userId },
+    // The rules service publishes it when the window starts (P3-04).
+    { siteId: site._id, deviceId: rec.deviceId, recommendationId: rec._id, action: rec.action, params: action.params, sendAt: action.window.start, ...times, status: 'created', createdBy: userId },
   ]);
   const updated = await Recommendation.findOneAndUpdate(
     { _id: rec._id, status: 'proposed' },

@@ -4,7 +4,8 @@
 # (gitignored). Existing files are kept, so certificates survive restarts.
 #
 # Client identities (the certificate CN becomes the MQTT username, see acl):
-#   svc-ingest, svc-api, svc-health   cloud services
+#   svc-ingest, svc-api, svc-rules,   cloud services
+#   svc-health
 #   <siteId>                          one gateway per site (the simulator uses the demo site)
 set -eu
 
@@ -14,7 +15,7 @@ GATEWAY_SITES="${GATEWAY_SITES:-}"
 
 have() { [ -f "$OUT/$1.crt" ] && [ -f "$OUT/$1.key" ]; }
 
-if [ -f "$OUT/ca.crt" ] && have server && have svc-ingest && have svc-api && have svc-health; then
+if [ -f "$OUT/ca.crt" ] && have server && have svc-ingest && have svc-api && have svc-rules && have svc-health; then
   missing=""
   for s in $GATEWAY_SITES; do have "gw-$s" || missing="$missing $s"; done
   [ -z "$missing" ] && { echo "certificates present"; exit 0; }
@@ -47,6 +48,7 @@ issue() { # name cn [san]
 issue server mosquitto "DNS:mosquitto,DNS:localhost,IP:127.0.0.1"
 issue svc-ingest svc-ingest
 issue svc-api svc-api
+issue svc-rules svc-rules
 issue svc-health svc-health
 for s in $GATEWAY_SITES; do issue "gw-$s" "$s"; done
 

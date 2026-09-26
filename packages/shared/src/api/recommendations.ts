@@ -48,3 +48,30 @@ export type ManualRecommendationBody = z.infer<typeof manualRecommendationBody>;
 export const adjustRecommendationBody = z.object({ params: z.record(z.unknown()).optional() }).strict();
 
 export const declineRecommendationBody = z.object({ reason: z.string().trim().min(3, 'Say why, so the rule can be tuned').max(500) }).strict();
+
+// ---- commands (P3-04) ---------------------------------------------------------------------------
+
+export const COMMAND_STATUSES = ['created', 'sent', 'acked', 'failed', 'verified', 'reverted', 'cancelled'] as const;
+export type CommandStatus = (typeof COMMAND_STATUSES)[number];
+
+export interface CommandView {
+  id: string;
+  deviceId: string;
+  deviceName: string | null;
+  action: string;
+  params: Record<string, unknown>;
+  status: CommandStatus;
+  sendAt: string | null;
+  sentAt: string | null;
+  ackedAt: string | null;
+  verifiedAt: string | null;
+  failedAt: string | null;
+  error: string | null;
+  expiresAt: string;
+  revertAt: string | null;
+  revertedAt: string | null;
+  cancelledAt: string | null;
+  recommendation: { id: string; title: string } | null;
+  /** The revert command, once there is one. */
+  revert: { id: string; action: string; status: CommandStatus } | null;
+}

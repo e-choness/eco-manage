@@ -122,7 +122,8 @@ export class Ingestor {
     if (!ack.success) return this.reject('bad-ack', { siteId, commandId });
     if (!mongoose.isValidObjectId(commandId) || !mongoose.isValidObjectId(siteId)) return this.reject('unknown-command', { siteId, commandId });
     const set = ack.data.ok ? { status: 'acked', ackedAt: receivedAt } : { status: 'failed', failedAt: receivedAt, error: ack.data.error ?? 'Rejected by the gateway' };
-    const cmd = await Command.findOneAndUpdate({ _id: commandId, siteId, status: 'sent' }, { $set: set }, { new: true }).lean();
+    // 'created' too: an ack can overtake the sender marking its command sent.
+    const cmd = await Command.findOneAndUpdate({ _id: commandId, siteId, status: { $in: ['created', 'sent'] } }, { $set: set }, { new: true }).lean();
     if (!cmd) return;
     this.onCommand?.(siteId, commandId, cmd.deviceId, set.status as 'acked' | 'failed');
   }

@@ -184,14 +184,13 @@ export const fix = async (deps: AlertDeps, site: SiteDoc, userId: string, id: st
 
   const expiresAt = new Date(now.getTime() + FIX_EXPIRES_MS);
   const command = await Command.create({ siteId: site._id, deviceId: String(device!._id), alertId: alert._id, action: f.action, params: f.params ?? {}, expiresAt, revertAt: null, createdBy: userId });
+  // Marked sent before publishing: the gateway may acknowledge before the publish returns.
+  await Command.updateOne({ _id: command._id }, { $set: { status: 'sent', sentAt: now } });
   const sent = deps.gateway
     ? await deps.gateway.sendCommand(String(site._id), String(command._id), { deviceId: String(device!._id), action: f.action, params: f.params ?? {}, expiresAt: expiresAt.toISOString(), revertAt: null })
     : false;
-  const saved = (await Command.findByIdAndUpdate(
-    command._id,
-    { $set: sent ? { status: 'sent', sentAt: now } : { status: 'failed', failedAt: now, error: 'Could not reach the gateway' } },
-    { new: true }
-  ).lean<CommandDoc>())!;
+  if (!sent) await Command.updateOne({ _id: command._id, status: 'sent' }, { $set: { status: 'failed', failedAt: now, error: 'Could not reach the gateway' } });
+  const saved = (await Command.findById(command._id).lean<CommandDoc>())!;
   await recordAudit({ siteId: site._id, userId, action: 'alert.fix', target: `alert:${id}`, after: { fixId, commandId: String(command._id), status: saved.status } });
   await publish(deps.redis, String(site._id), { type: 'command', commandId: String(saved._id), deviceId: saved.deviceId, status: saved.status });
   if (!sent) throw fail(503, 'Could not reach the gateway. Try again in a minute.', { command: commandView(saved) });
