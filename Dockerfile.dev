@@ -16,6 +16,7 @@ COPY apps/simulator/package.json apps/simulator/
 COPY apps/ingest/package.json apps/ingest/
 COPY apps/worker/package.json apps/worker/
 COPY apps/rules/package.json apps/rules/
+COPY apps/modelconv/package.json apps/modelconv/
 RUN pnpm install --frozen-lockfile=false
 
 COPY . .

@@ -183,7 +183,7 @@ Every write to a site records an `AuditEvent` `{siteId, userId, action, target, 
 
 - **`AuditEntry`:** `id`, `ts`, `action`, `target`, `user` (`{ id, name }`; `null` for the rules service, worker or gateway; "Former user" once the person's account is gone), `before`, `after`.
 - **Paging:** `nextCursor` holds the last entry's time and id, so entries written while you page don't shift the pages. A bad cursor or filter is a `400`.
-- **Actions recorded:** `alert.ack`, `.snooze`, `.resolve`, `.false-alarm`, `.fix`; `bill.utility.upload`, `.enter`; `calendar.update`; `command.cancel`; `device.create`, `.update`, `.delete`; `notifications.update`; `recommendation.request`, `.approve`, `.decline`; `site.update`, `site.pv-arrays`, `site.battery`; `tariff.create`; `invite.create`, `.accept`; `device.commission`; `maintenance.create`; `export.create`; `report.create`, `.delete`; `membership.update`, `.delete`; `invite.revoke`; `rule.update`; `siteModel.update`; `site.create` (migration). `/api/auth/*` changes a person's own account, not a site, and isn't recorded.
+- **Actions recorded:** `alert.ack`, `.snooze`, `.resolve`, `.false-alarm`, `.fix`; `bill.utility.upload`, `.enter`; `calendar.update`; `command.cancel`; `device.create`, `.update`, `.delete`; `notifications.update`; `recommendation.request`, `.approve`, `.decline`; `site.update`, `site.pv-arrays`, `site.battery`; `tariff.create`; `invite.create`, `.accept`; `device.commission`; `maintenance.create`; `export.create`; `report.create`, `.delete`; `membership.update`, `.delete`; `invite.revoke`; `rule.update`; `siteModel.update`, `.upload`, `.uploadDelete`; `site.create` (migration). `/api/auth/*` changes a person's own account, not a site, and isn't recorded.
 
 ## Invites (v2, P4-02)
 
@@ -225,7 +225,23 @@ time zone, both ends included. Money fields are `null` for installers.
 | DELETE | `/api/site/members/:id` | owner | `204`. Same last-owner rule. Audited as `membership.delete` |
 | GET | `/api/rules` | all | `{ approval { who, expireMin, email }, rules: RuleView[] }`: each rule `{ id, title, device, on, params, defaults, declines30d { count, reasons [{ reason, count }] } }` |
 | PATCH | `/api/rules/:ruleId` | owner, manager | `{ on?, params? }` for a rule: params must be the rule's own settings, of the same kind (number or on/off), not negative (except `belowCents`). `approval`: `{ params: { who?, expireMin?, email? } }`. → the new `RulesResponse`. `404` unknown rule. Audited as `rule.update`. The rules service reads the saved values on its next run |
-| PUT | `/api/site/model` | owner, installer | `{ hub, anchors [{ key, at, label }], buildingLabel, camera { view } }` (positions in scene metres, one anchor per source or load) → the model as `GET /api/site/model` returns it, saved as the next version (`source: "generated"`). Audited as `siteModel.update`. Uploading a 3D file is the P5-02 pipeline |
+| PUT | `/api/site/model` | owner, installer | `{ hub, anchors [{ key, at, label }], buildingLabel, camera { view } }` (positions in scene metres, one anchor per source or load) → the model as `GET /api/site/model` returns it, saved as the next version. An uploaded model stays in use; `source: "generated"` in the body switches back to the generated scene. Audited as `siteModel.update` |
+
+## Site model uploads (v2, P5-02)
+
+A 3D file for the site model. The API checks it, keeps the original in private object storage and
+queues it; the worker runs it through the sandboxed converter, which turns it into one GLB (metres,
+Y up, centred with its base at y = 0, under 200,000 triangles, textures at most 2048 px, Draco and
+KTX2) with a PNG thumbnail on the CDN. `GET /api/site/model` then carries
+`upload { uploadId, glbUrl, thumbUrl, originalName, tris, bytes, bbox { min, max }, scale }`.
+
+| Method | Path | Who | Result |
+| ------ | ---- | --- | ------ |
+| GET | `/api/site/model/uploads` | all | `{ items: ModelUploadView[] }`, newest first (up to 20): `{ id, originalName, format, bytes, status (queued, processing, ready, rejected, failed), reason, glbUrl, thumbUrl, glbBytes, tris, trisIn, bbox, scale (1, 0.01 for cm, 0.001 for mm), inUse, createdBy, createdAt, processedAt }` |
+| POST | `/api/site/model/uploads` | owner, installer | multipart `file`: .glb, .gltf (everything inside it), .obj, .fbx or .ifc, up to 30 MB → `202 ModelUploadView` (`queued`). Refused with the reason: `413` over 30 MB; `422` another type, a SketchUp file (export it as glTF, OBJ or FBX instead), a bad signature, or a .gltf that needs separate files. The converter's reasons (glTF errors, no triangles, wrong units, still over 200k triangles after simplifying, a damaged file) come back as `status: "rejected"` with `reason`. `503` without storage or the worker queue. Audited as `siteModel.upload` |
+| GET | `/api/site/model/uploads/:id` | all | `ModelUploadView` |
+| POST | `/api/site/model/uploads/:id/use` | owner, installer | The next site model version draws this upload; anchors, hub and labels carry over → the model. `409` until it is `ready` (or with the reason for a rejected file). Audited as `siteModel.update` |
+| DELETE | `/api/site/model/uploads/:id` | owner, installer | `204`, with its files. `409` while it is in use or still processing. Audited as `siteModel.uploadDelete` |
 
 ## Server errors
 

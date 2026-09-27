@@ -5,10 +5,15 @@ import { hasWebGL } from "@/components/scene/sceneEngine"
 import { useTheme } from "@/components/ui/theme-provider"
 import { cn } from "@/lib/utils"
 import { ReadOnly } from "./ui"
+import { ModelUploads } from "./ModelUploads"
 
 const NAME: Record<FlowKey | "hub", string> = { hub: "Switchboard (hub)", pv: "Solar", battery: "Battery", grid: "Grid connection", ev: "EV chargers", heatpump: "Heat pump" }
 const LABEL_LIFT = 1.2 // labels float this far above their anchor
 const fmt = (v: Vec3) => v.map((x) => x.toFixed(1)).join(", ")
+const SOURCES = [
+  ["generated", "Generate from settings", "A building with a roof array and one device per anchor. No 3D file needed."],
+  ["upload", "Upload a 3D file", "glTF/GLB, or OBJ, FBX or IFC to convert. Anchors carry over."],
+] as const
 
 interface Props {
   draft: SiteModelInput | null
@@ -25,6 +30,7 @@ interface Props {
 export function ModelTab({ draft, set, saved, snap, canEdit }: Props) {
   const { resolvedTheme } = useTheme()
   const [moving, setMoving] = useState<FlowKey | "hub" | null>(null)
+  const [wantUpload, setWantUpload] = useState(false)
   const webgl = useMemo(() => hasWebGL(), [])
   const flows = useMemo(() => (snap ? sceneFlows(snap) : null), [snap])
   const model: SiteModel | null = useMemo(() => (draft ? { ...(saved ?? DEFAULT_SITE_MODEL), ...draft } : null), [draft, saved])
@@ -45,12 +51,25 @@ export function ModelTab({ draft, set, saved, snap, canEdit }: Props) {
   }
   const rows: { key: FlowKey | "hub"; at: Vec3 | null }[] = [{ key: "hub", at: draft.hub }, ...FLOW_KEYS.map((k) => ({ key: k, at: draft.anchors.find((a) => a.key === k)?.at ?? null }))]
 
+  // Switching back to the generated scene is a draft (saved from the bar); an upload is used from
+  // its list straight away.
+  const shown = draft.source === "generated" ? "generated" : saved?.source === "upload" || wantUpload ? "upload" : "generated"
+  const pickSource = (to: "generated" | "upload") => {
+    setWantUpload(to === "upload")
+    if (to === "generated" && saved?.source === "upload") set({ ...draft, source: "generated" })
+    if (to === "upload" && draft.source) {
+      const { source: _drop, ...rest } = draft
+      void _drop
+      set(rest)
+    }
+  }
+
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_340px] items-start gap-5">
       <div className="relative h-[460px] overflow-hidden rounded-[14px] border border-app-l2 bg-app-gr">
         {flows ? <SiteScene model={model} flows={flows} theme={resolvedTheme} view="iso" onPick={canEdit && moving ? place : undefined} /> : null}
         <div className="absolute left-3 top-3 rounded-md bg-app-pn px-2 py-1 text-xs text-app-sb" data-testid="model-badge">
-          {saved && saved.version > 0 ? `Version ${saved.version} · ${saved.source}` : "Default model (App v2 demo scene)"}
+          {saved && saved.version > 0 ? `Version ${saved.version} · ${saved.source === "upload" && saved.upload ? saved.upload.originalName : saved.source}` : "Default model (App v2 demo scene)"}
         </div>
         {moving ? (
           <div role="status" className="absolute inset-x-3 bottom-3 rounded-lg bg-app-pn px-3 py-2 text-[13px] text-app-tx">
@@ -64,14 +83,26 @@ export function ModelTab({ draft, set, saved, snap, canEdit }: Props) {
       <div className="flex flex-col gap-4">
         <section aria-label="Model source" className="flex flex-col gap-2 rounded-[14px] border border-app-l2 bg-app-ps p-4">
           <h2 className="m-0 text-sm font-semibold">Model source</h2>
-          <div className="rounded-lg border border-[rgba(62,207,142,.5)] bg-app-ch px-3 py-2 text-[13px]">
-            <div className="font-medium">Generated</div>
-            <div className="text-xs text-app-sb">A building with a roof array and one device per anchor.</div>
+          <div role="radiogroup" aria-label="Model source" className="flex flex-col gap-2">
+            {SOURCES.map(([value, label, note]) => {
+              const on = shown === value
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  disabled={!canEdit}
+                  onClick={() => pickSource(value)}
+                  className={cn("rounded-lg border px-3 py-2 text-left text-[13px] disabled:cursor-default", on ? "border-[rgba(62,207,142,.5)] bg-app-ch" : "border-app-ln")}
+                >
+                  <div className="font-medium">{label}</div>
+                  <div className="text-xs text-app-sb">{note}</div>
+                </button>
+              )
+            })}
           </div>
-          <div className="rounded-lg border border-app-ln px-3 py-2 text-[13px] text-app-dm" aria-disabled="true">
-            <div className="font-medium">Upload a 3D file</div>
-            <div className="text-xs">.glb or .gltf (OBJ, FBX, SKP, IFC converted), up to 30 MB. Not available yet.</div>
-          </div>
+          {shown === "upload" ? <ModelUploads canEdit={canEdit} /> : null}
         </section>
         <section aria-label="Device anchors" className="flex flex-col gap-2 rounded-[14px] border border-app-l2 bg-app-ps p-4">
           <div className="flex items-baseline justify-between">

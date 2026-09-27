@@ -16,6 +16,8 @@ import { openMeteoWeather, simulatedWeather } from './forecast/weather';
 import { gotenbergPdf } from './reports/pdf';
 import { renderReportJob } from './reports/run';
 import { syncReportSchedules } from './reports/schedules';
+import { httpConverter, processModelUpload } from './models';
+import { createObjectStore, objectStoreConfigFromEnv } from '@ecomanage/db';
 
 const env = z
   .object({
@@ -34,6 +36,8 @@ const env = z
     // Report PDFs are printed by Gotenberg (headless Chromium in its own container).
     GOTENBERG_URL: z.string().default('http://gotenberg:3000'),
     REPORT_SWEEP_MS: z.coerce.number().int().positive().default(300_000),
+    // 3D model uploads (P5-02): the sandboxed converter, reached on its internal network.
+    MODELCONV_URL: z.string().default('http://modelconv:3100'),
   })
   .parse(process.env);
 
@@ -170,9 +174,27 @@ const main = async () => {
     { connection, concurrency: 2 }
   );
   reports.on('failed', (job, err) => log.error({ job: job?.name, reportId: job?.data?.reportId, err: err.message }, 'job failed'));
+
+  // 3D model uploads (P5-02): one at a time, through the sandboxed converter.
+  const storeConfig = objectStoreConfigFromEnv();
+  const objects = storeConfig ? createObjectStore(storeConfig) : null;
+  const models = objects
+    ? new Worker(
+        QUEUES.models,
+        async (job) => {
+          const result = await processModelUpload(job.data, { objects, convert: httpConverter(env.MODELCONV_URL) });
+          log.info({ uploadId: job.data.uploadId, ...result }, 'model upload');
+          return result;
+        },
+        { connection, concurrency: 1 }
+      )
+    : null;
+  models?.on('failed', (job, err) => log.error({ job: job?.name, uploadId: job?.data?.uploadId, err: err.message }, 'job failed'));
+  if (!models) log.warn('model uploads are off: no object storage configured (S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY)');
   log.info('worker ready');
 
   const stop = async () => {
+    await models?.close();
     await reports.close();
     await reportQueue.close();
     await forecasts.close();

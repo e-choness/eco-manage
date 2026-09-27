@@ -50,6 +50,27 @@ export const hasWebGL = (): boolean => {
   }
 }
 
+/**
+ * An uploaded site model (P5-02): a GLB with Draco meshes and KTX2 textures, decoded by the files
+ * the app serves under /decoders. Its URL changes with every upload, so the browser can cache it.
+ */
+// One loader for the page: the decoders are workers, and three.js wants a single KTX2 loader.
+let gltfLoader: Promise<import("three/examples/jsm/loaders/GLTFLoader.js").GLTFLoader> | null = null
+const loadUploadedModel = async (renderer: Three.WebGLRenderer, url: string) => {
+  gltfLoader ??= (async () => {
+    const [{ GLTFLoader }, { DRACOLoader }, { KTX2Loader }] = await Promise.all([
+      import("three/examples/jsm/loaders/GLTFLoader.js"),
+      import("three/examples/jsm/loaders/DRACOLoader.js"),
+      import("three/examples/jsm/loaders/KTX2Loader.js"),
+    ])
+    const draco = new DRACOLoader().setDecoderPath("/decoders/draco/")
+    // The texture formats this GPU can take are the same for every renderer on the page.
+    const ktx2 = new KTX2Loader().setTranscoderPath("/decoders/basis/").detectSupport(renderer)
+    return new GLTFLoader().setDRACOLoader(draco).setKTX2Loader(ktx2)
+  })()
+  return (await gltfLoader).loadAsync(url)
+}
+
 type Label = { el: HTMLDivElement; at: Three.Vector3; key: FlowKey | "building" }
 type Flow = { curve: Three.QuadraticBezierCurve3; core: Three.InstancedMesh; halo: Three.InstancedMesh; n: number; speed: number; out: boolean }
 
@@ -125,12 +146,40 @@ export async function createScene(host: HTMLElement, opts: SceneOptions, initial
     return m
   }
 
-  // Building with its roof array, and the switchboard at the hub.
-  box(7, 2.2, 4, P.body, 0, 1.1, -0.6)
-  box(6.2, 0.5, 0.02, P.win, 0, 1.35, 1.41, { e: P.winE, edge: false, cast: false })
-  if (anchorOf("pv"))
-    for (let i = 0; i < 6; i++)
-      for (let j = 0; j < 3; j++) box(0.98, 0.06, 1.02, P.panel, -2.75 + i * 1.1, 2.3, -1.9 + j * 1.15, { r: 0.35, e: opts.theme === "dark" ? 0x0c1a38 : 0 }).rotation.x = -0.1
+  // The building: an uploaded model when the site has one (P5-02), else the generated one with
+  // its roof array. Everything else (devices, flows, labels) comes from the anchors either way.
+  const upload = opts.model.source === "upload" ? opts.model.upload : null
+  let uploaded = false
+  if (upload) {
+    try {
+      const gltf = await loadUploadedModel(renderer, upload.glbUrl)
+      gltf.scene.traverse((o) => {
+        if ((o as Three.Mesh).isMesh) o.castShadow = o.receiveShadow = true
+      })
+      scene.add(gltf.scene)
+      uploaded = true
+    } catch (err) {
+      console.warn("The uploaded site model couldn't be loaded; showing the generated building.", err)
+    }
+  }
+  if (!uploaded) {
+    box(7, 2.2, 4, P.body, 0, 1.1, -0.6)
+    box(6.2, 0.5, 0.02, P.win, 0, 1.35, 1.41, { e: P.winE, edge: false, cast: false })
+    if (anchorOf("pv"))
+      for (let i = 0; i < 6; i++)
+        for (let j = 0; j < 3; j++) box(0.98, 0.06, 1.02, P.panel, -2.75 + i * 1.1, 2.3, -1.9 + j * 1.15, { r: 0.35, e: opts.theme === "dark" ? 0x0c1a38 : 0 }).rotation.x = -0.1
+  }
+  // Camera, shadows and fog are set for the ~20 m demo site; a bigger uploaded model scales them.
+  const bb = uploaded && upload ? upload.bbox : null
+  const k = bb ? Math.max(1, Math.max(bb.max[0] - bb.min[0], bb.max[2] - bb.min[2], (bb.max[1] - bb.min[1]) * 2) / 20) : 1
+  if (k > 1) {
+    Object.assign(sun.shadow.camera, { left: -14 * k, right: 14 * k, top: 14 * k, bottom: -14 * k, far: 500 * k })
+    sun.position.multiplyScalar(k)
+    scene.fog = new T.Fog(P.fog, 45 * k, 110 * k)
+    camera.far = 200 * k
+    ground.scale.setScalar(Math.max(1, k / 2))
+    pad.visible = false
+  }
   const [hx0, , hz0] = opts.model.hub
   box(0.7, 1.1, 0.35, P.device, hx0, 0.55, hz0 - 0.28)
 
@@ -328,9 +377,9 @@ export async function createScene(host: HTMLElement, opts: SceneOptions, initial
     if (!visible) return
     const t = still ? 0 : clock.getElapsedTime()
     const th = th0 + Math.sin(t * 0.07) * 0.1 + drag
-    const R = V.r * Math.max(1, (V.fit ?? 0) / (Math.max(200, w - safeL - safeR) / h))
-    camera.position.set(R * Math.cos(el0) * Math.sin(th), R * Math.sin(el0) + V.ty, R * Math.cos(el0) * Math.cos(th))
-    camera.lookAt(0, V.ty, 0)
+    const R = k * V.r * Math.max(1, (V.fit ?? 0) / (Math.max(200, w - safeL - safeR) / h))
+    camera.position.set(R * Math.cos(el0) * Math.sin(th), R * Math.sin(el0) + V.ty * k, R * Math.cos(el0) * Math.cos(th))
+    camera.lookAt(0, V.ty * k, 0)
     if (fanBlades) fanBlades.rotation.z = t * ((current.heatpump?.kw ?? 0) > 0.05 ? 6 : 0)
     for (const f of flows) {
       for (let i = 0; i < f.n; i++) {

@@ -11,6 +11,8 @@ export const QUEUES = {
   forecast: 'forecast',
   /** Report files (P5-01): one-off reports on demand, weekly and monthly ones from per-report schedulers. */
   reports: 'reports',
+  /** 3D model uploads (P5-02): checked, converted and compressed through the sandboxed converter. */
+  models: 'models',
 } as const;
 
 export interface StatementJob {
@@ -55,3 +57,8 @@ export const REPORT_JOB_OPTS = { attempts: 2, backoff: { type: 'fixed', delay: 3
 
 /** Job id of a one-off report's render, so the API and the sweep never queue it twice. */
 export const reportOnceJobId = (reportId: string): string => `report-once-${reportId}`;
+
+/** `model-upload` on the models queue (P5-02): the original is in object storage. */
+export interface ModelUploadJob {
+  uploadId: string;
+}

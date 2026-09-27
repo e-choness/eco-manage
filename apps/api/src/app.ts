@@ -16,6 +16,7 @@ import { inviteRoutes, siteInviteRoutes } from './modules/invites/routes';
 import historyRoutes from './modules/history/routes';
 import { exportsRoutes } from './modules/exports/routes';
 import reportsRoutes, { reportLinkRoutes } from './modules/reports/routes';
+import modelUploadRoutes from './modules/models/routes';
 import peopleRoutes from './modules/people/routes';
 import rulesRoutes from './modules/rules/routes';
 import { siteRoutes } from './modules/site/routes';
@@ -26,6 +27,7 @@ import notificationRoutes from './modules/notifications/routes';
 import forecastRoutes from './modules/forecast/routes';
 import type { GatewayLink } from './lib/gatewayLink';
 import type { JobClient } from './lib/jobs';
+import type { ObjectStore } from '@ecomanage/db';
 import type { SiteEventHub } from './lib/siteEvents';
 
 export interface AppDeps {
@@ -36,11 +38,13 @@ export interface AppDeps {
   sseHeartbeatMs?: number;
   /** Worker jobs (statements, utility bills, forecast reruns); absent without Redis. */
   jobs?: JobClient;
+  /** Object storage for 3D models (P5-02); absent when not configured. */
+  objects?: ObjectStore;
   /** MQTT to gateways (retained config); absent without a broker. */
   gateway?: GatewayLink;
 }
 
-export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogger, sseHeartbeatMs }: AppDeps): Express => {
+export const createApp = ({ env, redis, hub, jobs, objects, gateway, logger = defaultLogger, sseHeartbeatMs }: AppDeps): Express => {
   const app = express();
   const window = env.RATE_LIMIT_WINDOW_MS;
 
@@ -67,6 +71,7 @@ export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogg
   app.use('/api/inbox', inboxRoutes);
   app.use('/api/audit', auditRoutes);
   app.use('/api/site/invites', siteInviteRoutes(jobs));
+  app.use('/api/site/model/uploads', modelUploadRoutes({ jobs, objects }));
   app.use('/api/site/members', peopleRoutes);
   app.use('/api/invites', inviteRoutes());
   app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs, gateway, jobs }));
