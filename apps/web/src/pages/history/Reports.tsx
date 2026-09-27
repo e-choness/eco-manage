@@ -9,11 +9,17 @@ import { rangeText } from "./dates"
 
 const input = "h-9 rounded-lg border border-app-ln bg-app-bg px-2.5 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:text-app-dm"
 const DEFAULT_SECTIONS: ReportSection[] = ["summary", "sources", "demand", "cost", "decisions"]
-const STATUS: Record<ReportView["status"], string> = { waiting: "Waiting to be generated", ready: "Ready", failed: "Failed to generate" }
+const STATUS: Record<ReportView["status"], string> = { waiting: "Being generated…", ready: "Ready", failed: "Failed to generate" }
+const PREVIOUS = { weekly: "the previous week (Mon–Sun)", monthly: "the previous month" } as const
+
+/** "1 Oct, 07:00" in the site's time. */
+const runAt = (iso: string, tz: string) =>
+  new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz }).format(new Date(iso)).replace("Sept", "Sep")
 
 /** History → Reports (App v2): the builder for the range on screen, and the reports made so far. */
-export function Reports({ from, to, role, email, builderOpen, onCloseBuilder }: { from: string; to: string; role: Role | null; email: string; builderOpen: boolean; onCloseBuilder: () => void }) {
-  const reports = useQuery({ queryKey: ["reports"], queryFn: getReports })
+export function Reports({ from, to, tz, role, email, builderOpen, onCloseBuilder }: { from: string; to: string; tz: string; role: Role | null; email: string; builderOpen: boolean; onCloseBuilder: () => void }) {
+  // Poll while a report is being generated.
+  const reports = useQuery({ queryKey: ["reports"], queryFn: getReports, refetchInterval: (q) => (q.state.data?.items.some((r) => r.schedule === "once" && r.status === "waiting") ? 5000 : false) })
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
@@ -55,10 +61,15 @@ export function Reports({ from, to, role, email, builderOpen, onCloseBuilder }: 
             <li key={r.id} className="grid grid-cols-[minmax(0,1.6fr)_60px_minmax(0,1fr)_minmax(0,1.2fr)_auto] items-center gap-3 border-t border-app-l2 py-3 text-[13px]">
               <span className="flex min-w-0 flex-col">
                 <span className="truncate font-medium">{r.name}</span>
-                <span className="text-xs text-app-dm">{rangeText(r.from, r.to)}</span>
+                <span className="text-xs text-app-dm">
+                  {r.schedule === "once" ? rangeText(r.from, r.to) : r.lastRange ? `Latest: ${rangeText(r.lastRange.from, r.lastRange.to)}` : `Covers ${PREVIOUS[r.schedule]}`}
+                </span>
               </span>
               <span className="font-mono text-xs uppercase text-app-sb">{r.format}</span>
-              <span className="text-app-sb">{REPORT_SCHEDULE_LABEL[r.schedule]}</span>
+              <span className="flex flex-col text-app-sb">
+                {REPORT_SCHEDULE_LABEL[r.schedule]}
+                {r.nextRunAt ? <span className="text-xs text-app-dm">Next {runAt(r.nextRunAt, tz)}</span> : null}
+              </span>
               <span className="truncate text-app-sb">
                 {r.createdBy?.name ?? "—"} · {rangeText(r.createdAt.slice(0, 10), r.createdAt.slice(0, 10))}
               </span>
@@ -68,7 +79,9 @@ export function Reports({ from, to, role, email, builderOpen, onCloseBuilder }: 
                     Download
                   </button>
                 ) : (
-                  <span className={cn("text-xs", r.status === "failed" ? "text-tag-hp" : "text-app-dm")}>{STATUS[r.status]}</span>
+                  <span className={cn("text-xs", r.status === "failed" ? "text-tag-hp" : "text-app-dm")} title={r.error ?? undefined}>
+                    {r.schedule !== "once" && r.status === "waiting" && r.nextRunAt ? `First run ${runAt(r.nextRunAt, tz)}` : STATUS[r.status]}
+                  </span>
                 )}
                 {r.canDelete ? (
                   <button type="button" onClick={() => void remove(r)} className="p-0 text-xs text-app-sb hover:text-app-tx" aria-label={`Remove ${r.name}`}>
@@ -133,7 +146,7 @@ function Builder({ from, to, role, email, onDone, onCancel }: { from: string; to
         </label>
         <label className="flex flex-col gap-1 text-[13px] text-app-sb">
           Period
-          <input value={rangeText(from, to)} disabled className={input} />
+          <input value={schedule === "once" ? rangeText(from, to) : `Each run: ${PREVIOUS[schedule]}`} disabled className={input} />
         </label>
         <label className="flex flex-col gap-1 text-[13px] text-app-sb">
           Format
@@ -177,6 +190,11 @@ function Builder({ from, to, role, email, onDone, onCancel }: { from: string; to
           })}
         </div>
       </fieldset>
+      {schedule !== "once" ? (
+        <p className="m-0 text-xs text-app-sb">
+          Runs {schedule === "weekly" ? "every Monday" : "on the 1st of each month"} at 07:00 site time. Each recipient is emailed a download link that works for 30 days.
+        </p>
+      ) : null}
       <label className="flex flex-col gap-1 text-[13px] text-app-sb">
         Notes for readers
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={1000} className="rounded-lg border border-app-ln bg-app-bg px-2.5 py-2 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring" />

@@ -198,7 +198,7 @@ plain token exists only in the email job and the email. Links expire after 7 day
 | DELETE | `/api/site/invites/:id` | 🔒 owner | `204`: an invite not accepted yet stops working. Audited as `invite.revoke` (P4-08) |
 | POST | `/api/invites/:token/accept` | the link | New account: `{ name, password }` (at least 8 characters). Existing account for that email: `{ password }`, its own. → user fields + `accessToken`, and sets `em_rt`, like login. Adds the membership with the invited role and `until`. `400` wrong password or missing name, `404`/`410` as above. Audited as `invite.accept` |
 
-## History, exports and reports 🔒 all roles (v2, P4-05)
+## History, exports and reports 🔒 all roles (v2, P4-05, P5-01)
 
 Built from the permanent 15-minute intervals. Dates are local dates (`YYYY-MM-DD`) in the site's
 time zone, both ends included. Money fields are `null` for installers.
@@ -210,10 +210,11 @@ time zone, both ends included. Money fields are `null` for installers.
 | POST | `/api/exports` | `{ from, to }` | `202 ExportView { id, from, to, status: "queued", rows, error, large, createdAt }`. The worker writes every 15-min interval as CSV (site-time and UTC start, kWh columns, demand, cost and export credit for money roles, quality). Ranges over 366 days are `large`: also emailed to the requester as a link to History. Audited as `export.create`. `503` without the worker queue |
 | GET | `/api/exports/:id` | | `ExportView` (`queued`, `done`, `failed`) |
 | GET | `/api/exports/:id/file` | | The CSV (`409` until it is done) |
-| GET | `/api/reports` | | `{ items: ReportView[] }`, newest first (up to 100) |
-| POST | `/api/reports` | `{ name, from, to, sections, format (pdf, csv, xlsx), schedule (once, weekly, monthly), recipients?, notes? }` | `201 ReportView { …, status: "waiting", createdBy, canDelete }`. Sections: summary, sources, demand, cost, devices, decisions, alerts; installers can't pick `cost` (`403`). A scheduled report needs a recipient. Audited as `report.create`. The reports worker (P5-01) renders them |
-| GET | `/api/reports/:id/file` | | The rendered file; `409` until the reports worker has made it |
-| DELETE | `/api/reports/:id` | | `204`; stops its schedule. Its creator or the owner only (`403`). Audited as `report.delete` |
+| GET | `/api/reports` | | `{ items: ReportView[] }`, newest first (up to 100). `ReportView` adds `error` (why the latest run failed), `lastRunAt`, `lastRange { from, to }` (the dates the latest file covers) and `nextRunAt` (weekly and monthly: the next Monday or 1st at 07:00 site time; `null` for one-offs) |
+| POST | `/api/reports` | `{ name, from, to, sections, format (pdf, csv, xlsx), schedule (once, weekly, monthly), recipients?, notes? }` | `201 ReportView { …, status: "waiting", createdBy, canDelete }`. Sections: summary, sources, demand, cost, devices, decisions, alerts; installers can't pick `cost` (`403`). A scheduled report needs a recipient. Audited as `report.create`. A one-off is queued for the reports worker straight away; a weekly or monthly one gets a job scheduler in the site's time zone and runs at 07:00 on Monday or the 1st, each run covering the previous full week (Monday to Sunday) or month. Each run is emailed to the recipients as a link |
+| GET | `/api/reports/:id/file` | | The latest rendered file; `409` until the reports worker has made it, or with the reason when the latest run failed |
+| DELETE | `/api/reports/:id` | | `204`; stops its schedule and removes its files, so emailed links stop working. Its creator or the owner only (`403`). Audited as `report.delete` |
+| GET | `/api/report-links/:token` | *(no sign-in)* | The file of one run, from the link in a report email: `404` for an unknown link or a removed report, `410` once it has expired (30 days). Only the SHA-256 of the token is stored, and request logs leave the token out |
 
 ## People and rules (v2, P4-08)
 

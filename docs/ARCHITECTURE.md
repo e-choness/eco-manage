@@ -25,6 +25,7 @@ graph LR
 | `rules`      | `Dockerfile.dev`       | Alert checks on every reading |
 | `simulator`  | `Dockerfile.dev`       | Simulated demo site acting as its gateway over MQTT/TLS; control API on :4100 |
 | `mailpit`    | `axllent/mailpit`      | Catches every email in development; UI on :8025 |
+| `gotenberg`  | `gotenberg/gotenberg:8` | Prints report PDFs from HTML (headless Chromium; JavaScript off, local files only) |
 | `mqtt-certs` | `alpine`               | One-shot: generates the dev CA and certificates into `infra/mosquitto/certs` (gitignored) |
 | `mongo-seed` | `Dockerfile.dev`       | One-shot demo data reset (profile `tools`, run on demand) |
 
@@ -182,8 +183,9 @@ empty buckets are filled from `bucketStarts` (shared), so the bars line up with 
   queue); the page polls the export and downloads it signed in. Ranges over a year are also
   emailed as a link to `/history?export=<id>`, where the page offers the download.
 - **Reports:** the builder saves a definition for the range on screen (name, format, schedule,
-  recipients, sections, notes); the list shows each with its status. Rendering and schedules are
-  the reports worker (P5-01), so new reports wait until then.
+  recipients, sections, notes); the list shows each with its status, the period its latest file
+  covers and, for schedules, the next run in site time. The reports worker renders them (P5-01,
+  below); the list polls while a one-off is being generated.
 **Bills (P4-06, owners and managers).** As App v2: the last 12 months (total, saved, highest
 demand, our estimate against the utility bills), every bill as stacked bars (energy, demand,
 fixed; the open period dashed) and as a list with where each utility bill stands, the selected
@@ -416,6 +418,26 @@ The `email` queue (P2-09) runs every 30 s and sends through SMTP (Mailpit in dev
   - `alert:{alertId}:{userId}`
   - `escalation:{alertId}:{userId}`
   - `daily:{siteId}:{date}:{userId}`
+
+The `reports` queue (P5-01) renders History reports:
+
+- **Content:** the seven App v2 sections (energy summary, sources and consumers, demand peaks,
+  energy cost, device availability, decisions and commands, alerts) are built once as figures and
+  tables from the 15-minute intervals, bills, devices, recommendations, commands and alerts, in the
+  site's time. Device availability counts the hours of "Device not reporting" alerts in the period.
+- **Formats:** PDF is that content as HTML, printed by Gotenberg (`GOTENBERG_URL`); CSV has a block
+  per section (cells that would start a formula are quoted); XLSX (exceljs) has a sheet per section.
+- **Access:** a run uses its creator's access at the time. Money only for owners and managers, and
+  no run at all once the creator has left the site (the report is marked failed and nothing is sent).
+- **Schedules:** one BullMQ job scheduler per weekly or monthly report, `report:{id}`, with the cron
+  `0 7 * * 1` or `0 7 1 * *` and the site's time zone, so a monthly report runs on the 1st at 07:00
+  site time through DST changes. A run covers the previous full week or month. The API adds and
+  removes schedulers; a `report-sweep` every 5 min puts them right (lost Redis, a changed time zone,
+  a removed report) and queues one-offs that never got their job (same job id, so never twice).
+- **Files and links:** each run is stored in GridFS (`kind: report`) and kept in `files[]` (the last
+  24). Each recipient is emailed a link `{APP_URL}/api/report-links/{token}` that works without
+  signing in for 30 days; only the token's SHA-256 is stored. Key `report:{id}:{from}:{to}:{email}`,
+  so a retried run doesn't email twice. Removing a report removes its files.
 
 The `forecast` queue (P2-10) issues each site's PV and load forecasts for the next 48 h in 15-minute steps. It runs every hour, and once at start-up. A single site is redone when its calendar or its solar arrays change.
 - **Weather** comes from `WEATHER_PROVIDER`:

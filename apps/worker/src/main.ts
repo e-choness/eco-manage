@@ -13,6 +13,9 @@ import { createMailer } from './email/mailer';
 import { dailySummaries, notifyAlerts, notifyExports, notifyProposals, sendInvite } from './email/notify';
 import { forecastAll, forecastSite } from './forecast/run';
 import { openMeteoWeather, simulatedWeather } from './forecast/weather';
+import { gotenbergPdf } from './reports/pdf';
+import { renderReportJob } from './reports/run';
+import { syncReportSchedules } from './reports/schedules';
 
 const env = z
   .object({
@@ -28,6 +31,9 @@ const env = z
     WEATHER_PROVIDER: z.enum(['simulated', 'open-meteo']).default('simulated'),
     // The simulator's seed, so the simulated site is forecast from its own weather.
     WEATHER_SEED: z.coerce.number().int().default(42),
+    // Report PDFs are printed by Gotenberg (headless Chromium in its own container).
+    GOTENBERG_URL: z.string().default('http://gotenberg:3000'),
+    REPORT_SWEEP_MS: z.coerce.number().int().positive().default(300_000),
   })
   .parse(process.env);
 
@@ -140,9 +146,35 @@ const main = async () => {
     { connection, concurrency: 1 }
   );
   forecasts.on('failed', (job, err) => log.error({ job: job?.name, err: err.message }, 'job failed'));
+
+  // Reports (P5-01): one-off reports on demand, weekly and monthly ones from their own job
+  // schedulers at 07:00 site time. The sweep keeps the schedulers in line with the reports.
+  const pdf = gotenbergPdf(env.GOTENBERG_URL);
+  const reportQueue = new Queue(QUEUES.reports, { connection });
+  await reportQueue.upsertJobScheduler('report-sweep', { every: env.REPORT_SWEEP_MS }, { name: 'report-sweep' });
+  const reports = new Worker(
+    QUEUES.reports,
+    async (job) => {
+      if (job.name === 'report-sweep') {
+        const swept = await syncReportSchedules(reportQueue);
+        if (swept.removed || swept.queued) log.info(swept, 'report schedules synced');
+        return swept;
+      }
+      if (job.name === 'report') {
+        const result = await renderReportJob(job.data, { pdf, mailer, appUrl: env.APP_URL });
+        log.info({ reportId: job.data.reportId, scheduled: !!job.data.scheduled, ...result }, 'report run');
+        return result;
+      }
+      throw new Error(`unknown job ${job.name}`);
+    },
+    { connection, concurrency: 2 }
+  );
+  reports.on('failed', (job, err) => log.error({ job: job?.name, reportId: job?.data?.reportId, err: err.message }, 'job failed'));
   log.info('worker ready');
 
   const stop = async () => {
+    await reports.close();
+    await reportQueue.close();
     await forecasts.close();
     await forecastQueue.close();
     await email.close();

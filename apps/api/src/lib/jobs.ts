@@ -1,10 +1,10 @@
 import { logger } from '../config/logger';
 import { Queue, QueueEvents } from 'bullmq';
 import { Redis } from 'ioredis';
-import { QUEUES, type DocumentJobs, type InviteJob } from '@ecomanage/shared';
+import { QUEUES, REPORT_JOB_OPTS, reportCron, reportOnceJobId, reportSchedulerId, type DocumentJobs, type InviteJob, type RepeatingSchedule, type ReportJob } from '@ecomanage/shared';
 
-// Producer side of the worker's `documents` queue. Controllers get it through createApp, so tests
-// can pass a stand-in that runs the job in process (or never answers).
+// Producer side of the worker's queues (documents, forecast, email, reports). Controllers get it
+// through createApp, so tests can pass a stand-in that runs the job in process (or never answers).
 
 export type DocumentJobName = keyof DocumentJobs;
 
@@ -17,6 +17,12 @@ export interface JobClient {
   requestForecast(siteId: string): Promise<void>;
   /** Asks the worker to email an invite link (P4-02). */
   sendInvite(job: InviteJob): Promise<void>;
+  /** Renders a one-off report now (P5-01). */
+  renderReport(reportId: string): Promise<void>;
+  /** Weekly or monthly report: a job scheduler at 07:00 site time (Monday or the 1st). */
+  scheduleReport(reportId: string, schedule: RepeatingSchedule, tz: string): Promise<void>;
+  /** Stops a report's schedule. */
+  unscheduleReport(reportId: string): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -27,6 +33,7 @@ export const createJobClient = (redisUrl: string): JobClient => {
   const queue = new Queue(QUEUES.documents, { connection });
   const forecastQueue = new Queue(QUEUES.forecast, { connection });
   const emailQueue = new Queue(QUEUES.email, { connection });
+  const reportQueue = new Queue(QUEUES.reports, { connection });
   // QueueEvents blocks on its connection, so it gets its own.
   const events = new QueueEvents(QUEUES.documents, { connection: connection.duplicate() });
   const opts = { attempts: 2, backoff: { type: 'fixed', delay: 2000 }, removeOnComplete: 100, removeOnFail: 500 };
@@ -52,11 +59,21 @@ export const createJobClient = (redisUrl: string): JobClient => {
       // No copy of the token is kept once the email has gone.
       await emailQueue.add('invite', job, { attempts: 3, backoff: { type: 'fixed', delay: 5000 }, removeOnComplete: true, removeOnFail: true });
     },
+    async renderReport(reportId) {
+      await reportQueue.add('report', { reportId } satisfies ReportJob, { ...REPORT_JOB_OPTS, jobId: reportOnceJobId(reportId) });
+    },
+    async scheduleReport(reportId, schedule, tz) {
+      await reportQueue.upsertJobScheduler(reportSchedulerId(reportId), { pattern: reportCron(schedule), tz }, { name: 'report', data: { reportId, scheduled: true } satisfies ReportJob, opts: REPORT_JOB_OPTS });
+    },
+    async unscheduleReport(reportId) {
+      await reportQueue.removeJobScheduler(reportSchedulerId(reportId));
+    },
     async close() {
       await events.close();
       await queue.close();
       await forecastQueue.close();
       await emailQueue.close();
+      await reportQueue.close();
       connection.disconnect();
     },
   };

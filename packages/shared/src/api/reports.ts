@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 // History → Export CSV and Reports (Backend Coverage: POST /api/exports, /api/reports; P4-05).
 // Exports are made by the worker from the 15-minute intervals; big ones are also emailed as a
-// link. Reports are saved here and rendered by the reports worker (P5-01).
+// link. Reports are rendered by the reports worker (P5-01) as PDF, CSV or XLSX; weekly and monthly
+// ones run at 07:00 site time and are emailed to their recipients as a link.
 
 const localDate = z.string().date();
 
@@ -66,7 +67,11 @@ export interface ReportView {
   schedule: (typeof REPORT_SCHEDULES)[number];
   recipients: string[];
   notes: string;
-  status: 'waiting' | 'ready' | 'failed'; // waiting: not rendered yet
+  status: 'waiting' | 'ready' | 'failed'; // the latest run; waiting: not rendered yet
+  error: string | null; // why the latest run failed
+  lastRunAt: string | null;
+  lastRange: { from: string; to: string } | null; // dates the latest file covers (the previous week or month for schedules)
+  nextRunAt: string | null; // weekly and monthly: Monday or the 1st at 07:00 site time
   createdBy: { id: string; name: string } | null;
   createdAt: string;
   canDelete: boolean; // the creator or the owner

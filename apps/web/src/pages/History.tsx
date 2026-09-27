@@ -226,7 +226,7 @@ export function History() {
         {series.isError ? <p className="m-0 text-[13px] text-app-sb">History couldn't be loaded: {series.error.message}</p> : null}
       </section>
 
-      <Reports from={s?.from ?? range.from} to={s?.to ?? range.to} role={role} email={me?.email ?? ""} builderOpen={builderOpen} onCloseBuilder={() => setBuilderOpen(false)} />
+      <Reports from={s?.from ?? range.from} to={s?.to ?? range.to} tz={tz} role={role} email={me?.email ?? ""} builderOpen={builderOpen} onCloseBuilder={() => setBuilderOpen(false)} />
     </PageFrame>
   )
 }

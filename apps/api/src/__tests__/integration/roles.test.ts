@@ -72,6 +72,7 @@ const ROUTES: Record<string, Access> = {
   'post /api/reports/': ALL,
   'get /api/reports/:id/file': ALL,
   'delete /api/reports/:id': ALL,
+  'get /api/report-links/:token': 'public',
   'post /api/site/invites/': OWNER,
   'delete /api/site/invites/:id': OWNER,
   'get /api/site/members/': OWNER,

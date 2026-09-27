@@ -16,6 +16,9 @@ export class HttpError extends Error {
   }
 }
 
+/** A request path for logs: no query, and link tokens (invites, report links) left out. */
+export const logPath = (url: string): string => url.split('?')[0].replace(/^(\/api\/(?:invites|report-links)\/)[^/]+/, '$1:token');
+
 type Fallback = { status: number; body: JsonBody } | ((err: Error) => { status: number; body: JsonBody });
 type Controller = (req: AuthenticatedRequest, res: Response) => Promise<void>;
 
@@ -32,7 +35,7 @@ export const handle =
         return;
       }
       const err = e instanceof Error ? e : new Error(String(e));
-      logger.error({ err: err.message, path: req.originalUrl.split('?')[0] }, 'request failed');
+      logger.error({ err: err.message, path: logPath(req.originalUrl) }, 'request failed');
       const { status, body } = typeof fallback === 'function' ? fallback(err) : fallback;
       res.status(status).json(body);
     }

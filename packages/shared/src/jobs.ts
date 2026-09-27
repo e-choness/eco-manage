@@ -9,6 +9,8 @@ export const QUEUES = {
   email: 'email',
   /** Hourly PV and load forecasts, and on demand after calendar or array changes (P2-10). */
   forecast: 'forecast',
+  /** Report files (P5-01): one-off reports on demand, weekly and monthly ones from per-report schedulers. */
+  reports: 'reports',
 } as const;
 
 export interface StatementJob {
@@ -38,3 +40,18 @@ export interface InviteJob {
 export interface ExportJob {
   exportId: string;
 }
+
+/**
+ * `report` on the reports queue (P5-01). `scheduled` runs come from the report's job scheduler and
+ * cover the previous week or month; the others render the report's own dates.
+ */
+export interface ReportJob {
+  reportId: string;
+  scheduled?: boolean;
+}
+
+/** Options for report jobs, the same from the API and the worker's sweep. */
+export const REPORT_JOB_OPTS = { attempts: 2, backoff: { type: 'fixed', delay: 30_000 }, removeOnComplete: 100, removeOnFail: 200 };
+
+/** Job id of a one-off report's render, so the API and the sweep never queue it twice. */
+export const reportOnceJobId = (reportId: string): string => `report-once-${reportId}`;

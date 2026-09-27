@@ -5,6 +5,7 @@ import rateLimit, { Store } from 'express-rate-limit';
 import { RedisStore, RedisReply } from 'rate-limit-redis';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
+import { logPath } from '../lib/http';
 
 export const corsMiddleware = (origins: string[]): RequestHandler =>
   cors({
@@ -47,7 +48,7 @@ export const requestLogger =
     const start = process.hrtime.bigint();
     res.on('finish', () => {
       const ms = Number(process.hrtime.bigint() - start) / 1e6;
-      const path = req.originalUrl.split('?')[0];
+      const path = logPath(req.originalUrl);
       logger.info({ method: req.method, path, status: res.statusCode, ms: Math.round(ms) }, 'request');
     });
     next();

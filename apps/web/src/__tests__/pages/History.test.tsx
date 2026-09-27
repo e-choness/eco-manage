@@ -78,6 +78,10 @@ const report: ReportView = {
   recipients: ['priya@example.com'],
   notes: '',
   status: 'waiting',
+  error: null,
+  lastRunAt: null,
+  lastRange: null,
+  nextRunAt: '2026-10-01T11:00:00.000Z',
   createdBy: { id: 'u1', name: 'Priya Shah' },
   createdAt: '2026-09-01T12:00:00.000Z',
   canDelete: true,
@@ -190,13 +194,17 @@ describe('History', () => {
     setup('owner')
     const list = await screen.findByRole('region', { name: 'Reports' })
     expect(await within(list).findByText('August energy')).toBeInTheDocument()
-    expect(list).toHaveTextContent('Waiting to be generated')
+    // A monthly report covers the previous month and runs on the 1st at 07:00 site time.
+    expect(list).toHaveTextContent('Covers the previous month')
+    expect(list).toHaveTextContent(/First run 1 Oct, \d\d:00/)
     await screen.findByTestId('range-text')
     await userEvent.click(screen.getByRole('button', { name: 'Create report' }))
     const form = screen.getByRole('form', { name: 'Create report' })
     expect(within(form).getByLabelText('Period')).toHaveValue('22–24 Sep 2026')
     await userEvent.click(within(form).getByRole('button', { name: 'Alerts' }))
     await userEvent.selectOptions(within(form).getByLabelText('Schedule'), 'weekly')
+    expect(within(form).getByLabelText('Period')).toHaveValue('Each run: the previous week (Mon–Sun)')
+    expect(form).toHaveTextContent('Runs every Monday at 07:00 site time')
     await userEvent.click(within(form).getByRole('button', { name: 'Generate' }))
     await waitFor(() => expect(calls.reports).toHaveLength(1))
     expect(calls.reports[0]).toEqual({
