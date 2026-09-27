@@ -79,7 +79,7 @@ export function Devices() {
 
       {scan ? <ScanPanel scan={scan} onCommissioned={select} /> : null}
 
-      <div className="grid grid-cols-[minmax(0,1fr)_420px] items-start gap-5">
+      <div className="grid grid-cols-[minmax(0,1fr)_360px] items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="overflow-hidden rounded-[14px] border border-app-l2 bg-app-ps" role="table" aria-label="Devices">
           <div role="row" className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1.3fr)_110px_110px] border-b border-app-l2 px-[18px] py-3 text-xs text-app-dm">
             <span role="columnheader">Device</span>

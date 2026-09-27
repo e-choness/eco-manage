@@ -37,7 +37,7 @@ function Unusable({ message }: { message: string }) {
     <div className="flex flex-col gap-4">
       <h1 className="m-0 text-3xl font-semibold tracking-[-0.02em]">This invite can't be used</h1>
       <p className="m-0 text-[15px] leading-normal text-app-sb">{message}</p>
-      <Link to="/login" className="text-[15px] font-medium text-[#5b9dff] hover:text-[#8fb4ff]">
+      <Link to="/login" className="text-[15px] font-medium text-tag-grid hover:underline">
         Go to sign in
       </Link>
     </div>
@@ -113,7 +113,7 @@ function AcceptForm({ token, invite }: { token: string; invite: InvitePreview })
           />
         </Field>
         {error ? (
-          <p role="alert" className="m-0 text-sm text-[#ff7a59]">
+          <p role="alert" className="m-0 text-sm text-tag-hp">
             {error}
           </p>
         ) : null}

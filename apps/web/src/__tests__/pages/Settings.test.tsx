@@ -215,12 +215,43 @@ describe('site model and notifications', () => {
   it('lists the anchors and saves a removed one as a new version', async () => {
     setup('installer', 'model')
     expect(await screen.findByTestId('model-badge')).toHaveTextContent('Default model (App v2 demo scene)')
-    expect(screen.getByText('Placing anchors needs a browser with WebGL.')).toBeInTheDocument()
+    expect(screen.getByText('Clicking the model needs a browser with WebGL; type the coordinates instead.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Remove Heat pump' }))
     expect(await bar()).toHaveTextContent('Unsaved changes: Site model')
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
     await waitFor(() => expect(calls.model).toHaveLength(1))
     expect((calls.model[0] as { anchors: { key: string }[] }).anchors.map((a) => a.key)).toEqual(['pv', 'battery', 'grid', 'ev'])
+  })
+
+  it('places an anchor from typed coordinates, without the mouse', async () => {
+    setup('installer', 'model')
+    await userEvent.click(await screen.findByRole('button', { name: 'Type coordinates for Switchboard (hub)' }))
+    const x = screen.getByLabelText('Switchboard (hub) x, metres')
+    expect(x).toHaveFocus()
+    await userEvent.clear(x)
+    await userEvent.type(x, '600')
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled() // outside the site
+    await userEvent.clear(x)
+    await userEvent.type(x, '2.5{Enter}')
+    expect(await bar()).toHaveTextContent('Unsaved changes: Site model')
+    expect(screen.getByText('2.5, 0.9, 1.9')).toBeInTheDocument()
+  })
+})
+
+describe('Settings tabs', () => {
+  it('move with the arrow keys, Home and End', async () => {
+    setup('owner')
+    const site = await screen.findByRole('tab', { name: 'Site' })
+    expect(site).toHaveAttribute('tabindex', '0')
+    site.focus()
+    await userEvent.keyboard('{ArrowRight}')
+    expect(screen.getByRole('tab', { name: 'Tariff' })).toHaveFocus()
+    expect(screen.getByRole('tab', { name: 'Tariff' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tabpanel', { name: 'Tariff' })).toBeInTheDocument()
+    await userEvent.keyboard('{End}')
+    expect(screen.getByRole('tab', { name: 'Notifications' })).toHaveFocus()
+    await userEvent.keyboard('{ArrowRight}')
+    expect(screen.getByRole('tab', { name: 'Site' })).toHaveAttribute('aria-selected', 'true')
   })
 
   it('saves your notifications, sending quiet hours together', async () => {

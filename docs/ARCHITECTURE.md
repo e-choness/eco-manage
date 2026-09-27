@@ -227,6 +227,18 @@ often and why it was declined in 30 days), Calendar, Site model, People and Noti
 - **Access until** is a local date for invites and memberships: access lasts to the end of that
   day in the site's time zone.
 - The password change from the v1 Settings page is now in Profile (avatar menu).
+
+**Accessibility and narrow windows (P4-09).** Every control is a native button, link or form
+field, or follows an ARIA pattern (switches, Settings tabs with arrow keys and a roving tab stop,
+grids exposed as tables with `HeaderRow` and `CellRow`). A "Skip to content" link comes first,
+and `:focus-visible` draws a ring on anything without its own. Site-model anchors can be placed by
+typing coordinates as well as by clicking the model, so they work without a mouse or WebGL. The
+site picture has a screen-reader table of the flows. Theme colours meet 4.5:1 for text in both
+themes (the dim text and the light-theme device colours were darkened; error text uses
+`text-tag-hp`, not the fixed device orange). Below 1280 px (`useMinWidth`) Home narrows its panels
+and the scene margins, the Devices panel narrows, and page gutters shrink; 1024 px is the
+narrowest width checked.
+
 **Shell (P4-01).** A 68 px icon rail as in App v2: Home, Devices, History, Bills, Inbox,
 Settings. Installers don't get Bills (`RequireRole` sends them Home, and the API refuses them
 anyway). The role comes from `/auth/me`: the first active membership, the same rule the API uses.

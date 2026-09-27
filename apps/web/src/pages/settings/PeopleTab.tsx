@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/useToast"
 import { cn } from "@/lib/utils"
 import { rangeText } from "../history/dates"
 import { inputClass } from "./styles"
-import { Field, Fields, Group, ReadOnly } from "./ui"
+import { CellRow, Field, Fields, Group, HeaderRow, ReadOnly } from "./ui"
 
 const ROLE_LABEL: Record<Role, string> = { owner: "Owner", manager: "Manager", installer: "Installer" }
 const PEOPLE_KEY = ["people"]
@@ -48,18 +48,14 @@ export function PeopleTab({ canEdit, today }: { canEdit: boolean; today: string 
     <>
       <Group title="People" note="Owner: everything. Manager: approvals, alerts, calendar, view bills. Installer: devices, diagnostics, alerts, no bills.">
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_150px_170px_70px] items-center gap-x-3 gap-y-2 text-[13px]" role="table" aria-label="People">
-          {["Name", "Email", "Role", "Access until", ""].map((h, i) => (
-            <span key={i} role="columnheader" className="text-xs text-app-dm">
-              {h}
-            </span>
-          ))}
+          <HeaderRow labels={["Name", "Email", "Role", "Access until", ""]} />
           {people.data?.members.map((m) => (
-            <div key={m.id} role="row" className="contents">
-              <span role="cell">
+            <CellRow key={m.id}>
+              <span>
                 {m.name}
                 {m.you ? <span className="text-app-dm"> (you)</span> : null}
               </span>
-              <span role="cell" className="truncate text-app-sb">
+              <span className="truncate text-app-sb">
                 {m.email}
               </span>
               <select aria-label={`Role of ${m.name}`} value={m.role} onChange={(e) => update(m, { role: e.target.value as Role })} className={inputClass}>
@@ -80,7 +76,7 @@ export function PeopleTab({ canEdit, today }: { canEdit: boolean; today: string 
               <button type="button" aria-label={`Remove ${m.name}`} onClick={() => void run(() => removeMember(m.id), `${m.name} no longer has access.`)} className="p-0 text-xs text-app-sb hover:text-app-tx">
                 Remove
               </button>
-            </div>
+            </CellRow>
           ))}
         </div>
         {people.data?.invites.length ? (
@@ -103,7 +99,7 @@ export function PeopleTab({ canEdit, today }: { canEdit: boolean; today: string 
           </div>
         ) : null}
         {error ? (
-          <p role="alert" className="m-0 text-xs text-[#ff7a59]">
+          <p role="alert" className="m-0 text-xs text-tag-hp">
             {error}
           </p>
         ) : null}

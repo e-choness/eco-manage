@@ -15,8 +15,11 @@ export function AppShell() {
   return (
     <SiteStreamProvider>
       <div className="min-h-screen bg-app-bg text-app-tx">
+        <a href="#content" className="sr-only z-50 rounded-lg bg-app-ps px-3 py-2 text-sm text-app-tx focus:not-sr-only focus:fixed focus:left-20 focus:top-3">
+          Skip to content
+        </a>
         <Rail />
-        <div className="pl-[68px]">
+        <div id="content" tabIndex={-1} className="pl-[68px] outline-none">
           <Outlet />
         </div>
       </div>
@@ -30,7 +33,7 @@ export function PageFrame({ title, children }: { title: string; children: ReactN
   const { membership, roleLabel } = useMe()
   return (
     <main className="min-h-screen bg-app-bg">
-      <div className="mx-auto flex max-w-[1280px] flex-col gap-6 px-10 pb-[60px] pt-7">
+      <div className="mx-auto flex max-w-[1280px] flex-col gap-6 px-6 pb-[60px] pt-7 xl:px-10">
         <header className="flex items-end justify-between">
           <div className="flex flex-col gap-1">
             <span className="text-[13px] text-app-sb">{membership?.siteName}</span>

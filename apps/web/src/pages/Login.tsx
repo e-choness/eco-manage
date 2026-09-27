@@ -46,7 +46,7 @@ export function Login() {
           <input type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className={authInput} />
         </Field>
         {error ? (
-          <p role="alert" className="m-0 text-sm text-[#ff7a59]">
+          <p role="alert" className="m-0 text-sm text-tag-hp">
             {error}
           </p>
         ) : null}

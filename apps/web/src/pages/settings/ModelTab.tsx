@@ -30,14 +30,17 @@ export function ModelTab({ draft, set, saved, snap, canEdit }: Props) {
   const model: SiteModel | null = useMemo(() => (draft ? { ...(saved ?? DEFAULT_SITE_MODEL), ...draft } : null), [draft, saved])
   if (!draft || !model) return <ReadOnly text="Loading the site model…" />
 
-  const place = (p: Vec3) => {
-    if (!moving) return
-    if (moving === "hub") set({ ...draft, hub: p })
+  const placeAt = (key: FlowKey | "hub", p: Vec3) => {
+    if (key === "hub") set({ ...draft, hub: p })
     else {
-      const anchor = { key: moving, at: p, label: [p[0], p[1] + LABEL_LIFT, p[2]] as Vec3 }
-      const others = draft.anchors.filter((a) => a.key !== moving)
+      const anchor = { key, at: p, label: [p[0], p[1] + LABEL_LIFT, p[2]] as Vec3 }
+      const others = draft.anchors.filter((a) => a.key !== key)
       set({ ...draft, anchors: [...others, anchor].sort((a, b) => FLOW_KEYS.indexOf(a.key) - FLOW_KEYS.indexOf(b.key)) })
     }
+  }
+  const place = (p: Vec3) => {
+    if (!moving) return
+    placeAt(moving, p)
     setMoving(null)
   }
   const rows: { key: FlowKey | "hub"; at: Vec3 | null }[] = [{ key: "hub", at: draft.hub }, ...FLOW_KEYS.map((k) => ({ key: k, at: draft.anchors.find((a) => a.key === k)?.at ?? null }))]
@@ -77,10 +80,11 @@ export function ModelTab({ draft, set, saved, snap, canEdit }: Props) {
           </div>
           <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
             {rows.map((r) => (
-              <li key={r.key} className="flex items-center justify-between gap-2 text-[13px]">
+              <li key={r.key} className="flex flex-wrap items-center justify-between gap-2 text-[13px]">
                 <span>{NAME[r.key]}</span>
                 <span className="flex items-center gap-2.5">
                   <span className={cn("font-mono text-xs", r.at ? "text-app-sb" : "text-app-dm")}>{r.at ? fmt(r.at) : "not placed"}</span>
+                  {canEdit ? <CoordEditor name={NAME[r.key]} at={r.at ?? [0, 0, 0]} apply={(p) => placeAt(r.key, p)} /> : null}
                   {canEdit && webgl ? (
                     <button type="button" aria-label={`Move ${NAME[r.key]}`} onClick={() => setMoving(r.key)} className={cn("p-0 text-xs", moving === r.key ? "text-tag-pv" : "text-tag-grid")}>
                       {r.at ? "Move" : "Place"}
@@ -100,10 +104,64 @@ export function ModelTab({ draft, set, saved, snap, canEdit }: Props) {
               Reset to the default model
             </button>
           ) : null}
-          {canEdit && !webgl ? <p className="m-0 text-xs text-app-dm">Placing anchors needs a browser with WebGL.</p> : null}
+          {canEdit && !webgl ? <p className="m-0 text-xs text-app-dm">Clicking the model needs a browser with WebGL; type the coordinates instead.</p> : null}
         </section>
         {!canEdit ? <ReadOnly text="Only the owner or installer can edit the site model." /> : null}
       </div>
     </div>
+  )
+}
+
+const AXES = [
+  { name: "x", min: -500, max: 500 },
+  { name: "y (height)", min: -50, max: 200 },
+  { name: "z", min: -500, max: 500 },
+] as const
+
+/** Typed coordinates in metres: the keyboard (and no-WebGL) way to place an anchor. */
+function CoordEditor({ name, at, apply }: { name: string; at: Vec3; apply: (p: Vec3) => void }) {
+  const [open, setOpen] = useState(false)
+  const [xyz, setXyz] = useState<string[]>([])
+  if (!open)
+    return (
+      <button type="button" aria-label={`Type coordinates for ${name}`} onClick={() => { setXyz(at.map((v) => v.toFixed(1))); setOpen(true) }} className="p-0 text-xs text-tag-grid">
+        Edit
+      </button>
+    )
+  const nums = xyz.map(Number)
+  const valid = xyz.every((v) => v.trim() !== "") && nums.every((v, i) => Number.isFinite(v) && v >= AXES[i].min && v <= AXES[i].max)
+  return (
+    <form
+      aria-label={`Coordinates for ${name}`}
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!valid) return
+        apply(nums as unknown as Vec3)
+        setOpen(false)
+      }}
+      onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
+      className="flex items-center gap-1"
+    >
+      {AXES.map((a, i) => (
+        <input
+          key={a.name}
+          type="number"
+          step="0.1"
+          min={a.min}
+          max={a.max}
+          aria-label={`${name} ${a.name}, metres`}
+          value={xyz[i]}
+          autoFocus={i === 0}
+          onChange={(e) => setXyz(xyz.map((v, j) => (j === i ? e.target.value : v)))}
+          className="h-7 w-14 rounded border border-app-ln bg-app-bg px-1 font-mono text-xs text-app-tx"
+        />
+      ))}
+      <button type="submit" disabled={!valid} className="p-0 text-xs text-tag-grid disabled:text-app-dm">
+        Apply
+      </button>
+      <button type="button" onClick={() => setOpen(false)} className="p-0 text-xs text-app-sb">
+        Cancel
+      </button>
+    </form>
   )
 }

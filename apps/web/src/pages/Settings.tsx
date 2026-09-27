@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { siteDate, type TariffIssue } from "@ecomanage/shared"
@@ -180,16 +180,29 @@ export function Settings() {
     else if (dirty.length) toast({ description: "Saved. The change is in the audit log." })
   }
   const failed = Object.entries(errors) as [Section, string][]
+  // Tabs pattern: arrows, Home and End move to a tab and open it.
+  const tabKeys = (e: KeyboardEvent) => {
+    const i = TABS.findIndex(([t]) => t === tab)
+    const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: TABS.length - 1 }[e.key]
+    if (to === undefined) return
+    e.preventDefault()
+    const [next] = TABS[(to + TABS.length) % TABS.length]
+    setParams({ tab: next }, { replace: true })
+    document.getElementById(`settings-tab-${next}`)?.focus()
+  }
 
   return (
     <PageFrame title="Settings">
-      <div className="flex flex-wrap gap-1" role="tablist" aria-label="Settings">
+      <div className="flex flex-wrap gap-1" role="tablist" aria-label="Settings" onKeyDown={tabKeys}>
         {TABS.map(([t, label]) => (
           <button
             key={t}
+            id={`settings-tab-${t}`}
             type="button"
             role="tab"
             aria-selected={tab === t}
+            aria-controls="settings-panel"
+            tabIndex={tab === t ? 0 : -1}
             onClick={() => setParams({ tab: t }, { replace: true })}
             className={cn("h-8 rounded-lg px-3 text-[13px]", tab === t ? "bg-app-ch text-app-tx" : "text-app-sb hover:text-app-tx")}
           >
@@ -199,7 +212,7 @@ export function Settings() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-4 pb-24" role="tabpanel" aria-label={TABS.find(([t]) => t === tab)![1]}>
+      <div className="flex flex-col gap-4 pb-24" id="settings-panel" role="tabpanel" aria-labelledby={`settings-tab-${tab}`}>
         {tab === "site" && value("site") ? (
           <SiteTab
             site={value("site")!}
@@ -246,7 +259,7 @@ export function Settings() {
             </span>
           </div>
           {failed.map(([s, message]) => (
-            <p key={s} role="alert" className="m-0 text-xs text-[#ff7a59]">
+            <p key={s} role="alert" className="m-0 text-xs text-tag-hp">
               {SECTION_TAB[s]}: {message}
             </p>
           ))}

@@ -3,7 +3,7 @@ import { DAY_SETS, dayPrices, validateTariff, type TariffInput, type TariffIssue
 import { getTariffTemplates } from "@/api/settings"
 import { cn } from "@/lib/utils"
 import { inputClass } from "./styles"
-import { AddRow, Field, Fields, Group, NumberInput, ReadOnly, RemoveRow } from "./ui"
+import { AddRow, CellRow, Field, Fields, Group, HeaderRow, NumberInput, ReadOnly, RemoveRow } from "./ui"
 
 const LEVEL = { off: "bg-price-off text-tag-grid", mid: "bg-price-mid text-app-sb", peak: "bg-price-peak text-tag-hp" } as const
 const dollars = (cents: number) => Math.round(cents * 10) / 1000 // cents → $ with 3 decimals kept for fractions
@@ -139,13 +139,9 @@ export function TariffTab({ tariff, setTariff, version, canEdit, canView, server
 
       <Group title="Time-of-use periods" note="An end time of 00:00 means midnight.">
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_110px_110px_130px_60px] gap-x-3 gap-y-2" role="table" aria-label="Periods">
-          {["Period", "Season", "Days", "Start", "End", "Rate ($/kWh)", ""].map((h, i) => (
-            <span key={i} role="columnheader" className="text-xs text-app-dm">
-              {h}
-            </span>
-          ))}
+          <HeaderRow labels={["Period", "Season", "Days", "Start", "End", "Rate ($/kWh)", ""]} />
           {t.periods.map((p, i) => (
-            <div key={i} role="row" className="contents">
+            <CellRow key={i}>
               <input aria-label={`Period ${i + 1} name`} value={p.name} disabled={!canEdit} onChange={(e) => period(i, { name: e.target.value })} className={inputClass} />
               <select aria-label={`Period ${i + 1} season`} value={p.season} disabled={!canEdit} onChange={(e) => period(i, { season: e.target.value })} className={inputClass}>
                 {seasonOptions.map((s) => (
@@ -165,7 +161,7 @@ export function TariffTab({ tariff, setTariff, version, canEdit, canView, server
               <input type="time" aria-label={`Period ${i + 1} end`} value={p.end} disabled={!canEdit} onChange={(e) => e.target.value && period(i, { end: e.target.value })} className={inputClass} />
               <NumberInput label={`Period ${i + 1} rate`} value={dollars(p.rateCents)} required step="0.01" disabled={!canEdit} set={(v) => period(i, { rateCents: cents(v) })} />
               <RemoveRow label={`Remove period ${i + 1}`} disabled={!canEdit} onClick={() => set("periods", t.periods.filter((_, j) => j !== i))} />
-            </div>
+            </CellRow>
           ))}
         </div>
         <AddRow label="Add period" disabled={!canEdit} onClick={() => set("periods", [...t.periods, { name: "Mid", season: "all", days: "weekdays", start: "00:00", end: "00:00", rateCents: 10 }])} />
