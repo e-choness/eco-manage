@@ -49,6 +49,12 @@ test('the manager sees live values from the simulated site', async ({ page }) =>
   await page.getByRole('link', { name: 'Bills' }).click()
   await expect(page.getByRole('table', { name: 'Bills' }).getByRole('row').nth(1)).toContainText('In progress')
   await expect(page.getByTestId('bill-total')).toHaveText(/^\$[\d,]+$/)
+
+  // Inbox (P4-07): the list (the demo may have nothing open) with the open/closed filter.
+  await page.getByRole('link', { name: /^Inbox/ }).click()
+  await expect(page.getByRole('heading', { name: 'Inbox' })).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Inbox items' })).toBeAttached()
+  await expect(page.getByRole('group', { name: 'Open or closed' }).getByRole('button', { name: /^Open \(\d+\)$/ })).toBeVisible()
 })
 
 test('a signed-out visitor is sent to sign in, and old addresses still work', async ({ page }) => {

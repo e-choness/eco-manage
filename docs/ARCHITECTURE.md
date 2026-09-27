@@ -121,8 +121,8 @@ shell/          App v2 shell (P4-01): AppShell, Rail, AvatarMenu, ProfileDialog,
 hooks/          useMe (user, membership, role), useSiteStream (stream state, Inbox counts),
                 useSiteLive (snapshot)
 components/     scene/ (SiteScene: three.js engine + 2D fallback), shadcn/ui in ui/ (App v2 palette)
-pages/          Login, InviteAccept (auth/ layout), Home (home/), Devices (devices/), History (history/), Bills (bills/),
-                and the pages shown in the shell until their screens replace them: Alerts (inbox), Settings
+pages/          Login, InviteAccept (auth/ layout), Home (home/), Devices (devices/), History (history/),
+                Bills (bills/), Inbox (inbox/), and Settings (from v1, until P4-08 replaces it)
 ```
 
 Routes: `/login`, `/invite/:token`, and the signed-in app at the top level: `/` (Home),
@@ -192,6 +192,22 @@ spending for any date range (`/api/bills/range`). The owner uploads the utility 
 read by the worker; the panel polls while it is read) or types its total. Statement (PDF) and
 15-min data (CSV, the History export) download signed in; "Open in History" opens
 `/history?from=&to=` for the period or range.
+**Inbox (P4-07).** As App v2: one list (`GET /api/inbox`, paged with its cursor; "Show more") of
+decisions, alerts and commands, open or closed, filtered by type, with counts on the tabs, and the
+selected item (`?item=type:id`; email links `?alert=` and `?recommendation=` open straight into
+theirs, even when not on the first page) in detail:
+
+- **Decision:** why it was suggested (rule, window, inputs), the checks against the site's limits,
+  the expected saving and its calculation, how it gets decided, what approving sends, and a timeline
+  that follows the command once approved. Numeric params with limits in the device profile become
+  sliders; each move re-runs `POST /check` 300 ms after the last change, and Approve is off while a
+  check fails or a re-check is pending. Decline takes a reason. Who may approve comes from the
+  recommendation (`canApprove`).
+- **Command (active or closed):** status, what was sent, a timeline from waiting to reverted, and
+  "Cancel early" for owners and managers.
+- **Alert:** what triggered it, how it closes, its resolution, a timeline, and the actions the API
+  allows now (`actions`): acknowledge, pause emails, remote fixes from the profile, close as a false
+  alarm while the condition is true, or resolve with a cause and a note once it has cleared.
 **Shell (P4-01).** A 68 px icon rail as in App v2: Home, Devices, History, Bills, Inbox,
 Settings. Installers don't get Bills (`RequireRole` sends them Home, and the API refuses them
 anyway). The role comes from `/auth/me`: the first active membership, the same rule the API uses.

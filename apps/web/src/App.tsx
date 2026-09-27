@@ -11,7 +11,7 @@ import { Home } from "./pages/Home"
 import { Devices } from "./pages/Devices"
 import { History } from "./pages/History"
 import { Bills } from "./pages/Bills"
-import { Alerts } from "./pages/Alerts"
+import { Inbox } from "./pages/Inbox"
 import { Settings } from "./pages/Settings"
 
 // Pages from before App v2, shown in the new shell until their screens are rebuilt (P4-03..P4-08).
@@ -46,7 +46,7 @@ function App() {
                   </RequireRole>
                 }
               />
-              <Route path="inbox" element={<Interim><Alerts /></Interim>} />
+              <Route path="inbox" element={<Inbox />} />
               <Route path="settings" element={<Interim><Settings /></Interim>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
