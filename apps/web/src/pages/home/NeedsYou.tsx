@@ -6,6 +6,7 @@ import { approveRecommendation, declineRecommendation, getOpenInbox } from "@/ap
 import { INBOX_LIST_KEY, useInboxCounts } from "@/hooks/useSiteStream"
 import { useToast } from "@/hooks/useToast"
 import { clockAt } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
 const SHOWN = 5
 const card = "flex flex-col gap-2 rounded-[14px] border border-app-ln bg-app-pn px-[18px] py-4 backdrop-blur-[14px]"
@@ -14,7 +15,7 @@ const card = "flex flex-col gap-2 rounded-[14px] border border-app-ln bg-app-pn 
  * Home, right column: the top of the Inbox. Decisions can be approved or declined here; alerts
  * link to their device. Commands waiting or running show as one line.
  */
-export function NeedsYou({ tz, role }: { tz: string; role: Role | null }) {
+export function NeedsYou({ tz, role, narrow }: { tz: string; role: Role | null; narrow?: boolean }) {
   const navigate = useNavigate()
   const counts = useInboxCounts().data
   const inbox = useQuery({ queryKey: [...INBOX_LIST_KEY, "home"], queryFn: () => getOpenInbox(40) })
@@ -26,7 +27,7 @@ export function NeedsYou({ tz, role }: { tz: string; role: Role | null }) {
   const names = [...new Set(active.map((a) => a.deviceName).filter(Boolean))].join(", ")
 
   return (
-    <section aria-labelledby="needs-you" className="absolute bottom-6 right-6 top-6 flex w-[360px] flex-col gap-3 overflow-auto">
+    <section aria-labelledby="needs-you" className={cn("absolute bottom-6 top-6 flex flex-col gap-3 overflow-auto", narrow ? "right-4 w-[296px]" : "right-6 w-[360px]")}>
       <div className="flex items-center justify-between px-1 pt-1">
         <h2 id="needs-you" className="m-0 text-[15px] font-semibold">
           Needs you
@@ -148,7 +149,7 @@ function Decision({ item, tz, canDecide }: { item: InboxItem; tz: string; canDec
         </div>
       )}
       {error ? (
-        <p role="alert" className="m-0 text-xs text-[#ff7a59]">
+        <p role="alert" className="m-0 text-xs text-tag-hp">
           {error}
         </p>
       ) : null}

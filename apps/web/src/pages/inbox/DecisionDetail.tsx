@@ -191,7 +191,7 @@ function Loaded({ r, tz, currency, role }: { r: RecommendationDetail; tz: string
         <p className="m-0 text-xs text-app-sb">{role === "installer" ? "Installers can see proposals but can’t approve them." : "Only the owner can approve this site’s proposals (Settings → Rules → Who can approve)."}</p>
       ) : null}
       {error ? (
-        <p role="alert" className="m-0 text-xs text-[#ff7a59]">
+        <p role="alert" className="m-0 text-xs text-tag-hp">
           {error}
         </p>
       ) : null}

@@ -4,6 +4,8 @@ import { DEFAULT_SITE_MODEL, sceneFlows, type SiteSnapshot, type SiteToday } fro
 import { useSiteLive } from "@/hooks/useSiteLive"
 import { useMe } from "@/hooks/useMe"
 import { useNow } from "@/hooks/useNow"
+import { useMinWidth } from "@/hooks/useMinWidth"
+import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/ui/theme-provider"
 import { SiteScene } from "@/components/scene/SiteScene"
 import { getSiteModel, getToday } from "@/api/home"
@@ -27,12 +29,14 @@ export function Home() {
   const flows = useMemo(() => (snap ? sceneFlows(snap) : null), [snap])
   const tz = snap?.site.tz ?? "UTC"
   const money_ = role === "owner" || role === "manager"
+  // Narrower panels below 1280 px (P4-09) leave the site picture room to breathe.
+  const wide = useMinWidth(1280)
 
   return (
     <main className="relative h-screen min-h-[640px] overflow-hidden bg-app-gr">
-      {flows ? <SiteScene model={model.data ?? DEFAULT_SITE_MODEL} flows={flows} theme={resolvedTheme} view="fit" safeLeft={340} safeRight={392} shiftY={-0.03} /> : null}
+      {flows ? <SiteScene model={model.data ?? DEFAULT_SITE_MODEL} flows={flows} theme={resolvedTheme} view="fit" safeLeft={wide ? 340 : 296} safeRight={wide ? 392 : 316} shiftY={-0.03} /> : null}
 
-      <div className="absolute left-8 top-7 flex w-[300px] flex-col gap-3.5">
+      <div className={cn("absolute top-7 flex flex-col gap-3.5", wide ? "left-8 w-[300px]" : "left-6 w-[264px]")}>
         <div className="flex flex-col gap-0.5">
           <h1 className="m-0 text-lg font-semibold" data-testid="site-name">
             {snap?.site.name ?? membership?.siteName}
@@ -59,9 +63,9 @@ export function Home() {
         )}
       </div>
 
-      <NeedsYou tz={tz} role={role} />
+      <NeedsYou tz={tz} role={role} narrow={!wide} />
 
-      <div className="absolute bottom-6 left-8 right-[408px]">
+      <div className={cn("absolute bottom-6", wide ? "left-8 right-[408px]" : "left-6 right-[324px]")}>
         <PriceStrip today={today.data} tz={tz} now={now} />
       </div>
     </main>

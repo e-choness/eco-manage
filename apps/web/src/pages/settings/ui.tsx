@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { Children, type ReactNode } from "react"
 import { cn } from "@/lib/utils"
 import { inputClass } from "./styles"
 
@@ -94,5 +94,31 @@ export function RemoveRow({ label, onClick, disabled }: { label: string; onClick
     <button type="button" onClick={onClick} aria-label={label} className="p-0 text-xs text-app-sb hover:text-app-tx">
       Remove
     </button>
+  )
+}
+
+/** The header row of a grid laid out as a table (rows and cells use `display: contents`). */
+export function HeaderRow({ labels }: { labels: string[] }) {
+  return (
+    <div role="row" className="contents">
+      {labels.map((h, i) => (
+        <span key={i} role="columnheader" className="text-xs text-app-dm">
+          {h}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+/** A row of editable cells in such a grid: each child becomes a cell. */
+export function CellRow({ children }: { children: ReactNode }) {
+  return (
+    <div role="row" className="contents">
+      {Children.map(children, (c) => (
+        <div role="cell" className="contents">
+          {c}
+        </div>
+      ))}
+    </div>
   )
 }

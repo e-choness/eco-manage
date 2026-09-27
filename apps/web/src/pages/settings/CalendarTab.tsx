@@ -1,7 +1,7 @@
 import type { CalendarInput } from "@ecomanage/shared"
 import { cn } from "@/lib/utils"
 import { inputClass } from "./styles"
-import { AddRow, Field, Fields, Group, ReadOnly, RemoveRow } from "./ui"
+import { AddRow, CellRow, Field, Fields, Group, HeaderRow, ReadOnly, RemoveRow } from "./ui"
 
 type Range = CalendarInput["terms"][number]
 
@@ -10,18 +10,14 @@ function Ranges({ label, rows, set, canEdit, addLabel, fresh }: { label: string;
   return (
     <>
       <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_60px] gap-x-3 gap-y-2" role="table" aria-label={label}>
-        {["Name", "Starts", "Ends", ""].map((h, i) => (
-          <span key={i} role="columnheader" className="text-xs text-app-dm">
-            {h}
-          </span>
-        ))}
+        <HeaderRow labels={["Name", "Starts", "Ends", ""]} />
         {rows.map((r, i) => (
-          <div key={i} role="row" className="contents">
+          <CellRow key={i}>
             <input aria-label={`${label} ${i + 1} name`} value={r.name} disabled={!canEdit} onChange={(e) => row(i, { name: e.target.value })} className={inputClass} />
             <input type="date" aria-label={`${label} ${i + 1} start`} value={r.start} disabled={!canEdit} onChange={(e) => e.target.value && row(i, { start: e.target.value })} className={inputClass} />
             <input type="date" aria-label={`${label} ${i + 1} end`} value={r.end} disabled={!canEdit} onChange={(e) => e.target.value && row(i, { end: e.target.value })} className={inputClass} />
             <RemoveRow label={`Remove ${label.toLowerCase()} ${i + 1}`} disabled={!canEdit} onClick={() => set(rows.filter((_, j) => j !== i))} />
-          </div>
+          </CellRow>
         ))}
       </div>
       <AddRow label={addLabel} disabled={!canEdit} onClick={() => set([...rows, fresh])} />

@@ -2,7 +2,7 @@ import { CURRENCIES, type GatewayView, type PvArraysInput } from "@ecomanage/sha
 import { cn } from "@/lib/utils"
 import { TIME_ZONES, type Drafts } from "./model"
 import { inputClass } from "./styles"
-import { AddRow, Field, Fields, Group, NumberInput, ReadOnly, RemoveRow } from "./ui"
+import { AddRow, CellRow, Field, Fields, Group, HeaderRow, NumberInput, ReadOnly, RemoveRow } from "./ui"
 
 interface Props {
   site: Drafts["site"]
@@ -64,13 +64,9 @@ export function SiteTab({ site, setSite, arrays, setArrays, battery, setBattery,
 
       <Group title="Solar arrays" note="Used to calculate expected output per inverter.">
         <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_110px_90px_100px_60px] gap-x-3 gap-y-2 text-[13px]" role="table" aria-label="Solar arrays">
-          {["Name", "Inverter", "Size (kWp)", "Tilt (°)", "Azimuth (°)", ""].map((h, i) => (
-            <span key={i} role="columnheader" className="text-xs text-app-dm">
-              {h}
-            </span>
-          ))}
+          <HeaderRow labels={["Name", "Inverter", "Size (kWp)", "Tilt (°)", "Azimuth (°)", ""]} />
           {arrays.map((a, i) => (
-            <div key={a.id ?? `new${i}`} role="row" className="contents">
+            <CellRow key={a.id ?? `new${i}`}>
               <input aria-label={`Array ${i + 1} name`} value={a.name} disabled={!canHardware} onChange={(e) => row(i, { name: e.target.value })} className={inputClass} />
               <select aria-label={`Array ${i + 1} inverter`} value={a.inverterId} disabled={!canHardware} onChange={(e) => row(i, { inverterId: e.target.value })} className={inputClass}>
                 {inverters.map((inv) => (
@@ -83,7 +79,7 @@ export function SiteTab({ site, setSite, arrays, setArrays, battery, setBattery,
               <NumberInput label={`Array ${i + 1} tilt`} value={a.tiltDeg} required disabled={!canHardware} set={(v) => row(i, { tiltDeg: v ?? 0 })} />
               <NumberInput label={`Array ${i + 1} azimuth`} value={a.azimuthDeg} required disabled={!canHardware} set={(v) => row(i, { azimuthDeg: v ?? 0 })} />
               <RemoveRow label={`Remove array ${i + 1}`} disabled={!canHardware} onClick={() => setArrays(arrays.filter((_, j) => j !== i))} />
-            </div>
+            </CellRow>
           ))}
         </div>
         <AddRow label="Add array" disabled={!canHardware || !inverters.length} onClick={() => setArrays([...arrays, { name: `Array ${arrays.length + 1}`, inverterId: inverters[0].id, kwp: 10, tiltDeg: 10, azimuthDeg: 180 }])} />

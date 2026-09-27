@@ -99,7 +99,7 @@ export function CommandDetail({ id, tz, role }: { id: string; tz: string; role: 
         ) : null}
       </div>
       {error ? (
-        <p role="alert" className="m-0 text-xs text-[#ff7a59]">
+        <p role="alert" className="m-0 text-xs text-tag-hp">
           {error}
         </p>
       ) : null}

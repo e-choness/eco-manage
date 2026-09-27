@@ -212,7 +212,7 @@ function Utility({ bill, currency, canUpload }: { bill: BillSummary; currency: s
         </form>
       ) : null}
       {error ? (
-        <p role="alert" className="m-0 text-xs text-[#ff7a59]">
+        <p role="alert" className="m-0 text-xs text-tag-hp">
           {error}
         </p>
       ) : null}

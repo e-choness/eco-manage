@@ -182,7 +182,7 @@ function Builder({ from, to, role, email, onDone, onCancel }: { from: string; to
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={1000} className="rounded-lg border border-app-ln bg-app-bg px-2.5 py-2 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring" />
       </label>
       {error ? (
-        <p role="alert" className="m-0 text-xs text-[#ff7a59]">
+        <p role="alert" className="m-0 text-xs text-tag-hp">
           {error}
         </p>
       ) : null}

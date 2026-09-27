@@ -85,7 +85,7 @@ function Found({ found, onCommissioned }: { found: FoundDevice; onCommissioned: 
           )
         })}
         {error || (result && !result.ok) ? (
-          <li role="alert" className="text-xs text-[#ff7a59]">
+          <li role="alert" className="text-xs text-tag-hp">
             {error || result?.error}
           </li>
         ) : null}

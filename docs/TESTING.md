@@ -1,6 +1,6 @@
 # Testing
 
-All suites run inside the dev container. As of P4-08: **api 328, web 79, ingest 29, simulator 32, rules 43, recs 33,
+All suites run inside the dev container. As of P4-09: **api 328, web 81, ingest 29, simulator 32, rules 43, recs 33,
 shared 129, profiles 20, db 11, worker 53**, all passing. Lint and typecheck also pass. The api,
 ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest and rules; the worker's SMTP test uses Mailpit).
 
@@ -82,3 +82,11 @@ It signs in as the demo manager, lands on Home (the live view), checks the site 
 because one-decimal kW values can repeat) and checks that every simulated device is live. A
 second test checks that signed-out visitors are sent away from Home. The `e2e` image pins
 Playwright 1.49.0. Reports and traces go to `e2e/playwright-report` and `e2e/test-results`.
+
+An accessibility spec (P4-09, `a11y.spec.ts`, `@axe-core/playwright`) signs in once at 1024 x 768
+and visits every page and Settings tab in both themes, moving in the app rather than reloading
+(each reload spends an `/api/auth/refresh` call, and auth calls are rate limited to 10 a minute).
+On each page it checks there is no horizontal scroll and runs axe with the WCAG 2 A and AA rules,
+which include text contrast of at least 4.5:1. It then checks the keyboard: the rail links, device
+rows, the skip link, the Settings tabs (arrow keys, Home, End) and the table alternative to the
+site picture. It restores the theme the demo manager started with.

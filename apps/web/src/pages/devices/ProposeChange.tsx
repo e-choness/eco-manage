@@ -137,7 +137,7 @@ export function ProposeChange({ device }: { device: DeviceDetail }) {
         </label>
       </div>
       {error ? (
-        <p role="alert" className="m-0 text-xs text-[#ff7a59]">
+        <p role="alert" className="m-0 text-xs text-tag-hp">
           {error}
         </p>
       ) : null}
