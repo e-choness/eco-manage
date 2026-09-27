@@ -37,6 +37,13 @@ test('the manager sees live values from the simulated site', async ({ page }) =>
     await expect(devices.getByRole('row', { name: new RegExp(name) })).toContainText('Online')
   }
   await expect(page.getByRole('complementary', { name: 'Inverter A' })).toBeVisible()
+
+  // History (P4-05): today's hourly bars from the 15-min intervals, and totals.
+  await page.getByRole('link', { name: 'History' }).click()
+  await page.getByRole('group', { name: 'Period' }).getByRole('button', { name: 'Today' }).click()
+  await expect(page.getByTestId('range-text')).toContainText('1 day · hourly')
+  expect(await page.getByTestId('history-bar').count()).toBeGreaterThanOrEqual(23) // 23–25 on DST days
+  await expect(page.getByRole('list', { name: 'Totals' }).getByRole('listitem')).toHaveCount(5)
 })
 
 test('a signed-out visitor is sent to sign in, and old addresses still work', async ({ page }) => {

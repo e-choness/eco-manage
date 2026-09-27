@@ -113,3 +113,12 @@ export const proposalEmail = (site: SiteDoc, rec: RecommendationDoc, r: Recipien
     { label: 'Decide in the Inbox', url: `${appUrl}/inbox?recommendation=${rec._id}` }
   );
 };
+
+/** P4-05: a big History export is ready. The link opens History, which downloads it signed in. */
+export const exportEmail = (site: Pick<SiteDoc, 'name'>, e: { _id: unknown; from: string; to: string; rows?: number | null }, to: string, appUrl: string): Message =>
+  message(
+    to,
+    `[${site.name}] Your export for ${e.from} to ${e.to} is ready`,
+    [`The CSV of every 15-minute interval from ${e.from} to ${e.to}${e.rows != null ? ` (${e.rows.toLocaleString('en-US')} rows)` : ''} is ready.`],
+    { label: 'Download it from History', url: `${appUrl}/history?export=${String(e._id)}` }
+  );

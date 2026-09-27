@@ -9,6 +9,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute"
 import { AppShell, PageFrame, RequireRole, ScreenPlaceholder } from "./shell/AppShell"
 import { Home } from "./pages/Home"
 import { Devices } from "./pages/Devices"
+import { History } from "./pages/History"
 import { Alerts } from "./pages/Alerts"
 import { Settings } from "./pages/Settings"
 
@@ -35,7 +36,7 @@ function App() {
             <Route path="/" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
               <Route index element={<Home />} />
               <Route path="devices" element={<Devices />} />
-              <Route path="history" element={<PageFrame title="History"><ScreenPlaceholder text="Energy history for any period, with compare and CSV export, will be shown here." /></PageFrame>} />
+              <Route path="history" element={<History />} />
               <Route
                 path="bills"
                 element={

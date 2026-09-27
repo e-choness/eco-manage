@@ -45,6 +45,9 @@ const WRITES: Record<string, string[] | string> = {
   'patch /api/me/notifications': ['notifications.update'],
   'post /api/site/invites/': ['invite.create'],
   'post /api/invites/:token/accept': ['invite.accept'],
+  'post /api/exports/': ['export.create'],
+  'post /api/reports/': ['report.create'],
+  'delete /api/reports/:id': ['report.delete'],
 };
 
 const siteId = new mongoose.Types.ObjectId();

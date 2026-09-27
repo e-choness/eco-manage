@@ -25,10 +25,16 @@ export interface UtilityBillJob {
 export interface DocumentJobs {
   statement: { data: StatementJob; result: { fileId: string } };
   'utility-bill': { data: UtilityBillJob; result: { status: 'done' | 'failed'; totalCents: number | null } };
+  'export-csv': { data: ExportJob; result: { rows: number } };
 }
 
 /** `invite` on the email queue: the link's token travels only in the job, never stored. */
 export interface InviteJob {
   inviteId: string;
   token: string;
+}
+
+/** `export-csv` on the documents queue (P4-05): every 15-min interval of a range as CSV. */
+export interface ExportJob {
+  exportId: string;
 }

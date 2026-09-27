@@ -25,3 +25,5 @@ export * from './api/inbox';
 export * from './api/audit';
 export * from './api/invites';
 export * from './siteModel';
+export * from './history';
+export * from './api/reports';

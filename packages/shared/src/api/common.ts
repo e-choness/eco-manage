@@ -21,15 +21,4 @@ export type ListQuery = z.infer<typeof listQuery>;
 export const listResponse = <T extends z.ZodTypeAny>(item: T) =>
   z.object({ items: z.array(item), nextCursor: z.string().nullable() });
 
-export const RESOLUTIONS = ['15m', 'h', 'd', 'w', 'mo'] as const;
-export type Resolution = (typeof RESOLUTIONS)[number];
-
-/** History queries: dates are ISO dates in site time; the server caps a response at 400 points. */
-export const historyQuery = z.object({
-  from: z.string().date(),
-  to: z.string().date(),
-  res: z.enum(RESOLUTIONS),
-});
-export type HistoryQuery = z.infer<typeof historyQuery>;
-
 export const MAX_POINTS = 400;

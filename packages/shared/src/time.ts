@@ -74,3 +74,6 @@ export const billingPeriod = (at: Date, tz: string, billDay = 1): BillingPeriod 
 
 /** Local wall-clock time "HH:mm" in the site's zone. */
 export const siteClock = (at: Date, tz: string): string => inZone(at, tz).toFormat('HH:mm');
+
+/** Local time with its UTC offset, e.g. "2026-09-24T12:00:00-04:00" (CSV exports, P4-05). */
+export const siteLocalIso = (at: Date, tz: string): string => inZone(at, tz).toISO({ suppressMilliseconds: true }) as string;

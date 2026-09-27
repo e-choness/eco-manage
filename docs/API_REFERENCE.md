@@ -183,7 +183,7 @@ Every write to a site records an `AuditEvent` `{siteId, userId, action, target, 
 
 - **`AuditEntry`:** `id`, `ts`, `action`, `target`, `user` (`{ id, name }`; `null` for the rules service, worker or gateway; "Former user" once the person's account is gone), `before`, `after`.
 - **Paging:** `nextCursor` holds the last entry's time and id, so entries written while you page don't shift the pages. A bad cursor or filter is a `400`.
-- **Actions recorded:** `alert.ack`, `.snooze`, `.resolve`, `.false-alarm`, `.fix`; `bill.utility.upload`, `.enter`; `calendar.update`; `command.cancel`; `device.create`, `.update`, `.delete`; `notifications.update`; `recommendation.request`, `.approve`, `.decline`; `site.update`, `site.pv-arrays`, `site.battery`; `tariff.create`; `invite.create`, `.accept`; `device.commission`; `maintenance.create`; `site.create` (migration). `/api/auth/*` changes a person's own account, not a site, and isn't recorded.
+- **Actions recorded:** `alert.ack`, `.snooze`, `.resolve`, `.false-alarm`, `.fix`; `bill.utility.upload`, `.enter`; `calendar.update`; `command.cancel`; `device.create`, `.update`, `.delete`; `notifications.update`; `recommendation.request`, `.approve`, `.decline`; `site.update`, `site.pv-arrays`, `site.battery`; `tariff.create`; `invite.create`, `.accept`; `device.commission`; `maintenance.create`; `export.create`; `report.create`, `.delete`; `site.create` (migration). `/api/auth/*` changes a person's own account, not a site, and isn't recorded.
 
 ## Invites (v2, P4-02)
 
@@ -196,6 +196,23 @@ plain token exists only in the email job and the email. Links expire after 7 day
 | POST | `/api/site/invites` | 🔒 owner | `{ email, role, until? }` → `201 InviteView { id, email, role, until, expiresAt, invitedBy }`. A new invite replaces any unused one for the same address. `409` if the person already has access, `400` for an `until` in the past, `503` when the email can't be queued (no Redis). Audited as `invite.create` |
 | GET | `/api/invites/:token` | the link | `InvitePreview { siteName, email, role, until, expiresAt, invitedBy, hasAccount }`. `404` unknown link, `410` used or expired (the message says which) |
 | POST | `/api/invites/:token/accept` | the link | New account: `{ name, password }` (at least 8 characters). Existing account for that email: `{ password }`, its own. → user fields + `accessToken`, and sets `em_rt`, like login. Adds the membership with the invited role and `until`. `400` wrong password or missing name, `404`/`410` as above. Audited as `invite.accept` |
+
+## History, exports and reports 🔒 all roles (v2, P4-05)
+
+Built from the permanent 15-minute intervals. Dates are local dates (`YYYY-MM-DD`) in the site's
+time zone, both ends included. Money fields are `null` for installers.
+
+| Method | Path | Query or body | Result |
+| ------ | ---- | ------------- | ------ |
+| GET | `/api/history/series` | `from`, `to`, `res` (`auto`, `15m`, `h`, `d`, `w`, `mo`; default `auto`) | `HistorySeries { from, to, days, res, warnings, dataStart, today, buckets }`. The range is swapped if backwards and kept between the first day with data and today; a resolution that would draw more than 400 bars falls back to Auto (≤ 2 days hourly, ≤ 92 daily, ≤ 400 weekly, else monthly), each with a warning. Buckets start at local midnight, the hour, the quarter hour, Monday or the 1st, and cover the whole range (empty ones have `n: 0`): `{ start, pv, used, batt (discharge), grid, export, bld, hp, ev, peakKw, costCents, estimated, n }` |
+| GET | `/api/history/totals` | `from`, `to`, `compare` (`none`, `prev`, `yoy`) | `{ from, to, totals, compare }`. `totals`: `{ pvKwh, gridKwh, exportKwh, peak { kw, at }, costCents, estimatedIntervals, intervals }`. `compare`: the same number of days just before, or the same dates last year, with `totals: null` when that is before the first data |
+| POST | `/api/exports` | `{ from, to }` | `202 ExportView { id, from, to, status: "queued", rows, error, large, createdAt }`. The worker writes every 15-min interval as CSV (site-time and UTC start, kWh columns, demand, cost and export credit for money roles, quality). Ranges over 366 days are `large`: also emailed to the requester as a link to History. Audited as `export.create`. `503` without the worker queue |
+| GET | `/api/exports/:id` | | `ExportView` (`queued`, `done`, `failed`) |
+| GET | `/api/exports/:id/file` | | The CSV (`409` until it is done) |
+| GET | `/api/reports` | | `{ items: ReportView[] }`, newest first (up to 100) |
+| POST | `/api/reports` | `{ name, from, to, sections, format (pdf, csv, xlsx), schedule (once, weekly, monthly), recipients?, notes? }` | `201 ReportView { …, status: "waiting", createdBy, canDelete }`. Sections: summary, sources, demand, cost, devices, decisions, alerts; installers can't pick `cost` (`403`). A scheduled report needs a recipient. Audited as `report.create`. The reports worker (P5-01) renders them |
+| GET | `/api/reports/:id/file` | | The rendered file; `409` until the reports worker has made it |
+| DELETE | `/api/reports/:id` | | `204`; stops its schedule. Its creator or the owner only (`403`). Audited as `report.delete` |
 
 ## Server errors
 

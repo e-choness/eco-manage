@@ -8,8 +8,9 @@ import { QUEUES, type InviteJob } from '@ecomanage/shared';
 import { costPendingIntervals, nightlyBills } from './billing';
 import { measureSavings } from './savings';
 import { statementJob, utilityBillJob } from './documents';
+import { exportCsvJob } from './exports';
 import { createMailer } from './email/mailer';
-import { dailySummaries, notifyAlerts, notifyProposals, sendInvite } from './email/notify';
+import { dailySummaries, notifyAlerts, notifyExports, notifyProposals, sendInvite } from './email/notify';
 import { forecastAll, forecastSite } from './forecast/run';
 import { openMeteoWeather, simulatedWeather } from './forecast/weather';
 
@@ -80,6 +81,11 @@ const main = async () => {
     QUEUES.documents,
     async (job) => {
       if (job.name === 'statement') return statementJob(job.data);
+      if (job.name === 'export-csv') {
+        const result = await exportCsvJob(job.data);
+        log.info({ exportId: job.data.exportId, ...result }, 'export written');
+        return result;
+      }
       if (job.name === 'utility-bill') {
         const result = await utilityBillJob(job.data);
         log.info({ period: job.data.period, ...result }, 'utility bill read');
@@ -108,8 +114,9 @@ const main = async () => {
       const sent = await notifyAlerts(mailer, env.APP_URL);
       const daily = await dailySummaries(mailer, env.APP_URL);
       const proposals = await notifyProposals(mailer, env.APP_URL);
-      if (sent.alerts || sent.escalations || daily || proposals) log.info({ ...sent, daily, proposals }, 'emails sent');
-      return { ...sent, daily, proposals };
+      const exports = await notifyExports(mailer, env.APP_URL);
+      if (sent.alerts || sent.escalations || daily || proposals || exports) log.info({ ...sent, daily, proposals, exports }, 'emails sent');
+      return { ...sent, daily, proposals, exports };
     },
     { connection, concurrency: 1 }
   );
