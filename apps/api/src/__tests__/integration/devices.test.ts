@@ -86,6 +86,7 @@ describe('reading', () => {
     expect(d.commissionedBy).toEqual({ id: installerId, name: 'Northside Solar' });
     expect(d.profile).toMatchObject({ id: 'ocpp16-generic@1', protocol: 'ocpp-1.6j', fixes: ['Remote restart (OCPP soft reset)'] });
     expect(d.profile?.writeActions).toContain('limit_current');
+    expect(d.profile?.actions.find((a) => a.id === 'limit_current')).toMatchObject({ params: { amps: { type: 'number', unit: 'A', min: 6, max: 32 } } });
   });
 
   it('answers 404 for unknown ids, malformed ids and other sites’ devices', async () => {

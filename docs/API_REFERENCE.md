@@ -78,11 +78,14 @@ installer-only and each one writes an audit event with before and after.
 | Method | Path | Roles | Result |
 | ------ | ---- | ----- | ------ |
 | GET | `/` | all | `{ items: DeviceView[] }`: device fields plus `latest` reading and its `quality` |
-| GET | `/:id` | all | `DeviceDetail`: adds `profile` (model, protocol, pollMs, write actions, fixes) and `commissionedBy` |
+| GET | `/:id` | all | `DeviceDetail`: adds `profile` (model, protocol, pollMs, `writeActions`, `actions` with each action's description, params and limits, fixes), `commissionedBy` and `maintenance` (newest 20) |
 | GET | `/:id/telemetry?from&to&res` | all | `{ points, res, capped }`; see below |
 | POST | `/` | installer | `201` new device, `status: "pending"` (after a scan). Body: type, name, profileId?, address?, role?, ratedKw?, capacityKwh? |
 | PATCH | `/:id` | installer | rename / re-role / re-address / replace profile or ratings (name, profileId, address, role, ratedKw, capacityKwh only) |
 | DELETE | `/:id` | installer | `204`. Telemetry is kept until it expires (13 months) |
+| POST | `/scan` | installer | Runs a `scan` job on the site's gateway and waits up to 20 s. `{ found: [{ address, modelCode, profileId, type, name }] }`: only devices the site doesn't have yet. Writes nothing. `503` without a broker, `504` when the gateway doesn't answer, `502` when the scan fails on it (P4-04) |
+| POST | `/:id/commission` | installer | Runs a `commission` job (the gateway starts reading the device and checks live read, sign and energy balance; up to 30 s). `CommissionResult { ok, checks [{ name, pass }], error, device }`. On success the device goes `live` and records `commissionedAt`/`commissionedBy`; audited as `device.commission`. A failed check leaves it pending (P4-04) |
+| POST | `/:id/maintenance` | installer | `{ text }` (3–500 characters) → `201 { at, source: "visit", text }` on the device's maintenance log; audited as `maintenance.create` (P4-04) |
 
 - A `profileId` must exist and support the device type, or the request gets `400`. Unknown or
   malformed ids, and devices of another site, get `404`.
@@ -180,7 +183,7 @@ Every write to a site records an `AuditEvent` `{siteId, userId, action, target, 
 
 - **`AuditEntry`:** `id`, `ts`, `action`, `target`, `user` (`{ id, name }`; `null` for the rules service, worker or gateway; "Former user" once the person's account is gone), `before`, `after`.
 - **Paging:** `nextCursor` holds the last entry's time and id, so entries written while you page don't shift the pages. A bad cursor or filter is a `400`.
-- **Actions recorded:** `alert.ack`, `.snooze`, `.resolve`, `.false-alarm`, `.fix`; `bill.utility.upload`, `.enter`; `calendar.update`; `command.cancel`; `device.create`, `.update`, `.delete`; `notifications.update`; `recommendation.request`, `.approve`, `.decline`; `site.update`, `site.pv-arrays`, `site.battery`; `tariff.create`; `invite.create`, `.accept`; `site.create` (migration). `/api/auth/*` changes a person's own account, not a site, and isn't recorded.
+- **Actions recorded:** `alert.ack`, `.snooze`, `.resolve`, `.false-alarm`, `.fix`; `bill.utility.upload`, `.enter`; `calendar.update`; `command.cancel`; `device.create`, `.update`, `.delete`; `notifications.update`; `recommendation.request`, `.approve`, `.decline`; `site.update`, `site.pv-arrays`, `site.battery`; `tariff.create`; `invite.create`, `.accept`; `device.commission`; `maintenance.create`; `site.create` (migration). `/api/auth/*` changes a person's own account, not a site, and isn't recorded.
 
 ## Invites (v2, P4-02)
 

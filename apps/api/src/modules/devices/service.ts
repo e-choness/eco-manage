@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import mongoose, { isValidObjectId } from 'mongoose';
 import type { Redis } from 'ioredis';
 import { Device, Maintenance, Telemetry, recordAudit, type DeviceDoc, type MaintenanceDoc } from '@ecomanage/db';
@@ -5,7 +6,10 @@ import { getProfile } from '@ecomanage/profiles';
 import {
   MAX_POINTS,
   TELEMETRY_RESOLUTIONS,
+  foundDevice,
+  type CommissionResult,
   type CreateDeviceBody,
+  type FoundDevice,
   type DeviceDetail,
   type DeviceView,
   type PatchDeviceBody,
@@ -15,6 +19,7 @@ import {
   type TelemetrySeries,
 } from '@ecomanage/shared';
 import User from '../auth/model';
+import type { GatewayLink } from '../../lib/gatewayLink';
 
 // v2 devices (plan P1-09). Everything is scoped to the caller's site; writes are audited.
 
@@ -72,7 +77,16 @@ export const getDevice = async (redis: Redis, siteId: string, id: string): Promi
     commissionedBy: installer ? { id: String(installer._id), name: installer.name || installer.email } : null,
     maintenance: log.map((m) => ({ at: m.at.toISOString(), source: m.source as 'visit' | 'alert', text: m.text })),
     profile: p
-      ? { id: p.id, vendor: p.vendor, model: p.model, protocol: p.protocol, pollMs: p.pollMs, writeActions: Object.keys(p.write), fixes: p.fixes.map((f) => f.label) }
+      ? {
+          id: p.id,
+          vendor: p.vendor,
+          model: p.model,
+          protocol: p.protocol,
+          pollMs: p.pollMs,
+          writeActions: Object.keys(p.write),
+          actions: Object.entries(p.write).map(([actionId, a]) => ({ id: actionId, description: a.description, params: a.params, maxDurationMin: a.maxDurationMin ?? null })),
+          fixes: p.fixes.map((f) => f.label),
+        }
       : null,
   };
 };
@@ -119,6 +133,66 @@ export const deleteDevice = async (siteId: string, userId: string, id: string): 
   return true;
 };
 
+
+// ---- maintenance, scan and commission (P4-04) ---------------------------------------------------
+
+const SCAN_TIMEOUT_MS = 20_000;
+const COMMISSION_TIMEOUT_MS = 30_000;
+
+export class DeviceJobError extends Error {
+  constructor(
+    public status: number,
+    message: string
+  ) {
+    super(message);
+  }
+}
+
+const NO_ANSWER = "The gateway didn't answer. Check that it is online, then try again.";
+
+/** Installer's visit note on the device's maintenance log. */
+export const logVisit = async (siteId: string, userId: string, id: string, text: string) => {
+  const d = await findOwn(siteId, id);
+  if (!d) return null;
+  const at = new Date();
+  await Maintenance.create({ siteId, deviceId: id, at, by: userId, source: 'visit', text });
+  await recordAudit({ siteId, userId, action: 'maintenance.create', target: `device:${id}`, after: { text } });
+  return { at: at.toISOString(), source: 'visit' as const, text };
+};
+
+/** Asks the gateway what is connected; returns what the site doesn't have yet. Writes nothing. */
+export const scanDevices = async (gateway: GatewayLink | undefined, siteId: string): Promise<{ found: FoundDevice[] }> => {
+  if (!gateway) throw new DeviceJobError(503, 'The gateway link is unavailable (no broker)');
+  const r = await gateway.runJob(siteId, `scan-${randomUUID()}`, { type: 'scan', params: {} }, SCAN_TIMEOUT_MS);
+  if (!r) throw new DeviceJobError(504, NO_ANSWER);
+  if (!r.ok) throw new DeviceJobError(502, r.error ?? 'The scan failed on the gateway');
+  const list = Array.isArray(r.data.found) ? r.data.found : [];
+  const found = list.map((f) => foundDevice.safeParse(f)).flatMap((p) => (p.success ? [p.data] : []));
+  const known = new Set((await Device.find({ siteId }).select('address').lean<{ address?: string }[]>()).map((d) => d.address));
+  return { found: found.filter((f) => !known.has(f.address)) };
+};
+
+/**
+ * Commissions a pending device: the gateway starts polling it and runs its checks (live read,
+ * sign, energy balance). On success the device goes live (ingest never promotes a pending device
+ * itself) and records who commissioned it and when.
+ */
+export const commissionDevice = async (gateway: GatewayLink | undefined, siteId: string, userId: string, id: string): Promise<CommissionResult | null> => {
+  const d = await findOwn(siteId, id);
+  if (!d) return null;
+  if (!gateway) throw new DeviceJobError(503, 'The gateway link is unavailable (no broker)');
+  const r = await gateway.runJob(siteId, `commission-${randomUUID()}`, { type: 'commission', params: { deviceId: id, address: d.address ?? '' } }, COMMISSION_TIMEOUT_MS);
+  if (!r) throw new DeviceJobError(504, NO_ANSWER);
+  const checks = (Array.isArray(r.data.checks) ? r.data.checks : [])
+    .filter((c): c is { name: string; pass: boolean } => typeof c?.name === 'string' && typeof c?.pass === 'boolean')
+    .map((c) => ({ name: c.name, pass: c.pass }));
+  let doc = d;
+  if (r.ok) {
+    doc = (await Device.findOneAndUpdate({ _id: id, siteId }, { $set: { status: 'live', commissionedAt: new Date(), commissionedBy: userId } }, { new: true }).lean<DeviceDoc>()) ?? d;
+    await recordAudit({ siteId, userId, action: 'device.commission', target: `device:${id}`, after: { checks } });
+  }
+  return { ok: r.ok, checks, error: r.ok ? null : (r.error ?? 'A check failed'), device: toView(doc, null) };
+};
 // ---- telemetry series ---------------------------------------------------------------------------
 
 const BIN_MS: Record<Exclude<TelemetryResolution, 'raw'>, number> = { '1m': 60_000, '5m': 300_000, '15m': 900_000, h: 3_600_000 };

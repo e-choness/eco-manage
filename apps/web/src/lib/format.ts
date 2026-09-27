@@ -1,4 +1,4 @@
-// Formatting for Home, always in the site's time zone and currency.
+// Formatting for App v2 screens, in the site's time zone and currency.
 
 export const clockAt = (at: string | number | Date, tz: string): string =>
   new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz }).format(new Date(at))
@@ -24,3 +24,17 @@ export const duration = (minutes: number): string => {
   const h = Math.floor(m / 60)
   return h ? `${h} h ${m % 60} min` : `${m} min`
 }
+
+/** "2 s ago", "4 min ago", then the local time, then the date: a device's last reading. */
+export const ago = (at: string | null, now: number, tz: string): string => {
+  if (!at) return "never"
+  const s = Math.max(0, Math.round((now - Date.parse(at)) / 1000))
+  if (s < 60) return `${s} s ago`
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`
+  if (s < 86_400) return clockAt(at, tz)
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: tz }).format(new Date(at))
+}
+
+/** "14 Mar 2024" */
+export const longDay = (at: string, tz: string): string =>
+  new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: tz }).format(new Date(at)).replace("Sept", "Sep")

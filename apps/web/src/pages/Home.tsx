@@ -1,26 +1,17 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { DEFAULT_SITE_MODEL, sceneFlows, type SiteSnapshot, type SiteToday } from "@ecomanage/shared"
 import { useSiteLive } from "@/hooks/useSiteLive"
 import { useMe } from "@/hooks/useMe"
+import { useNow } from "@/hooks/useNow"
 import { useTheme } from "@/components/ui/theme-provider"
 import { SiteScene } from "@/components/scene/SiteScene"
 import { getSiteModel, getToday } from "@/api/home"
 import { NeedsYou } from "./home/NeedsYou"
 import { PriceStrip } from "./home/PriceStrip"
-import { clockAt, dayLine, duration, money } from "./home/format"
+import { clockAt, dayLine, duration, money } from "@/lib/format"
 
 const panel = "rounded-[14px] border border-app-ln bg-app-pn px-[18px] py-4 backdrop-blur-[14px]"
-
-/** Re-renders every `ms` so clocks and "in 1 h 20 min" stay current. */
-function useNow(ms: number) {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), ms)
-    return () => clearInterval(t)
-  }, [ms])
-  return now
-}
 
 /**
  * App v2 Home: the site in 3D with live flows; left, demand, the bill so far and the battery;

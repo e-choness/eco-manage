@@ -1,6 +1,7 @@
 import type { Redis } from 'ioredis';
-import { createDeviceBody, patchDeviceBody, telemetryQuery } from '@ecomanage/shared';
-import { handle, HttpError, parse, userIdOf } from '../../lib/http';
+import type { GatewayLink } from '../../lib/gatewayLink';
+import { createDeviceBody, maintenanceBody, patchDeviceBody, telemetryQuery } from '@ecomanage/shared';
+import { handle, HttpError, parse, parseBody, userIdOf } from '../../lib/http';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import * as devices from './service';
 
@@ -20,7 +21,17 @@ const writeResult = (result: devices.WriteResult) => {
   throw result.reason === 'not-found' ? NOT_FOUND() : fail(400, PROFILE_ERRORS[result.reason]);
 };
 
-export const devicesController = (redis?: Redis) => {
+/** Gateway job failures become their HTTP status (503 no broker, 504 no answer, 502 failed). */
+const jobResult = async <T>(run: () => Promise<T>): Promise<T> => {
+  try {
+    return await run();
+  } catch (err) {
+    if (err instanceof devices.DeviceJobError) throw fail(err.status, err.message);
+    throw err;
+  }
+};
+
+export const devicesController = (redis?: Redis, gateway?: GatewayLink) => {
   const needRedis = (): Redis => {
     if (!redis) throw fail(503, 'Live data is unavailable (no Redis)');
     return redis;
@@ -59,6 +70,23 @@ export const devicesController = (redis?: Redis) => {
     remove: handle(FALLBACK, async (req, res) => {
       if (!(await devices.deleteDevice(siteIdOf(req), userIdOf(req), req.params.id))) throw NOT_FOUND();
       res.status(204).end();
+    }),
+
+    maintenance: handle(FALLBACK, async (req, res) => {
+      const { text } = parseBody(maintenanceBody, req.body);
+      const entry = await devices.logVisit(siteIdOf(req), userIdOf(req), req.params.id, text);
+      if (!entry) throw NOT_FOUND();
+      res.status(201).json(entry);
+    }),
+
+    scan: handle(FALLBACK, async (req, res) => {
+      res.json(await jobResult(() => devices.scanDevices(gateway, siteIdOf(req))));
+    }),
+
+    commission: handle(FALLBACK, async (req, res) => {
+      const result = await jobResult(() => devices.commissionDevice(gateway, siteIdOf(req), userIdOf(req), req.params.id));
+      if (!result) throw NOT_FOUND();
+      res.json(result);
     }),
   };
 };

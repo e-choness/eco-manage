@@ -121,8 +121,8 @@ shell/          App v2 shell (P4-01): AppShell, Rail, AvatarMenu, ProfileDialog,
 hooks/          useMe (user, membership, role), useSiteStream (stream state, Inbox counts),
                 useSiteLive (snapshot)
 components/     scene/ (SiteScene: three.js engine + 2D fallback), shadcn/ui in ui/ (App v2 palette)
-pages/          Login, InviteAccept (auth/ layout), Home (home/ parts), and the pages shown in the
-                shell until their App v2 screens replace them: Monitoring (devices), Alerts (inbox), Settings
+pages/          Login, InviteAccept (auth/ layout), Home (home/), Devices (devices/), and the pages
+                shown in the shell until their App v2 screens replace them: Alerts (inbox), Settings
 ```
 
 Routes: `/login`, `/invite/:token`, and the signed-in app at the top level: `/` (Home),
@@ -153,6 +153,21 @@ strip with the next peak. Data: the snapshot and stream (`useSiteLive`), `GET /a
   slowly unless reduced motion is on. `sceneFlows` (shared) turns the snapshot into labels.
 - **Without WebGL** (or if three.js fails to load), `SiteFlow2D` draws the same flows flat with
   moving dashes. A visually hidden table always lists the flows for screen readers.
+**Devices (P4-04).** As App v2: every device with its status, power now and last reading (the
+list from `GET /api/devices`, kept current by the stream's snapshot), and the selected one
+(`?device=` in the address, so Home's alerts can link to it) in a panel: power now, the last 24 h
+by hour (estimated hours paler), model, protocol, address, profile, data quality, commissioning,
+control, the maintenance log and the last message as received.
+
+- **Control:** owners and managers propose a change from the device profile's write actions
+  (restarts and schedules excluded). Numbers with limits are sliders within the profile's min and
+  max, a `time` parameter such as `until` is the end of the chosen window, and the request goes to
+  `POST /api/recommendations` as a manual request: the same checks as a rule's proposal, then the
+  Inbox. Installers see the controls but can't change them.
+- **Installers** scan (`POST /api/devices/scan`, a gateway job over MQTT; the API subscribes to the
+  job's result topic before publishing it and waits), add what was found as a pending device, and
+  commission it (`POST /api/devices/:id/commission`), watching the gateway's checks. A pending
+  device can also be commissioned from its panel. They log maintenance visits.
 **Shell (P4-01).** A 68 px icon rail as in App v2: Home, Devices, History, Bills, Inbox,
 Settings. Installers don't get Bills (`RequireRole` sends them Home, and the API refuses them
 anyway). The role comes from `/auth/me`: the first active membership, the same rule the API uses.
