@@ -101,7 +101,7 @@ describe('/api/rules', () => {
         action: 'force_discharge',
         title: 't',
         window: { start: new Date(), end: new Date(Date.now() + 3_600_000) },
-        status: 'declined',
+        status: 'declined' as const,
         declineReason: i < 3 ? 'Bad timing for the building' : 'Data looks wrong',
         decidedAt: new Date(),
         proposedAt: new Date(),

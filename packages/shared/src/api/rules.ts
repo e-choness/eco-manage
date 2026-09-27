@@ -22,7 +22,7 @@ export interface RulesResponse {
 
 /** PATCH /api/rules/:ruleId for a recommendation rule. Params are checked against its defaults. */
 export const rulePatch = z
-  .object({ on: z.boolean(), params: z.record(z.union([z.number().finite().min(-1000).max(100_000), z.boolean()])) })
+  .object({ on: z.boolean(), params: z.record(z.string(), z.union([z.number().finite().min(-1000).max(100_000), z.boolean()])) })
   .partial()
   .strict()
   .refine((b) => Object.keys(b).length > 0, 'Nothing to change');

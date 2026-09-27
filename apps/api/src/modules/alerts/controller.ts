@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { fixAlertBody, resolveAlertBody } from '@ecomanage/shared';
-import { handle, parseBody, userIdOf } from '../../lib/http';
+import { handle, parseBody, userIdOf, paramOf } from '../../lib/http';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import * as alerts from './service';
 
 const FALLBACK = { status: 500, body: { error: { code: 500, message: 'Alert request failed' } } };
 const siteOf = (req: AuthenticatedRequest) => req.site!;
-const idOf = (req: AuthenticatedRequest) => String(req.params.id);
+const idOf = (req: AuthenticatedRequest) => String(paramOf(req, 'id'));
 
 const listQuery = z
   .object({

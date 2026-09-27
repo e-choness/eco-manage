@@ -59,15 +59,15 @@ describe('constraints', () => {
   it('allows one membership per user and site', async () => {
     await Membership.create({ userId, siteId, role: 'owner' })
     await expect(Membership.create({ userId, siteId, role: 'manager' })).rejects.toMatchObject({ code: 11000 })
-    await expect(Membership.create({ userId, siteId: new mongoose.Types.ObjectId(), role: 'nobody' })).rejects.toThrow(/role/)
+    await expect(Membership.create({ userId, siteId: new mongoose.Types.ObjectId(), role: 'nobody' as never })).rejects.toThrow(/role/)
   })
 
   it('keeps one site model per version, with three-number positions (P4-03)', async () => {
-    const model = { siteId, source: 'generated', hub: [0, 1, 2], anchors: [{ key: 'pv', at: [0, 2, 0], label: [1, 3, 0] }], buildingLabel: [0, 3, 0] }
+    const model = { siteId, source: 'generated' as const, hub: [0, 1, 2], anchors: [{ key: 'pv', at: [0, 2, 0], label: [1, 3, 0] }], buildingLabel: [0, 3, 0] }
     await SiteModel.create({ ...model, version: 1 })
     await expect(SiteModel.create({ ...model, version: 1 })).rejects.toMatchObject({ code: 11000 })
     await expect(SiteModel.create({ ...model, version: 2, hub: [0, 1] })).rejects.toThrow(/hub/)
-    await expect(SiteModel.create({ ...model, version: 3, anchors: [{ key: 'wind', at: [0, 0, 0], label: [0, 0, 0] }] })).rejects.toThrow(/key/)
+    await expect(SiteModel.create({ ...model, version: 3, anchors: [{ key: 'wind' as never, at: [0, 0, 0], label: [0, 0, 0] }] })).rejects.toThrow(/key/)
     expect((await SiteModel.create({ ...model, version: 4 })).toObject().camera).toEqual({ view: 'fit' })
   })
 
@@ -78,7 +78,7 @@ describe('constraints', () => {
   })
 
   it('keeps device profile ids unique', async () => {
-    const p = { id: 'test@1', vendor: 'v', model: 'm', protocol: 'modbus-tcp', deviceTypes: ['pv'] }
+    const p = { id: 'test@1', vendor: 'v', model: 'm', protocol: 'modbus-tcp', deviceTypes: ['pv' as const] }
     await DeviceProfile.create(p)
     await expect(DeviceProfile.create(p)).rejects.toMatchObject({ code: 11000 })
   })
@@ -86,7 +86,7 @@ describe('constraints', () => {
   it('validates device types and statuses and defaults to pending', async () => {
     const d = await Device.create({ siteId, type: 'pv', name: 'Inverter A' })
     expect(d.status).toBe('pending')
-    await expect(Device.create({ siteId, type: 'wind', name: 'Turbine' })).rejects.toThrow(/type/)
+    await expect(Device.create({ siteId, type: 'wind' as never, name: 'Turbine' })).rejects.toThrow(/type/)
   })
 
   it('validates the site bill day', async () => {

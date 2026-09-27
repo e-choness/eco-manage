@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { approvalPatch, rulePatch } from '@ecomanage/shared';
-import { handle, parseBody, userIdOf } from '../../lib/http';
+import { handle, parseBody, userIdOf, paramOf } from '../../lib/http';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import { requireRole } from '../../middleware/roles';
 import { listRules, updateApproval, updateRule } from './service';
@@ -24,9 +24,9 @@ router.patch(
   handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
     const site = req.site!;
     res.json(
-      req.params.ruleId === 'approval'
+      paramOf(req, 'ruleId') === 'approval'
         ? await updateApproval(site, userIdOf(req), parseBody(approvalPatch, req.body))
-        : await updateRule(site, userIdOf(req), req.params.ruleId, parseBody(rulePatch, req.body))
+        : await updateRule(site, userIdOf(req), paramOf(req, 'ruleId'), parseBody(rulePatch, req.body))
     );
   })
 );

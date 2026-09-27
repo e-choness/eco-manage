@@ -1,6 +1,6 @@
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
-import { Command, Device, Recommendation, createRevertCommand, type CommandDoc, type DeviceDoc } from '@ecomanage/db';
+import { Command, Device, Recommendation, createRevertCommand, type CommandDoc, type DeviceDoc, type RecommendationDoc } from '@ecomanage/db';
 import { siteEventsChannel, type CommandMessage, type SiteEvent, type TelemetryReading } from '@ecomanage/shared';
 import { followsCommand } from './verify';
 
@@ -59,7 +59,7 @@ export class CommandDispatcher {
   }
 
   /** The recommendation behind a command follows it. */
-  private async recommendation(c: CommandDoc, status: string) {
+  private async recommendation(c: CommandDoc, status: RecommendationDoc['status']) {
     if (!c.recommendationId) return;
     const res = await Recommendation.updateOne({ _id: c.recommendationId, status: { $ne: status } }, { $set: { status } });
     if (res.modifiedCount) await this.event(c.siteId, { type: 'inbox', itemType: 'active', itemId: String(c.recommendationId) });
@@ -139,7 +139,7 @@ export class CommandDispatcher {
         const parent = await Command.findOneAndUpdate(
           { _id: c.revertOf, revertedAt: null },
           [{ $set: { revertedAt: now, status: { $cond: [{ $in: ['$status', ['acked', 'verified']] }, 'reverted', '$status'] } } }],
-          { new: true }
+          { new: true, updatePipeline: true }
         ).lean<CommandDoc>();
         if (parent) {
           await this.changed(parent, parent.status);
@@ -189,6 +189,6 @@ export class CommandDispatcher {
     const waiting = await Recommendation.find({ status: 'sent', commandId: { $ne: null } }).select('commandId').lean();
     if (!waiting.length) return;
     const commands = await Command.find({ _id: { $in: waiting.map((r) => r.commandId) }, status: { $in: ['acked', 'failed'] } }).lean<CommandDoc[]>();
-    for (const c of commands) await this.recommendation(c, c.status);
+    for (const c of commands) await this.recommendation(c, c.status as 'acked' | 'failed'); // the query above selects only these
   }
 }

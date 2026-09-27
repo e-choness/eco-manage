@@ -5,7 +5,7 @@
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { Alert, Command, Device, Membership, Recommendation, Site } from '@ecomanage/db';
+import { Alert, Command, Device, Membership, Recommendation, Site, type CommandDoc } from '@ecomanage/db';
 import type { InboxItem } from '@ecomanage/shared';
 import { connectTestDb, disconnectTestDb } from './db';
 import { createApp } from '../../app';
@@ -67,7 +67,7 @@ const rec = (min: number, over: object = {}) =>
 const alert = (min: number, over: object = {}) =>
   Alert.create({ siteId, deviceId: String(new mongoose.Types.ObjectId()), ruleId: 'device-silent', severity: 'warning', title: 'Device not reporting', detail: 'x', state: 'open', openedAt: T(min), lastSeenAt: T(min), ...over });
 
-const command = async (min: number, status: string, over: object = {}) => {
+const command = async (min: number, status: CommandDoc['status'], over: object = {}) => {
   const r = await rec(min - 1, { status: 'approved', decidedBy: users.manager });
   const c = await Command.create({
     siteId,

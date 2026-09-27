@@ -1,10 +1,13 @@
 import mongoose from 'mongoose';
+import { initModels } from '@ecomanage/db';
 
 export const connectDB = async (): Promise<void> => {
   try {
     const conn = await mongoose.connect(process.env.DATABASE_URL as string);
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+    // Collections and indexes (autoIndex is off; see @ecomanage/db).
+    await initModels();
 
     // Error handling after initial connection
     mongoose.connection.on('error', (err: Error) => {

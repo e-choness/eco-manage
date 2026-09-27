@@ -70,7 +70,7 @@ beforeAll(async () => {
     { userId: ids.former, siteId, role: 'manager', until: new Date('2026-01-01') },
   ])
   // Jamie: no alert emails (failures stay on for managers); installer: no quiet hours, no failures.
-  await NotificationPrefs.create([
+  await NotificationPrefs.insertMany([
     { userId: ids.manager, siteId, email: 'jamie@test.example', alerts: false, failures: false },
     { userId: ids.installer, siteId, email: 'north@test.example', quietFrom: null, quietTo: null, failures: false, daily: false },
   ])

@@ -61,7 +61,7 @@ beforeEach(async () => {
   await Promise.all([Site.deleteMany({}), Tariff.deleteMany({}), Interval15.deleteMany({}), Bill.deleteMany({})])
   await Site.create({ _id: siteId, name: 'Maple Grove School', tz: TZ, billDay: 1 })
   await Tariff.create([v1, v2])
-  await Interval15.create(fixture.map((f) => ({ siteId, ...f })))
+  await Interval15.insertMany(fixture.map((f) => ({ siteId, ...f })))
 })
 
 describe('refreshBill', () => {

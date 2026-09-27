@@ -18,14 +18,14 @@ const userDoc = {
   email: 'demo@ecomanage.io',
   name: 'Demo',
   refreshToken: 'stored',
-  save: jest.fn().mockResolvedValue(undefined),
+  save: vi.fn().mockResolvedValue(undefined),
   toJSON: () => ({ _id: String(userId), email: 'demo@ecomanage.io', name: 'Demo' }),
 };
 
 const query = <T>(result: T) => {
   const q: Record<string, unknown> = {};
-  for (const m of ['sort', 'populate', 'limit', 'lean', 'select']) q[m] = jest.fn(() => q);
-  q.exec = jest.fn().mockResolvedValue(result);
+  for (const m of ['sort', 'populate', 'limit', 'lean', 'select']) q[m] = vi.fn(() => q);
+  q.exec = vi.fn().mockResolvedValue(result);
   q.then = (resolve: (v: T) => unknown, reject: (e: unknown) => unknown) => Promise.resolve(result).then(resolve, reject);
   return q;
 };
@@ -46,13 +46,13 @@ let role = 'owner';
 
 beforeEach(() => {
   role = 'owner';
-  jest.spyOn(model('User'), 'findOne').mockImplementation(() => query(userDoc) as never);
-  jest
+  vi.spyOn(model('User'), 'findOne').mockImplementation(() => query(userDoc) as never);
+  vi
     .spyOn(model('Membership'), 'findOne')
     .mockImplementation(() => query({ _id: new mongoose.Types.ObjectId(), userId, siteId, role, until: null }) as never);
-  jest.spyOn(model('Membership'), 'find').mockImplementation(() => query([{ userId, siteId, role, until: null }]) as never);
-  jest.spyOn(model('Site'), 'findById').mockImplementation(() => query({ _id: siteId, name: 'Site' }) as never);
-  jest.spyOn(model('Site'), 'find').mockImplementation(() => query([{ _id: siteId, name: 'Site' }]) as never);
+  vi.spyOn(model('Membership'), 'find').mockImplementation(() => query([{ userId, siteId, role, until: null }]) as never);
+  vi.spyOn(model('Site'), 'findById').mockImplementation(() => query({ _id: siteId, name: 'Site' }) as never);
+  vi.spyOn(model('Site'), 'find').mockImplementation(() => query([{ _id: siteId, name: 'Site' }]) as never);
 });
 
 const authed = (req: request.Test) => req.set('Authorization', `Bearer ${token}`);
@@ -97,7 +97,7 @@ describe('auth', () => {
   });
 
   it('login with unknown email is 400', async () => {
-    jest.spyOn(model('User'), 'findOne').mockImplementation(() => query(null) as never);
+    vi.spyOn(model('User'), 'findOne').mockImplementation(() => query(null) as never);
     const res = await request(app).post('/api/auth/login').send({ email: 'x@y.z', password: 'pw' });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ message: 'Email or password is incorrect' });
@@ -136,7 +136,7 @@ describe('auth', () => {
   });
 
   it('profile updates the trimmed name', async () => {
-    const update = jest
+    const update = vi
       .spyOn(model('User'), 'findOneAndUpdate')
       .mockResolvedValue({ toJSON: () => ({ name: 'New' }) } as never);
     const res = await authed(request(app).put('/api/auth/profile')).send({ name: '  New ' });
@@ -145,7 +145,7 @@ describe('auth', () => {
   });
 
   it('profile saves the theme on its own, and null to follow the system (P4-01)', async () => {
-    const update = jest
+    const update = vi
       .spyOn(model('User'), 'findOneAndUpdate')
       .mockResolvedValue({ toJSON: () => ({ theme: 'light' }) } as never);
     expect((await authed(request(app).put('/api/auth/profile')).send({ theme: 'light' })).body).toEqual({ theme: 'light' });

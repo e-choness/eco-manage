@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 /**
  * Auth Utility Tests
  *
@@ -10,11 +11,11 @@ import { IUser } from '../../modules/auth/model';
 import mongoose from 'mongoose';
 
 // Mock jwt module
-jest.mock('jsonwebtoken');
+vi.mock('jsonwebtoken');
 
 const mockJwt = jwt as unknown as {
-  sign: jest.Mock;
-  verify: jest.Mock;
+  sign: Mock;
+  verify: Mock;
 };
 
 describe('Auth Utilities', () => {
@@ -26,7 +27,7 @@ describe('Auth Utilities', () => {
   } as any as IUser;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     process.env.JWT_SECRET = 'test-jwt-secret';
     process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret';
   });

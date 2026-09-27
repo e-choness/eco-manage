@@ -5,17 +5,21 @@
  */
 
 import mongoose from 'mongoose';
+import { initModels } from '@ecomanage/db';
 import { connectDB } from '../../config/database';
 
-jest.mock('mongoose');
+// A plain stand-in for mongoose: its `connection` is replaced per test.
+vi.mock('mongoose', () => ({ default: { connect: vi.fn(), connection: {} } }));
+// Collections and indexes are made after connecting (Mongoose's automatic creation is off).
+vi.mock('@ecomanage/db', () => ({ initModels: vi.fn(async () => undefined) }));
 
-const mockMongoose = mongoose as jest.Mocked<typeof mongoose>;
+const mockMongoose = vi.mocked(mongoose) as unknown as { connect: ReturnType<typeof vi.fn>; connection: unknown };
+const connectionWith = (on = vi.fn()) => ({ on, close: vi.fn(async () => undefined) });
 
 describe('Database Configuration', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    jest.clearAllMocks();
     process.env = { ...originalEnv };
     process.env.DATABASE_URL = 'mongodb://test:27017/testdb';
   });
@@ -25,74 +29,41 @@ describe('Database Configuration', () => {
   });
 
   describe('connectDB', () => {
-    it('should attempt to connect to MongoDB with DATABASE_URL', async () => {
-      const mockConnection = {
-        connection: {
-          host: 'localhost',
-        },
-      };
-
-      mockMongoose.connect.mockResolvedValue(mockConnection as any);
-      (mockMongoose.connection as any) = {
-        on: jest.fn(),
-        close: jest.fn().mockResolvedValue(undefined),
-      };
+    it('should attempt to connect to MongoDB with DATABASE_URL, then make the collections', async () => {
+      mockMongoose.connect.mockResolvedValue({ connection: { host: 'localhost' } });
+      mockMongoose.connection = connectionWith();
 
       await connectDB();
 
       expect(mockMongoose.connect).toHaveBeenCalledWith('mongodb://test:27017/testdb');
+      expect(initModels).toHaveBeenCalledTimes(1);
     });
 
     it('should log successful connection', async () => {
-      const mockConnection = {
-        connection: {
-          host: 'mongodb-server',
-        },
-      };
-
-      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      mockMongoose.connect.mockResolvedValue(mockConnection as any);
-      (mockMongoose.connection as any) = {
-        on: jest.fn(),
-        close: jest.fn().mockResolvedValue(undefined),
-      };
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+      mockMongoose.connect.mockResolvedValue({ connection: { host: 'mongodb-server' } });
+      mockMongoose.connection = connectionWith();
 
       await connectDB();
 
       expect(consoleLogSpy).toHaveBeenCalledWith('MongoDB Connected: mongodb-server');
-
-      consoleLogSpy.mockRestore();
     });
 
     it('should handle connection errors and exit', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
       mockMongoose.connect.mockRejectedValue(new Error('Connection failed'));
 
       await connectDB();
 
       expect(consoleErrorSpy).toHaveBeenCalled();
       expect(processExitSpy).toHaveBeenCalledWith(1);
-
-      consoleErrorSpy.mockRestore();
-      processExitSpy.mockRestore();
     });
 
     it('should set up event listeners for connection', async () => {
-      const mockConnection = {
-        connection: {
-          host: 'localhost',
-        },
-      };
-
-      const onMock = jest.fn();
-      mockMongoose.connect.mockResolvedValue(mockConnection as any);
-      (mockMongoose.connection as any) = {
-        on: onMock,
-        close: jest.fn().mockResolvedValue(undefined),
-      };
+      const onMock = vi.fn();
+      mockMongoose.connect.mockResolvedValue({ connection: { host: 'localhost' } });
+      mockMongoose.connection = connectionWith(onMock);
 
       await connectDB();
 

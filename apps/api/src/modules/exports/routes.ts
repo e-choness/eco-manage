@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { exportCreate, type Role } from '@ecomanage/shared';
-import { handle, parseBody, userIdOf } from '../../lib/http';
+import { handle, parseBody, userIdOf, paramOf } from '../../lib/http';
 import type { JobClient } from '../../lib/jobs';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import { requireRole } from '../../middleware/roles';
@@ -25,7 +25,7 @@ export const exportsRoutes = (jobs?: JobClient): Router => {
     '/:id',
     ...all,
     handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
-      res.json(await getExport(req.site!, req.params.id));
+      res.json(await getExport(req.site!, paramOf(req, 'id')));
     })
   );
 
@@ -33,7 +33,7 @@ export const exportsRoutes = (jobs?: JobClient): Router => {
     '/:id/file',
     ...all,
     handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
-      const { filename, stream } = await exportFile(req.site!, req.params.id);
+      const { filename, stream } = await exportFile(req.site!, paramOf(req, 'id'));
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       await new Promise<void>((resolve, reject) => {

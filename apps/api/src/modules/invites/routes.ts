@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { inviteAccept, inviteCreate } from '@ecomanage/shared';
-import { handle, parseBody, userIdOf } from '../../lib/http';
+import { handle, parseBody, userIdOf, paramOf } from '../../lib/http';
 import type { JobClient } from '../../lib/jobs';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import { requireRole } from '../../middleware/roles';
@@ -24,7 +24,7 @@ export const siteInviteRoutes = (jobs?: JobClient): Router => {
     '/:id',
     ...requireRole('owner'),
     handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
-      await revokeInvite(req.site!, userIdOf(req), req.params.id);
+      await revokeInvite(req.site!, userIdOf(req), paramOf(req, 'id'));
       res.status(204).end();
     })
   );
@@ -37,13 +37,13 @@ export const inviteRoutes = (): Router => {
   router.get(
     '/:token',
     handle(FALLBACK, async (req, res) => {
-      res.json(await previewInvite(req.params.token));
+      res.json(await previewInvite(paramOf(req, 'token')));
     })
   );
   router.post(
     '/:token/accept',
     handle(FALLBACK, async (req, res) => {
-      const session = await acceptInvite(req.params.token, parseBody(inviteAccept, req.body));
+      const session = await acceptInvite(paramOf(req, 'token'), parseBody(inviteAccept, req.body));
       setRefreshCookie(res, session.refreshToken);
       res.json({ ...session.user.toJSON(), accessToken: session.accessToken });
     })

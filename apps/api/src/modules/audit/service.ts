@@ -1,4 +1,4 @@
-import mongoose, { type FilterQuery } from 'mongoose';
+import mongoose, { type QueryFilter } from 'mongoose';
 import { AuditEvent, type AuditEventDoc, type SiteDoc } from '@ecomanage/db';
 import type { AuditEntry, AuditPage, AuditQuery } from '@ecomanage/shared';
 import { HttpError } from '../../lib/http';
@@ -17,7 +17,7 @@ const decodeCursor = (cursor: string) => {
 };
 
 export const listAudit = async (site: SiteDoc, q: AuditQuery): Promise<AuditPage> => {
-  const and: FilterQuery<AuditEventDoc>[] = [{ siteId: site._id }];
+  const and: QueryFilter<AuditEventDoc>[] = [{ siteId: site._id }];
   // "device" finds every device.* action; "device.update" finds that one (and any below it).
   if (q.action) and.push({ $or: [{ action: q.action }, { action: { $regex: `^${q.action.replace(/\./g, '\\.')}\\.` } }] });
   if (q.userId) and.push({ userId: new mongoose.Types.ObjectId(q.userId) });

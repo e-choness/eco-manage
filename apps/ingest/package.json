@@ -17,12 +17,12 @@
     "@ecomanage/db": "workspace:*",
     "@ecomanage/profiles": "workspace:*",
     "@ecomanage/shared": "workspace:*",
-    "ioredis": "^5.4.1",
-    "mongoose": "^8.1.1",
+    "ioredis": "^6.0.0",
+    "mongoose": "^9.10.2",
     "mqtt": "^5.10.1",
-    "pino": "^9.5.0",
+    "pino": "^10.3.1",
     "tsx": "^4.23.15",
-    "zod": "^3.23.8"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^24.19.0",

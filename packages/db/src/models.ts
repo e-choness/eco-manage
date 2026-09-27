@@ -6,6 +6,12 @@ import { RECOMMENDATION_STATUSES, ALERT_RULE_IDS, ALERT_SEVERITIES, ALERT_STATES
 
 const { ObjectId } = Schema.Types;
 
+// Collections and indexes are made by initModels() when an app starts, in order. Mongoose's own
+// background creation would race it (and a test's dropDatabase), which breaks time-series
+// collections on MongoDB 8.
+mongoose.set('autoCreate', false);
+mongoose.set('autoIndex', false);
+
 // ---- sites -------------------------------------------------------------------------------------
 
 const siteSchema = new Schema(
@@ -711,7 +717,10 @@ export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Teleme
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {
-  for (const m of v2Models) {
+  // The v2 models first (the time series among them), then any other model the app registered
+  // (the API's users).
+  const others = mongoose.modelNames().map((n) => mongoose.model(n)).filter((m) => !(v2Models as readonly unknown[]).includes(m));
+  for (const m of [...v2Models, ...others]) {
     await m.createCollection().catch((err: { codeName?: string }) => {
       if (err.codeName !== 'NamespaceExists') throw err;
     });

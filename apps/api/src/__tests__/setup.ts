@@ -1,19 +1,19 @@
-// Jest setup file for configuring test environment
+// Test setup (vitest): mocks reset around each test, console quiet.
 beforeEach(() => {
   // Clear all mocks before each test
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 afterEach(() => {
   // Cleanup after each test
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 // Suppress console logs during tests (optional)
 global.console = {
   ...console,
-  log: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-  info: jest.fn(),
+  log: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
 };

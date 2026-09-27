@@ -1,7 +1,7 @@
 import type { RequestHandler } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
-import { handle, HttpError, parse, userIdOf } from '../../lib/http';
+import { handle, HttpError, parse, userIdOf, paramOf } from '../../lib/http';
 import type { JobClient } from '../../lib/jobs';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import * as bills from './service';
@@ -17,7 +17,7 @@ const localDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((d) => !Number.
 const rangeQuery = z.object({ from: localDate, to: localDate });
 const manualTotal = z.object({ totalCents: z.number().int().min(0).max(1e10) });
 
-const periodOf = (req: AuthenticatedRequest) => parse(periodParam, req.params.period, 400, bad('Period must be YYYY-MM'));
+const periodOf = (req: AuthenticatedRequest) => parse(periodParam, paramOf(req, 'period'), 400, bad('Period must be YYYY-MM'));
 
 /** Multer in memory, one `file` field; oversize → 413, other multipart errors → 400. */
 export const utilityUpload: RequestHandler = (req, res, next) => {

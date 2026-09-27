@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { Redis } from 'ioredis';
-import { handle, userIdOf } from '../../lib/http';
+import { handle, userIdOf, paramOf } from '../../lib/http';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import { requireRole } from '../../middleware/roles';
 import * as commands from './service';
@@ -22,14 +22,14 @@ export const commandsRoutes = (redis?: Redis): Router => {
     '/:id',
     ...requireRole('owner', 'manager', 'installer'),
     handle(FALLBACK, async (req, res) => {
-      res.json(await commands.commandDetail(siteOf(req), String(req.params.id)));
+      res.json(await commands.commandDetail(siteOf(req), String(paramOf(req, 'id'))));
     })
   );
   router.post(
     '/:id/cancel',
     ...requireRole('owner', 'manager'),
     handle(FALLBACK, async (req, res) => {
-      res.json(await commands.cancel(redis, siteOf(req), userIdOf(req), String(req.params.id)));
+      res.json(await commands.cancel(redis, siteOf(req), userIdOf(req), String(paramOf(req, 'id'))));
     })
   );
   return router;

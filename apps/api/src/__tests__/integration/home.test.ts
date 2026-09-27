@@ -43,10 +43,10 @@ const as = (who: string, r: request.Test) => r.set('Authorization', `Bearer ${to
 describe('GET /api/site/model', () => {
   it('is the App v2 demo scene until a model is saved, then the latest version', async () => {
     expect((await as('installer', request(app).get('/api/site/model'))).body).toEqual(DEFAULT_SITE_MODEL);
-    const model = { siteId, source: 'generated', hub: [1, 1, 1], anchors: [{ key: 'pv', at: [0, 3, 0], label: [0, 4, 0] }], buildingLabel: [0, 3, 1] };
+    const model = { siteId, source: 'generated' as const, hub: [1, 1, 1], anchors: [{ key: 'pv', at: [0, 3, 0], label: [0, 4, 0] }], buildingLabel: [0, 3, 1] };
     await SiteModel.create([
       { ...model, version: 1 },
-      { ...model, version: 2, hub: [2, 1, 2], camera: { view: 'iso' } },
+      { ...model, version: 2, hub: [2, 1, 2], camera: { view: 'iso' as const } },
     ]);
     expect((await as('manager', request(app).get('/api/site/model'))).body).toEqual({
       version: 2,

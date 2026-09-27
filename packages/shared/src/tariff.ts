@@ -40,7 +40,7 @@ export const tariffInput = z
     demandIntervalMin: z.union([z.literal(15), z.literal(30)]),
     exportRateCents: z.number(), // per kWh; may be negative
     fixedCents: z.number().int().nonnegative(), // per billing period
-    holidays: z.object({ dates: z.array(z.string().date()).default([]), treatAs: z.enum(['weekend', 'weekday']).default('weekend') }).default({}),
+    holidays: z.object({ dates: z.array(z.string().date()).default([]), treatAs: z.enum(['weekend', 'weekday']).default('weekend') }).prefault({}), // {} is filled in by the inner defaults
   })
   .strict();
 export type TariffInput = z.infer<typeof tariffInput>;

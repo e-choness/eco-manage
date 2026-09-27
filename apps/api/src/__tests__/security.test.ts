@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 /**
  * P0-03 security acceptance: refresh cookie, rate limit, CORS, helmet, and no credentials in logs.
  */
@@ -9,8 +10,8 @@ import { createLogger } from '../config/logger';
 import UserService from '../modules/auth/userService';
 import { generateRefreshToken } from '../utils/auth';
 
-jest.mock('../modules/auth/userService');
-const mockUserService = UserService as jest.Mocked<typeof UserService>;
+vi.mock('../modules/auth/userService');
+const mockUserService = UserService as Mocked<typeof UserService>;
 
 const env = {
   CORS_ORIGINS: ['http://localhost:5173'],
@@ -36,7 +37,7 @@ const makeUser = (overrides: Record<string, unknown> = {}) => {
     _id,
     email: 'test@example.com',
     refreshToken: undefined as string | undefined,
-    save: jest.fn().mockResolvedValue(undefined),
+    save: vi.fn().mockResolvedValue(undefined),
     toJSON: () => ({ _id, email: 'test@example.com' }),
     ...overrides,
   };

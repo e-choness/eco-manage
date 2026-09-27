@@ -1,7 +1,7 @@
 import type { Redis } from 'ioredis';
 import type { GatewayLink } from '../../lib/gatewayLink';
 import { createDeviceBody, maintenanceBody, patchDeviceBody, telemetryQuery } from '@ecomanage/shared';
-import { handle, HttpError, parse, parseBody, userIdOf } from '../../lib/http';
+import { handle, HttpError, parse, parseBody, userIdOf, paramOf } from '../../lib/http';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import * as devices from './service';
 
@@ -43,14 +43,14 @@ export const devicesController = (redis?: Redis, gateway?: GatewayLink) => {
     }),
 
     detail: handle(FALLBACK, async (req, res) => {
-      const device = await devices.getDevice(needRedis(), siteIdOf(req), req.params.id);
+      const device = await devices.getDevice(needRedis(), siteIdOf(req), paramOf(req, 'id'));
       if (!device) throw NOT_FOUND();
       res.json(device);
     }),
 
     telemetry: handle(FALLBACK, async (req, res) => {
       const q = parse(telemetryQuery, req.query, 400, { error: { code: 400, message: 'Invalid telemetry query' } });
-      const series = await devices.telemetrySeries(siteIdOf(req), req.params.id, q);
+      const series = await devices.telemetrySeries(siteIdOf(req), paramOf(req, 'id'), q);
       if (series === 'not-found') throw NOT_FOUND();
       if (series === 'range-invalid') throw fail(400, '"from" must be before "to"');
       if (series === 'range-too-long') throw fail(400, 'Range too long: at most 400 hourly points (16 days)');
@@ -64,17 +64,17 @@ export const devicesController = (redis?: Redis, gateway?: GatewayLink) => {
 
     update: handle(FALLBACK, async (req, res) => {
       const patch = parse(patchDeviceBody, req.body, 400, { error: { code: 400, message: 'Invalid device update' } });
-      res.json(writeResult(await devices.updateDevice(siteIdOf(req), userIdOf(req), req.params.id, patch)));
+      res.json(writeResult(await devices.updateDevice(siteIdOf(req), userIdOf(req), paramOf(req, 'id'), patch)));
     }),
 
     remove: handle(FALLBACK, async (req, res) => {
-      if (!(await devices.deleteDevice(siteIdOf(req), userIdOf(req), req.params.id))) throw NOT_FOUND();
+      if (!(await devices.deleteDevice(siteIdOf(req), userIdOf(req), paramOf(req, 'id')))) throw NOT_FOUND();
       res.status(204).end();
     }),
 
     maintenance: handle(FALLBACK, async (req, res) => {
       const { text } = parseBody(maintenanceBody, req.body);
-      const entry = await devices.logVisit(siteIdOf(req), userIdOf(req), req.params.id, text);
+      const entry = await devices.logVisit(siteIdOf(req), userIdOf(req), paramOf(req, 'id'), text);
       if (!entry) throw NOT_FOUND();
       res.status(201).json(entry);
     }),
@@ -84,7 +84,7 @@ export const devicesController = (redis?: Redis, gateway?: GatewayLink) => {
     }),
 
     commission: handle(FALLBACK, async (req, res) => {
-      const result = await jobResult(() => devices.commissionDevice(gateway, siteIdOf(req), userIdOf(req), req.params.id));
+      const result = await jobResult(() => devices.commissionDevice(gateway, siteIdOf(req), userIdOf(req), paramOf(req, 'id')));
       if (!result) throw NOT_FOUND();
       res.json(result);
     }),

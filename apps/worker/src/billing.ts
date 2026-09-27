@@ -46,7 +46,7 @@ export const refreshBill = async (site: SiteDoc, at: Date, now = new Date()): Pr
         },
       },
     ],
-    { upsert: true, new: true }
+    { upsert: true, new: true, updatePipeline: true }
   ).lean<BillDoc>())!;
   return saved;
 };

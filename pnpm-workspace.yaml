@@ -10,5 +10,10 @@ allowBuilds:
   canvas: false
   msgpackr-extract: false
   msw: false
-  '@parcel/watcher': false # file watching for jest --watch; not used
-  unrs-resolver: true # jest 30's module resolver: fetches its native binary
+  '@parcel/watcher': false # file watching; not used
+
+overrides:
+  # @types/multer accepts any Express types; keep a single (Express 5) copy.
+  '@types/express': ^5.0.6
+  # exceljs (latest) still asks for uuid 8; 11 keeps the CommonJS API it uses and has the fix.
+  exceljs>uuid: ^11.1.1

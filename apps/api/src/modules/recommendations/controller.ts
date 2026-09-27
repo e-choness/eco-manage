@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import { adjustRecommendationBody, declineRecommendationBody, manualRecommendationBody, type Role } from '@ecomanage/shared';
-import { handle, parseBody, userIdOf } from '../../lib/http';
+import { handle, parseBody, userIdOf, paramOf } from '../../lib/http';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import * as recs from './service';
 
 const FALLBACK = { status: 500, body: { error: { code: 500, message: 'Recommendation request failed' } } };
 const siteOf = (req: AuthenticatedRequest) => req.site!;
 const roleOf = (req: AuthenticatedRequest) => req.membership!.role as Role;
-const idOf = (req: AuthenticatedRequest) => String(req.params.id);
+const idOf = (req: AuthenticatedRequest) => String(paramOf(req, 'id'));
 
 const listQuery = z
   .object({
