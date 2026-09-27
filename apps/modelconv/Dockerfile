@@ -1,7 +1,7 @@
 # The sandboxed 3D model converter (P5-02). Debian rather than Alpine: assimp, IfcOpenShell and
 # KTX-Software ship glibc builds. Run by compose read-only, as a non-root user, with no
 # capabilities and only an internal network.
-FROM node:24-bookworm-slim
+FROM node:26-bookworm-slim
 
 ARG KTX_VERSION=4.4.2
 RUN apt-get update \
