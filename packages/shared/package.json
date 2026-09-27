@@ -14,7 +14,7 @@
     "lint": "eslint src",
     "test": "vitest run --coverage"
   },
-  "license": "ISC",
+  "license": "UNLICENSED",
   "dependencies": {
     "luxon": "^3.5.0",
     "zod": "^3.23.8"

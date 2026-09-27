@@ -17,7 +17,7 @@
     "test:coverage": "jest --coverage",
     "migrate": "tsx src/scripts/migrate.ts"
   },
-  "license": "ISC",
+  "license": "UNLICENSED",
   "dependencies": {
     "@ecomanage/db": "workspace:*",
     "@ecomanage/profiles": "workspace:*",

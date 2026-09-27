@@ -2,6 +2,7 @@
   "name": "ecomanage-e2e",
   "version": "2.0.0",
   "private": true,
+  "license": "UNLICENSED",
   "description": "End-to-end smoke tests, run against the docker-compose stack",
   "scripts": {
     "test": "playwright test"
