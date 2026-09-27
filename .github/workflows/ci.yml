@@ -1,0 +1,86 @@
+# Every gate runs in the same Docker images as local development (docs/TESTING.md): nothing is
+# installed on the runner itself.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build images
+        run: docker compose build api modelconv
+
+      - name: Start the services the tests use
+        run: docker compose up -d --wait api mailpit gotenberg modelconv
+
+      - name: Typecheck
+        run: docker compose exec -T api pnpm -r typecheck
+
+      - name: Lint
+        run: docker compose exec -T api pnpm -r lint
+
+      - name: Tests
+        run: docker compose exec -T api pnpm -r --workspace-concurrency=1 test
+
+      - name: Web build
+        run: docker compose exec -T api pnpm --filter @ecomanage/web build
+
+      - name: Converter tests (in its read-only sandbox image)
+        run: docker compose run --rm --no-deps -e HOME=/tmp modelconv sh -c "cp vitest.config.mjs /tmp/ && node_modules/.bin/vitest run --config /tmp/vitest.config.mjs"
+
+      - name: Dependency audit
+        run: docker compose exec -T api pnpm audit --audit-level=moderate
+
+      - name: Service logs
+        if: failure()
+        run: docker compose logs --tail 200
+
+  e2e:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build images
+        run: |
+          docker compose build api modelconv
+          docker compose --profile e2e build e2e
+
+      - name: Start the stack and seed the demo site
+        run: |
+          docker compose up -d --wait
+          docker compose run --rm mongo-seed
+
+      - name: Playwright (smoke and accessibility)
+        run: docker compose --profile e2e run --rm e2e
+
+      - name: Report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 7
+
+      - name: Service logs
+        if: failure()
+        run: docker compose logs --tail 200

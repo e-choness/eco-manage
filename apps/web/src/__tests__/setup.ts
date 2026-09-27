@@ -86,7 +86,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-// jsdom has no ResizeObserver; recharts' ResponsiveContainer needs one.
+// jsdom has no ResizeObserver; the site scene and size-aware panels use one.
 class ResizeObserverStub {
   observe() {}
   unobserve() {}

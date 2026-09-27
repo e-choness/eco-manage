@@ -9,23 +9,23 @@ is added phase by phase.
 ```mermaid
 graph LR
     Browser["Browser<br/>React SPA (apps/web)"] -- "/api via Vite proxy<br/>Bearer token + refresh cookie" --> API["API<br/>Express (apps/api)"]
-    API --> Mongo[("MongoDB 7")]
-    API --> Redis[("Redis 7<br/>rate-limit counters")]
+    API --> Mongo[("MongoDB 8")]
+    API --> Redis[("Redis 8<br/>rate-limit counters, queues")]
 ```
 
 | Container    | Image / build          | Purpose                                   |
 | ------------ | ---------------------- | ----------------------------------------- |
 | `api`        | `Dockerfile.dev`       | `tsx watch` on `apps/api/src/server.ts`   |
 | `web`        | `Dockerfile.dev`       | Vite dev server, proxies `/api` to `api`  |
-| `mongodb`    | `mongo:7`              | Data store                                |
-| `redis`      | `redis:7-alpine`       | Rate-limit store                          |
+| `mongodb`    | `mongo:8`              | Data store                                |
+| `redis`      | `redis:8-alpine`       | Rate-limit store, BullMQ queues           |
 | `mosquitto`  | `eclipse-mosquitto:2`  | MQTT broker, TLS with client certificates, ACL per identity |
 | `ingest`     | `Dockerfile.dev`       | MQTT → telemetry, latest values, 15-minute intervals, live events, command acks |
 | `worker`     | `Dockerfile.dev`       | BullMQ jobs: interval costs, bills, statements, utility bills, emails |
 | `rules`      | `Dockerfile.dev`       | Alert checks on every reading |
 | `simulator`  | `Dockerfile.dev`       | Simulated demo site acting as its gateway over MQTT/TLS; control API on :4100 |
 | `mailpit`    | `axllent/mailpit`      | Catches every email in development; UI on :8025 |
-| `gotenberg`  | `gotenberg/gotenberg:8` | Prints report PDFs from HTML (headless Chromium; JavaScript off, local files only) |
+| `gotenberg`  | `gotenberg/gotenberg:8.37` | Prints report PDFs from HTML (headless Chromium; JavaScript off, local files only) |
 | `objects`    | `rustfs/rustfs:1.0.0` | S3-compatible object storage for 3D models (bucket `ecomanage-assets`; `models/` public, `uploads/` private); console on :9001 |
 | `objects-setup` | `Dockerfile.dev`    | One-shot: creates the bucket and its read policy with plain S3 calls |
 | `modelconv`  | `apps/modelconv/Dockerfile` | Sandboxed 3D model converter: assimp, IfcOpenShell, toktx; read-only, no capabilities, internal network only |
@@ -270,12 +270,12 @@ holds energy per source and consumer, the building remainder and demand.
 
 | Area        | Choice                                                         |
 | ----------- | -------------------------------------------------------------- |
-| Runtime     | Node 20, TypeScript 5.6 (strict)                               |
+| Runtime     | Node 24 LTS, TypeScript 6.0 (strict)                           |
 | API         | Express 4, Mongoose 8, zod, pino, helmet, express-rate-limit + rate-limit-redis, ioredis, jsonwebtoken, bcryptjs |
-| Web         | React 18, Vite 5, Tailwind 3, shadcn/ui (Radix), Recharts, axios, react-router 7 |
-| Data        | MongoDB 7, Redis 7                                             |
-| Tests       | Jest + ts-jest + supertest (API), Vitest + Testing Library + MSW (web) |
-| Tooling     | pnpm 9 workspace, ESLint 9 flat config, Docker Compose         |
+| Web         | React 19, Vite 8, Tailwind 4, Radix (via shadcn/ui), three.js, axios, react-router 7 |
+| Data        | MongoDB 8 (Mongoose 9), Redis 8, S3-compatible object storage  |
+| Tests       | Vitest everywhere (supertest for the API; Testing Library + MSW for the web), Playwright + axe |
+| Tooling     | pnpm 12 workspace, ESLint 10 flat config, Docker Compose, GitHub Actions |
 
 ## Simulator (`apps/simulator`)
 
