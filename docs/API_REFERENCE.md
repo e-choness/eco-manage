@@ -373,6 +373,8 @@ version that priced energy), `intervals`, `unpricedIntervals`, `estimated [{ sta
 (contiguous estimated stretches), `savings { baselineCents, solarCents, batteryCents, demandCents,
 baselinePeakKw }` and `computedAt`.
 
+The response shapes are `BillsResponse`, `BillDetail` and `RangeSpend` in `@ecomanage/shared` (P4-06).
+
 **Range** returns `energyCents`, the three energy `lines`, `exportCreditCents`, `gridKwh`,
 `exportKwh`, `peak { kw, at }` (highest 15-minute demand), `tariffVersions`, `intervals`,
 `estimatedShare` and `unpricedIntervals`. Each day is priced with the version in force that day.

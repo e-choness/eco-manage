@@ -2,10 +2,11 @@ import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { RES_LABEL, changePct, siteDate, type HistoryRes, type HistoryTotals } from "@ecomanage/shared"
-import { createExport, download, getExport, getSeries, getTotals } from "@/api/history"
+import { getExport, getSeries, getTotals } from "@/api/history"
+import { download } from "@/api/files"
+import { useCsvExport } from "@/hooks/useCsvExport"
 import { useSiteLive } from "@/hooks/useSiteLive"
 import { useMe } from "@/hooks/useMe"
-import { useToast } from "@/hooks/useToast"
 import { PageFrame } from "@/shell/AppShell"
 import { cn } from "@/lib/utils"
 import { PRESETS, presetRange, rangeText, type Preset } from "./history/dates"
@@ -15,7 +16,6 @@ import { Reports } from "./history/Reports"
 
 const field = "h-9 rounded-lg border border-app-ln bg-app-bg px-2.5 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring"
 const chip = (on: boolean) => cn("h-8 rounded-lg px-3 text-[13px]", on ? "bg-app-ch text-app-tx" : "text-app-sb hover:text-app-tx")
-const EXPORT_POLL_MS = 1000
 
 /**
  * App v2 History: any range of the site's data at a resolution that fits the chart, totals with a
@@ -24,7 +24,7 @@ const EXPORT_POLL_MS = 1000
 export function History() {
   const { data: snap } = useSiteLive()
   const { role, me } = useMe()
-  const { toast } = useToast()
+  const csv = useCsvExport()
   const [params, setParams] = useSearchParams()
   const tz = snap?.site.tz ?? "UTC"
   const today = siteDate(new Date(), tz)
@@ -36,7 +36,6 @@ export function History() {
   const [compare, setCompare] = useState<"none" | "prev" | "yoy">("none")
   const [view, setView] = useState<View>("sources")
   const [builderOpen, setBuilderOpen] = useState(false)
-  const [exporting, setExporting] = useState(false)
 
   const series = useQuery({ queryKey: ["history", "series", range.from, range.to, res], queryFn: () => getSeries(range.from, range.to, res), placeholderData: keepPreviousData })
   const totals = useQuery({ queryKey: ["history", "totals", range.from, range.to, compare], queryFn: () => getTotals(range.from, range.to, compare), placeholderData: keepPreviousData })
@@ -58,24 +57,6 @@ export function History() {
   const exportParam = params.get("export")
   const linked = useQuery({ queryKey: ["export", exportParam], queryFn: () => getExport(exportParam!), enabled: !!exportParam, retry: false })
 
-  const runExport = async () => {
-    setExporting(true)
-    try {
-      let e = await createExport(s?.from ?? range.from, s?.to ?? range.to)
-      if (e.large) toast({ description: "That's a big export. It's being made now, and a link is also emailed to you when it's ready." })
-      for (let i = 0; i < 120 && e.status === "queued"; i++) {
-        await new Promise((r) => setTimeout(r, EXPORT_POLL_MS))
-        e = await getExport(e.id)
-      }
-      if (e.status === "done") await download(`/api/exports/${e.id}/file`, `energy-${e.from}-to-${e.to}.csv`)
-      else if (e.status === "failed") toast({ variant: "destructive", description: `The export failed: ${e.error ?? "unknown error"}` })
-      else toast({ description: "The export is still being made. It will be emailed to you when ready." })
-    } catch (err) {
-      toast({ variant: "destructive", description: err instanceof Error ? err.message : "The export couldn't start." })
-    } finally {
-      setExporting(false)
-    }
-  }
 
   // Keep the dates shown in step with what the server drew (it may have moved them into the data).
   useEffect(() => {
@@ -150,8 +131,8 @@ export function History() {
           </select>
         </label>
         <div className="ml-auto flex gap-2">
-          <button type="button" onClick={() => void runExport()} disabled={exporting || !s} className="h-9 rounded-lg border border-app-ln px-3.5 text-[13px] font-medium text-app-tx disabled:opacity-70">
-            {exporting ? "Preparing CSV…" : "Export CSV"}
+          <button type="button" onClick={() => void csv.run(s?.from ?? range.from, s?.to ?? range.to)} disabled={csv.busy || !s} className="h-9 rounded-lg border border-app-ln px-3.5 text-[13px] font-medium text-app-tx disabled:opacity-70">
+            {csv.busy ? "Preparing CSV…" : "Export CSV"}
           </button>
           <button type="button" onClick={() => setBuilderOpen(true)} className="h-9 rounded-lg bg-[#3ecf8e] px-3.5 text-[13px] font-semibold text-[#06140d]">
             Create report

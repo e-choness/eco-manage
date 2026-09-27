@@ -53,11 +53,6 @@ export function RequireRole({ roles, children }: { roles: readonly Role[]; child
   return <>{children}</>
 }
 
-/** A screen still being rebuilt for App v2. */
-export function ScreenPlaceholder({ text }: { text: string }) {
-  return <p className="rounded-xl border border-app-ln bg-app-ps p-6 text-sm text-app-sb">{text}</p>
-}
-
 function NoSite({ failed }: { failed: boolean }) {
   const { logout } = useAuth()
   return (

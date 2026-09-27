@@ -35,19 +35,3 @@ export const createReport = (body: Omit<ReportCreate, 'recipients' | 'notes'> & 
 
 // Endpoint: DELETE /api/reports/:id
 export const deleteReport = (id: string): Promise<unknown> => call(api.delete(`/api/reports/${id}`));
-
-/** Downloads a file the API serves (signed in), saving it under the server's file name. */
-export const download = async (url: string, fallbackName: string): Promise<void> => {
-  const res = await call(
-    api.get(url, { responseType: 'blob', transformResponse: [(d: unknown) => d] }).then((r) => ({ data: r }))
-  );
-  const name = /filename="([^"]+)"/.exec(String(res.headers['content-disposition'] ?? ''))?.[1] ?? fallbackName;
-  const href = URL.createObjectURL(res.data as Blob);
-  const a = document.createElement('a');
-  a.href = href;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(href);
-};
