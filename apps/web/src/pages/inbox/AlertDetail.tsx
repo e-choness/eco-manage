@@ -112,7 +112,7 @@ export function AlertDetail({ id, tz }: { id: string; tz: string }) {
               onChange={(e) => setNote(e.target.value)}
               maxLength={1000}
               placeholder="What was done (saved to the device log)"
-              className="h-[34px] rounded-lg border border-app-ln bg-app-ps px-2.5 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-[34px] rounded-lg border border-app-ln bg-app-ps px-2.5 text-[13px] text-app-tx outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
           <span className="text-xs text-app-dm">
@@ -120,7 +120,7 @@ export function AlertDetail({ id, tz }: { id: string; tz: string }) {
           </span>
           <div className="flex justify-end gap-2">
             <Btn onClick={() => setClosing(null)}>Cancel</Btn>
-            <button type="submit" disabled={busy} className="h-[34px] rounded-lg bg-[#3ecf8e] px-3.5 text-[13px] font-semibold text-[#06140d] disabled:opacity-45">
+            <button type="submit" disabled={busy} className="h-[34px] rounded-lg bg-flow-bat px-3.5 text-[13px] font-semibold text-[#06140d] disabled:opacity-45">
               Close alert
             </button>
           </div>

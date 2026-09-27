@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/useToast"
 import { cn } from "@/lib/utils"
 import { rangeText } from "./dates"
 
-const input = "h-9 rounded-lg border border-app-ln bg-app-bg px-2.5 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:text-app-dm"
+const input = "h-9 rounded-lg border border-app-ln bg-app-bg px-2.5 text-[13px] text-app-tx outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:text-app-dm"
 const DEFAULT_SECTIONS: ReportSection[] = ["summary", "sources", "demand", "cost", "decisions"]
 const STATUS: Record<ReportView["status"], string> = { waiting: "Being generated…", ready: "Ready", failed: "Failed to generate" }
 const PREVIOUS = { weekly: "the previous week (Mon–Sun)", monthly: "the previous month" } as const
@@ -197,7 +197,7 @@ function Builder({ from, to, role, email, onDone, onCancel }: { from: string; to
       ) : null}
       <label className="flex flex-col gap-1 text-[13px] text-app-sb">
         Notes for readers
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={1000} className="rounded-lg border border-app-ln bg-app-bg px-2.5 py-2 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={1000} className="rounded-lg border border-app-ln bg-app-bg px-2.5 py-2 text-[13px] text-app-tx outline-hidden focus-visible:ring-2 focus-visible:ring-ring" />
       </label>
       {error ? (
         <p role="alert" className="m-0 text-xs text-tag-hp">
@@ -208,7 +208,7 @@ function Builder({ from, to, role, email, onDone, onCancel }: { from: string; to
         <button type="button" onClick={onCancel} className="h-[34px] px-3 text-[13px] text-app-sb">
           Cancel
         </button>
-        <button type="submit" disabled={busy} className="h-[34px] rounded-lg bg-[#3ecf8e] px-4 text-[13px] font-semibold text-[#06140d] disabled:opacity-70">
+        <button type="submit" disabled={busy} className="h-[34px] rounded-lg bg-flow-bat px-4 text-[13px] font-semibold text-[#06140d] disabled:opacity-70">
           {busy ? "Saving…" : "Generate"}
         </button>
       </div>

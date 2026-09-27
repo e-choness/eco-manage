@@ -42,7 +42,7 @@ export function AvatarMenu() {
         <DropdownMenuTrigger
           aria-label={`Account: ${who}${roleLabel ? `, ${roleLabel}` : ""}`}
           title={`${who}${roleLabel ? ` · ${roleLabel}` : ""}`}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-app-ch text-xs font-semibold text-tag-grid outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-app-ch text-xs font-semibold text-tag-grid outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
         >
           {initialsOf(user.name, user.email)}
         </DropdownMenuTrigger>

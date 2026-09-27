@@ -93,7 +93,7 @@ function Found({ found, onCommissioned }: { found: FoundDevice; onCommissioned: 
       {result?.ok ? (
         <span className="text-[13px] font-medium text-tag-bat">Live</span>
       ) : (
-        <button type="button" onClick={() => void commission()} disabled={running} className="h-[34px] rounded-lg bg-[#3ecf8e] px-3.5 text-[13px] font-semibold text-[#06140d] disabled:opacity-70">
+        <button type="button" onClick={() => void commission()} disabled={running} className="h-[34px] rounded-lg bg-flow-bat px-3.5 text-[13px] font-semibold text-[#06140d] disabled:opacity-70">
           {running ? "Checking…" : result || error ? "Try again" : "Commission"}
         </button>
       )}

@@ -14,7 +14,7 @@ import { HistoryChart } from "./history/HistoryChart"
 import { VIEWS, kwh, type View } from "./history/views"
 import { Reports } from "./history/Reports"
 
-const field = "h-9 rounded-lg border border-app-ln bg-app-bg px-2.5 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring"
+const field = "h-9 rounded-lg border border-app-ln bg-app-bg px-2.5 text-[13px] text-app-tx outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
 const chip = (on: boolean) => cn("h-8 rounded-lg px-3 text-[13px]", on ? "bg-app-ch text-app-tx" : "text-app-sb hover:text-app-tx")
 
 /**
@@ -129,7 +129,7 @@ export function History() {
           <button type="button" onClick={() => void csv.run(s?.from ?? range.from, s?.to ?? range.to)} disabled={csv.busy || !s} className="h-9 rounded-lg border border-app-ln px-3.5 text-[13px] font-medium text-app-tx disabled:opacity-70">
             {csv.busy ? "Preparing CSV…" : "Export CSV"}
           </button>
-          <button type="button" onClick={() => setBuilderOpen(true)} className="h-9 rounded-lg bg-[#3ecf8e] px-3.5 text-[13px] font-semibold text-[#06140d]">
+          <button type="button" onClick={() => setBuilderOpen(true)} className="h-9 rounded-lg bg-flow-bat px-3.5 text-[13px] font-semibold text-[#06140d]">
             Create report
           </button>
         </div>
