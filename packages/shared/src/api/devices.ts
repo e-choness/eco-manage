@@ -23,7 +23,7 @@ export interface DeviceView {
 
 export interface DeviceDetail extends DeviceView {
   commissionedBy: { id: string; name: string } | null;
-  profile: { id: string; vendor: string; model: string; protocol: string; pollMs: number; writeActions: string[]; fixes: string[] } | null;
+  profile: { id: string; vendor: string; model: string; protocol: string; pollMs: number; writeActions: string[]; actions: ProfileActionView[]; fixes: string[] } | null;
   maintenance: { at: string; source: 'visit' | 'alert'; text: string }[]; // newest first
 }
 
@@ -56,6 +56,36 @@ export const patchDeviceBody = z
   .refine((b) => Object.keys(b).length > 0, 'Nothing to change');
 export type PatchDeviceBody = z.infer<typeof patchDeviceBody>;
 
+
+/** A write action from the device profile, with its limits: the Devices "propose a change" form. */
+export interface ProfileActionView {
+  id: string; // e.g. "set_reserve"
+  description: string;
+  params: Record<string, { type: 'number' | 'integer' | 'boolean' | 'time' | 'schedule'; unit?: string; min?: number; max?: number }>;
+  maxDurationMin: number | null;
+}
+
+/** POST /api/devices/:id/maintenance (installer): Devices → Maintenance → Log a visit. */
+export const maintenanceBody = z.object({ text: z.string().trim().min(3, 'Say what was done').max(500) }).strict();
+export type MaintenanceBody = z.infer<typeof maintenanceBody>;
+
+/** A device a gateway scan found that the site doesn't have yet (POST /api/devices/scan). */
+export const foundDevice = z.object({
+  address: z.string().min(1),
+  modelCode: z.string().default(''),
+  profileId: z.string().nullable().default(null),
+  type: z.enum(DEVICE_TYPES),
+  name: z.string().min(1),
+});
+export type FoundDevice = z.infer<typeof foundDevice>;
+
+/** POST /api/devices/:id/commission: the gateway's checks (Data and Device Audit §4 step 5). */
+export interface CommissionResult {
+  ok: boolean;
+  checks: { name: string; pass: boolean }[];
+  error: string | null;
+  device: DeviceView;
+}
 export const TELEMETRY_RESOLUTIONS = ['raw', '1m', '5m', '15m', 'h'] as const;
 export type TelemetryResolution = (typeof TELEMETRY_RESOLUTIONS)[number];
 

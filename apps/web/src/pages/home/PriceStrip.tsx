@@ -1,6 +1,6 @@
 import type { SiteToday } from "@ecomanage/shared"
 import { cn } from "@/lib/utils"
-import { clockAt, duration, unitPrice } from "./format"
+import { clockAt, duration, unitPrice } from "@/lib/format"
 
 const LEVEL = {
   off: "bg-price-off text-tag-grid",

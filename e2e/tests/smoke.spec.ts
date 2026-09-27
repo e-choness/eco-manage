@@ -29,6 +29,14 @@ test('the manager sees live values from the simulated site', async ({ page }) =>
   await expect(status).not.toHaveAttribute('data-last-event', '')
   const first = Number(await status.getAttribute('data-last-event'))
   await expect.poll(async () => Number(await status.getAttribute('data-last-event')), { timeout: 10_000, intervals: [500] }).toBeGreaterThan(first)
+
+  // Devices (P4-04): every simulated device listed as online with its power now.
+  await page.getByRole('link', { name: 'Devices' }).click()
+  const devices = page.getByRole('table', { name: 'Devices' })
+  for (const name of ['Inverter A', 'Battery', 'Grid meter', 'EV charger 1', 'Heat pump']) {
+    await expect(devices.getByRole('row', { name: new RegExp(name) })).toContainText('Online')
+  }
+  await expect(page.getByRole('complementary', { name: 'Inverter A' })).toBeVisible()
 })
 
 test('a signed-out visitor is sent to sign in, and old addresses still work', async ({ page }) => {

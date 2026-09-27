@@ -56,7 +56,7 @@ export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogg
   );
   app.use('/api/auth', authRoutes);
   app.use('/api/alerts', alertsRoutes({ redis, gateway }));
-  app.use('/api/devices', devicesRoutes(redis));
+  app.use('/api/devices', devicesRoutes(redis, gateway));
   app.use('/api/recommendations', recommendationsRoutes({ redis }));
   app.use('/api/commands', commandsRoutes(redis));
   app.use('/api/inbox', inboxRoutes);

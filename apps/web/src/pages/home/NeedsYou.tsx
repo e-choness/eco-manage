@@ -5,7 +5,7 @@ import type { InboxItem, Role } from "@ecomanage/shared"
 import { approveRecommendation, declineRecommendation, getOpenInbox } from "@/api/home"
 import { INBOX_LIST_KEY, useInboxCounts } from "@/hooks/useSiteStream"
 import { useToast } from "@/hooks/useToast"
-import { clockAt } from "./format"
+import { clockAt } from "@/lib/format"
 
 const SHOWN = 5
 const card = "flex flex-col gap-2 rounded-[14px] border border-app-ln bg-app-pn px-[18px] py-4 backdrop-blur-[14px]"
