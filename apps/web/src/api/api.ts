@@ -83,6 +83,7 @@ const api = {
   get: (url: string, config?: AxiosRequestConfig) => localApi.get(url, config),
   post: (url: string, data?: unknown, config?: AxiosRequestConfig) => localApi.post(url, data, config),
   put: (url: string, data?: unknown, config?: AxiosRequestConfig) => localApi.put(url, data, config),
+  patch: (url: string, data?: unknown, config?: AxiosRequestConfig) => localApi.patch(url, data, config),
   delete: (url: string, config?: AxiosRequestConfig) => localApi.delete(url, config),
 };
 

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/contexts/AuthContext"
-import { updateProfile } from "@/api/auth"
+import { changePassword, updateProfile } from "@/api/auth"
 import { ME_KEY, useMe } from "@/hooks/useMe"
 
 /** Avatar menu → Profile: the person's name, and where their access comes from. */
@@ -23,6 +23,18 @@ export function ProfileDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       setError("")
     }
   }, [open, user?.name])
+
+  const [pw, setPw] = useState({ current: "", next: "", message: "", error: "" })
+  const changePw = async (e: FormEvent) => {
+    e.preventDefault()
+    if (pw.next.length < 8) return setPw({ ...pw, error: "Use at least 8 characters.", message: "" })
+    try {
+      await changePassword(pw.current, pw.next)
+      setPw({ current: "", next: "", message: "Password changed.", error: "" })
+    } catch (err) {
+      setPw({ ...pw, error: err instanceof Error ? err.message : "The password couldn't be changed.", message: "" })
+    }
+  }
 
   const save = async (e: FormEvent) => {
     e.preventDefault()
@@ -71,6 +83,30 @@ export function ProfileDialog({ open, onOpenChange }: { open: boolean; onOpenCha
               {saving ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
+        </form>
+        <form onSubmit={changePw} aria-label="Change password" className="mt-2 flex flex-col gap-3 border-t pt-4">
+          <h3 className="m-0 text-sm font-semibold">Change password</h3>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="pw-current">Current password</Label>
+            <Input id="pw-current" type="password" autoComplete="current-password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="pw-next">New password</Label>
+            <Input id="pw-next" type="password" autoComplete="new-password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} />
+          </div>
+          {pw.error ? (
+            <p role="alert" className="m-0 text-sm text-destructive">
+              {pw.error}
+            </p>
+          ) : null}
+          {pw.message ? (
+            <p role="status" className="m-0 text-sm text-muted-foreground">
+              {pw.message}
+            </p>
+          ) : null}
+          <Button type="submit" variant="outline" className="self-end" disabled={!pw.current || !pw.next}>
+            Change password
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Invite, Membership, Site, recordAudit, type InviteDoc, type SiteDoc } from '@ecomanage/db';
-import { INVITE_DAYS, MIN_PASSWORD, type InviteAccept, type InviteCreate, type InvitePreview, type InviteView } from '@ecomanage/shared';
+import { INVITE_DAYS, MIN_PASSWORD, endOfLocalDate, lastLocalDate, type InviteAccept, type InviteCreate, type InvitePreview, type InviteView } from '@ecomanage/shared';
 import { HttpError } from '../../lib/http';
 import type { JobClient } from '../../lib/jobs';
 import User, { type IUser } from '../auth/model';
@@ -20,11 +20,11 @@ const nameOf = async (userId: unknown): Promise<string | null> => {
   return u ? u.name || u.email : null;
 };
 
-const toView = async (i: InviteDoc): Promise<InviteView> => ({
+export const inviteView = async (i: InviteDoc, tz: string): Promise<InviteView> => ({
   id: String(i._id),
   email: i.email,
   role: i.role as InviteView['role'],
-  until: i.until ? i.until.toISOString() : null,
+  until: i.until ? lastLocalDate(i.until, tz) : null,
   expiresAt: i.expiresAt.toISOString(),
   invitedBy: await nameOf(i.invitedBy),
 });
@@ -32,8 +32,8 @@ const toView = async (i: InviteDoc): Promise<InviteView> => ({
 /** Owner invites someone: a new link replaces any unused one for the same address. */
 export const createInvite = async (jobs: JobClient | undefined, site: SiteDoc, userId: string, input: InviteCreate, now = new Date()): Promise<InviteView> => {
   if (!jobs) throw fail(503, "Invites can't be emailed right now (no Redis)");
-  const until = input.until ? new Date(input.until) : null;
-  if (until && until <= now) throw fail(400, 'Access must end in the future');
+  const until = input.until ? endOfLocalDate(input.until, site.tz) : null;
+  if (until && until <= now) throw fail(400, 'Access must last until today or later');
   const existing = await User.findOne({ email: input.email }).select('_id').lean();
   if (existing && (await Membership.exists({ siteId: site._id, userId: existing._id, ...activeFilter(now) })))
     throw fail(409, 'This person already has access to the site');
@@ -56,7 +56,7 @@ export const createInvite = async (jobs: JobClient | undefined, site: SiteDoc, u
     throw fail(503, "The invite email couldn't be queued. Try again in a minute.");
   }
   await recordAudit({ siteId: site._id, userId, action: 'invite.create', target: `invite:${invite._id}`, after: { email: input.email, role: input.role, until } });
-  return toView(invite.toObject() as InviteDoc);
+  return inviteView(invite.toObject() as InviteDoc, site.tz);
 };
 
 /** The invite behind a link, if it can still be used. */
@@ -71,7 +71,7 @@ const usable = async (token: string, now: Date): Promise<InviteDoc> => {
 export const previewInvite = async (token: string, now = new Date()): Promise<InvitePreview> => {
   const invite = await usable(token, now);
   const [site, account, invitedBy] = await Promise.all([
-    Site.findById(invite.siteId).select('name').lean<Pick<SiteDoc, 'name'>>(),
+    Site.findById(invite.siteId).select('name tz').lean<Pick<SiteDoc, 'name' | 'tz'>>(),
     User.exists({ email: invite.email }),
     nameOf(invite.invitedBy),
   ]);
@@ -80,7 +80,7 @@ export const previewInvite = async (token: string, now = new Date()): Promise<In
     siteName: site.name,
     email: invite.email,
     role: invite.role as InvitePreview['role'],
-    until: invite.until ? invite.until.toISOString() : null,
+    until: invite.until ? lastLocalDate(invite.until, site.tz) : null,
     expiresAt: invite.expiresAt.toISOString(),
     invitedBy,
     hasAccount: !!account,

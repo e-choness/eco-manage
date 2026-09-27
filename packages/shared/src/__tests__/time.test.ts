@@ -10,6 +10,8 @@ import {
   siteDate,
   siteDateStart,
   siteLocalIso,
+  endOfLocalDate,
+  lastLocalDate,
   siteMinuteOfDay,
   siteWeekday,
   startOfSiteDay,
@@ -118,5 +120,14 @@ describe('siteLocalIso', () => {
   it('writes local time with its offset, before and after DST ends', () => {
     expect(siteLocalIso(u('2026-09-24T16:00:00Z'), TO)).toBe('2026-09-24T12:00:00-04:00')
     expect(siteLocalIso(u('2026-11-02T17:15:00Z'), TO)).toBe('2026-11-02T12:15:00-05:00')
+  })
+})
+
+describe('access until a local date', () => {
+  it('ends at the end of that day in the site, and reads back as the same date', () => {
+    const end = endOfLocalDate('2026-12-31', TO)
+    expect(iso(end)).toBe('2027-01-01T05:00:00.000Z')
+    expect(lastLocalDate(end, TO)).toBe('2026-12-31')
+    expect(lastLocalDate(endOfLocalDate('2026-11-01', TO), TO)).toBe('2026-11-01') // 25-hour day
   })
 })

@@ -1,5 +1,5 @@
-import { Bill, SiteModel, Tariff, type BillDoc, type SiteDoc, type SiteModelDoc, type TariffDoc } from '@ecomanage/db';
-import { DEFAULT_SITE_MODEL, dayPrices, siteDate, tariffFromDoc, tariffOn, type Role, type SiteModel as SiteModelView, type SiteToday } from '@ecomanage/shared';
+import { Bill, SiteModel, Tariff, recordAudit, type BillDoc, type SiteDoc, type SiteModelDoc, type TariffDoc } from '@ecomanage/db';
+import { DEFAULT_SITE_MODEL, dayPrices, siteDate, tariffFromDoc, tariffOn, type Role, type SiteModel as SiteModelView, type SiteModelInput, type SiteToday } from '@ecomanage/shared';
 import { projectedCents } from '../bills/service';
 
 // Home (P4-03): the site's scene model and today's price strip and bill line.
@@ -38,4 +38,20 @@ export const siteToday = async (site: SiteDoc, role: Role, now = new Date()): Pr
     if (b) bill = { period: b.period, totalCents: b.totalCents, projectedCents: projectedCents(b, now), savedCents: b.savedCents ?? null };
   }
   return { date, currency: site.currency ?? 'CAD', prices, bill };
+};
+
+/** Settings → Site model (owner, installer): the edited model becomes the next version (P4-08). */
+export const saveSiteModel = async (site: SiteDoc, userId: string, input: SiteModelInput): Promise<SiteModelView> => {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const latest = await SiteModel.findOne({ siteId: site._id }).sort({ version: -1 }).select('version').lean<{ version: number }>();
+    const version = (latest?.version ?? 0) + 1;
+    try {
+      await SiteModel.create({ siteId: site._id, version, source: 'generated', ...input });
+      await recordAudit({ siteId: site._id, userId, action: 'siteModel.update', target: `siteModel:v${version}`, after: input });
+      return siteModel(site);
+    } catch (err) {
+      if ((err as { code?: number }).code !== 11000) throw err; // two saves at once: take the next version
+    }
+  }
+  throw new Error('Could not allocate a site model version');
 };

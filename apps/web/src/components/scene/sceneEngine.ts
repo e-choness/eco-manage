@@ -31,6 +31,8 @@ export interface SceneOptions {
   safeRight?: number
   shiftX?: number // fraction of the width / height
   shiftY?: number
+  /** Called with the point clicked on the site (a click, not a drag). */
+  onPick?: (p: Vec3) => void
 }
 
 export interface SceneHandle {
@@ -70,7 +72,7 @@ export async function createScene(host: HTMLElement, opts: SceneOptions, initial
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = T.PCFSoftShadowMap
   const canvas = renderer.domElement
-  Object.assign(canvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%", display: "block", cursor: "grab" })
+  Object.assign(canvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%", display: "block", cursor: opts.onPick ? "crosshair" : "grab" })
   canvas.setAttribute("aria-hidden", "true")
   host.appendChild(canvas)
 
@@ -268,11 +270,15 @@ export async function createScene(host: HTMLElement, opts: SceneOptions, initial
   }
   setFlows(initial)
 
-  // Drag to turn the site; it also sways slowly on its own.
+  // Drag to turn the site; it also sways slowly on its own. A click without a drag picks a point
+  // on the site (Settings → Site model places anchors this way).
   let drag = 0
   let down: number | null = null
+  let pressedAt: { x: number; y: number } | null = null
+  const raycaster = new T.Raycaster()
   const onDown = (e: PointerEvent) => {
     down = e.clientX
+    pressedAt = { x: e.clientX, y: e.clientY }
     canvas.style.cursor = "grabbing"
     canvas.setPointerCapture?.(e.pointerId)
   }
@@ -281,9 +287,16 @@ export async function createScene(host: HTMLElement, opts: SceneOptions, initial
     drag -= (e.clientX - down) * 0.005
     down = e.clientX
   }
-  const onUp = () => {
+  const onUp = (e: PointerEvent) => {
     down = null
-    canvas.style.cursor = "grab"
+    canvas.style.cursor = opts.onPick ? "crosshair" : "grab"
+    const start = pressedAt
+    pressedAt = null
+    if (!opts.onPick || !start || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 4) return
+    const rect = canvas.getBoundingClientRect()
+    raycaster.setFromCamera(new T.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1), camera)
+    const hit = raycaster.intersectObjects(scene.children, true).find((h) => !(h.object instanceof T.InstancedMesh) && !(h.object instanceof T.LineSegments) && h.object !== grid)
+    if (hit) opts.onPick([Math.round(hit.point.x * 10) / 10, Math.round(hit.point.y * 10) / 10, Math.round(hit.point.z * 10) / 10])
   }
   canvas.addEventListener("pointerdown", onDown)
   canvas.addEventListener("pointermove", onMove)

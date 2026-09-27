@@ -9,7 +9,8 @@ import { authButton, authInput } from "./auth/styles"
 
 const ROLE = { owner: "owner", manager: "manager", installer: "installer" } as const
 
-const day = (iso: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(new Date(iso))
+// A local date (YYYY-MM-DD) or an instant, shown as the calendar day it names.
+const day = (d: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(d.length === 10 ? `${d}T00:00:00Z` : d))
 
 /** /invite/:token, from the invite email (P4-02). */
 export function InviteAccept() {

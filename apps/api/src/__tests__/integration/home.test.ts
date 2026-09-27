@@ -4,7 +4,7 @@
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { Bill, Membership, Site, SiteModel, Tariff } from '@ecomanage/db';
+import { AuditEvent, Bill, Membership, Site, SiteModel, Tariff } from '@ecomanage/db';
 import { DEFAULT_SITE_MODEL, TARIFF_TEMPLATES, siteDate, siteDateStart, type SiteToday } from '@ecomanage/shared';
 import { connectTestDb, disconnectTestDb } from './db';
 import { createApp } from '../../app';
@@ -102,5 +102,20 @@ describe('GET /api/site/today', () => {
     expect(bill.projectedCents).toBeGreaterThan(640_000);
     expect(bill.projectedCents).toBeLessThan(660_000);
     expect((await as('installer', request(app).get('/api/site/today'))).body.bill).toBeNull();
+  });
+});
+
+describe('PUT /api/site/model', () => {
+  it('saves the edited model as the next version, for owners and installers', async () => {
+    const edited = { ...DEFAULT_SITE_MODEL, hub: [1, 1, 1], anchors: DEFAULT_SITE_MODEL.anchors.slice(0, 2), camera: { view: 'iso' } };
+    const body = { hub: edited.hub, anchors: edited.anchors, buildingLabel: edited.buildingLabel, camera: edited.camera };
+    const res = await as('installer', request(app).put('/api/site/model')).send(body);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ version: 1, source: 'generated', hub: [1, 1, 1], camera: { view: 'iso' } });
+    expect(res.body.anchors).toHaveLength(2);
+    expect((await as('owner', request(app).put('/api/site/model')).send(body)).body.version).toBe(2);
+    expect(await AuditEvent.countDocuments({ action: 'siteModel.update' })).toBe(2);
+    expect((await as('manager', request(app).put('/api/site/model')).send(body)).status).toBe(403);
+    expect((await as('owner', request(app).put('/api/site/model')).send({ ...body, hub: [0, 0] })).status).toBe(400);
   });
 });

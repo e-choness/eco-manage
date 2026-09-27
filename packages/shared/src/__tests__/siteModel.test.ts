@@ -2,7 +2,7 @@
  * P4-03: what Home's scene draws for each anchor, from the live snapshot.
  */
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SITE_MODEL, FLOW_KEYS, sceneFlows, type SiteSnapshot } from '../index'
+import { DEFAULT_SITE_MODEL, FLOW_KEYS, sceneFlows, siteModelInput, type SiteSnapshot } from '../index'
 
 type Dev = SiteSnapshot['devices'][number]
 const dev = (id: string, type: Dev['type'], over: Partial<Dev> = {}): Dev => ({
@@ -68,5 +68,18 @@ describe('sceneFlows', () => {
     expect([f.pv, f.battery, f.ev, f.heatpump]).toEqual([null, null, null, null])
     expect(f.grid).not.toBeNull()
     expect(sceneFlows({ ...maple, devices: [] }).grid).toBeNull()
+  })
+})
+
+describe('siteModelInput', () => {
+  const input = { hub: [0, 1, 2], anchors: DEFAULT_SITE_MODEL.anchors, buildingLabel: [0, 3, 0], camera: { view: 'iso' } }
+
+  it('takes an edited model', () => {
+    expect(siteModelInput.parse(input).anchors).toHaveLength(5)
+  })
+
+  it('refuses two anchors for one source, and positions off the site', () => {
+    expect(siteModelInput.safeParse({ ...input, anchors: [DEFAULT_SITE_MODEL.anchors[0], DEFAULT_SITE_MODEL.anchors[0]] }).success).toBe(false)
+    expect(siteModelInput.safeParse({ ...input, hub: [0, 1, 9999] }).success).toBe(false)
   })
 })

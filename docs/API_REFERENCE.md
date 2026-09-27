@@ -183,7 +183,7 @@ Every write to a site records an `AuditEvent` `{siteId, userId, action, target, 
 
 - **`AuditEntry`:** `id`, `ts`, `action`, `target`, `user` (`{ id, name }`; `null` for the rules service, worker or gateway; "Former user" once the person's account is gone), `before`, `after`.
 - **Paging:** `nextCursor` holds the last entry's time and id, so entries written while you page don't shift the pages. A bad cursor or filter is a `400`.
-- **Actions recorded:** `alert.ack`, `.snooze`, `.resolve`, `.false-alarm`, `.fix`; `bill.utility.upload`, `.enter`; `calendar.update`; `command.cancel`; `device.create`, `.update`, `.delete`; `notifications.update`; `recommendation.request`, `.approve`, `.decline`; `site.update`, `site.pv-arrays`, `site.battery`; `tariff.create`; `invite.create`, `.accept`; `device.commission`; `maintenance.create`; `export.create`; `report.create`, `.delete`; `site.create` (migration). `/api/auth/*` changes a person's own account, not a site, and isn't recorded.
+- **Actions recorded:** `alert.ack`, `.snooze`, `.resolve`, `.false-alarm`, `.fix`; `bill.utility.upload`, `.enter`; `calendar.update`; `command.cancel`; `device.create`, `.update`, `.delete`; `notifications.update`; `recommendation.request`, `.approve`, `.decline`; `site.update`, `site.pv-arrays`, `site.battery`; `tariff.create`; `invite.create`, `.accept`; `device.commission`; `maintenance.create`; `export.create`; `report.create`, `.delete`; `membership.update`, `.delete`; `invite.revoke`; `rule.update`; `siteModel.update`; `site.create` (migration). `/api/auth/*` changes a person's own account, not a site, and isn't recorded.
 
 ## Invites (v2, P4-02)
 
@@ -195,6 +195,7 @@ plain token exists only in the email job and the email. Links expire after 7 day
 | ------ | ---- | --- | ------------- |
 | POST | `/api/site/invites` | 🔒 owner | `{ email, role, until? }` → `201 InviteView { id, email, role, until, expiresAt, invitedBy }`. A new invite replaces any unused one for the same address. `409` if the person already has access, `400` for an `until` in the past, `503` when the email can't be queued (no Redis). Audited as `invite.create` |
 | GET | `/api/invites/:token` | the link | `InvitePreview { siteName, email, role, until, expiresAt, invitedBy, hasAccount }`. `404` unknown link, `410` used or expired (the message says which) |
+| DELETE | `/api/site/invites/:id` | 🔒 owner | `204`: an invite not accepted yet stops working. Audited as `invite.revoke` (P4-08) |
 | POST | `/api/invites/:token/accept` | the link | New account: `{ name, password }` (at least 8 characters). Existing account for that email: `{ password }`, its own. → user fields + `accessToken`, and sets `em_rt`, like login. Adds the membership with the invited role and `until`. `400` wrong password or missing name, `404`/`410` as above. Audited as `invite.accept` |
 
 ## History, exports and reports 🔒 all roles (v2, P4-05)
@@ -213,6 +214,17 @@ time zone, both ends included. Money fields are `null` for installers.
 | POST | `/api/reports` | `{ name, from, to, sections, format (pdf, csv, xlsx), schedule (once, weekly, monthly), recipients?, notes? }` | `201 ReportView { …, status: "waiting", createdBy, canDelete }`. Sections: summary, sources, demand, cost, devices, decisions, alerts; installers can't pick `cost` (`403`). A scheduled report needs a recipient. Audited as `report.create`. The reports worker (P5-01) renders them |
 | GET | `/api/reports/:id/file` | | The rendered file; `409` until the reports worker has made it |
 | DELETE | `/api/reports/:id` | | `204`; stops its schedule. Its creator or the owner only (`403`). Audited as `report.delete` |
+
+## People and rules (v2, P4-08)
+
+| Method | Path | Roles | Body → result |
+| ------ | ---- | ----- | ------------- |
+| GET | `/api/site/members` | owner | `{ members: MemberView[], invites: InviteView[] }`: people with access now (`{ id, userId, name, email, role, until, you }`, `until` a local date) and invites not accepted yet |
+| PATCH | `/api/site/members/:id` | owner | `{ role?, until? }` (`until` a local date or `null` for no end) → `MemberView`. `409` if the site would be left without an owner with lasting access; `400` for an `until` before today. Audited as `membership.update` |
+| DELETE | `/api/site/members/:id` | owner | `204`. Same last-owner rule. Audited as `membership.delete` |
+| GET | `/api/rules` | all | `{ approval { who, expireMin, email }, rules: RuleView[] }`: each rule `{ id, title, device, on, params, defaults, declines30d { count, reasons [{ reason, count }] } }` |
+| PATCH | `/api/rules/:ruleId` | owner, manager | `{ on?, params? }` for a rule: params must be the rule's own settings, of the same kind (number or on/off), not negative (except `belowCents`). `approval`: `{ params: { who?, expireMin?, email? } }`. → the new `RulesResponse`. `404` unknown rule. Audited as `rule.update`. The rules service reads the saved values on its next run |
+| PUT | `/api/site/model` | owner, installer | `{ hub, anchors [{ key, at, label }], buildingLabel, camera { view } }` (positions in scene metres, one anchor per source or load) → the model as `GET /api/site/model` returns it, saved as the next version (`source: "generated"`). Audited as `siteModel.update`. Uploading a 3D file is the P5-02 pipeline |
 
 ## Server errors
 

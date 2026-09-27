@@ -54,7 +54,7 @@ export const inviteEmail = (
     invite.email,
     `${invitedBy ?? 'The site owner'} invited you to ${site.name} on EcoManage`,
     [
-      `You're invited to ${site.name} as ${ROLE_NAME[invite.role] ?? invite.role}${invite.until ? `, with access until ${day(invite.until, site.tz)}` : ''}.`,
+      `You're invited to ${site.name} as ${ROLE_NAME[invite.role] ?? invite.role}${invite.until ? `, with access until ${day(new Date(invite.until.getTime() - 1), site.tz)}` : ''}.`,
       'EcoManage shows the site’s live power, cost and the changes waiting for approval.',
       `The link works once and expires on ${day(invite.expiresAt, site.tz)}.`,
     ],

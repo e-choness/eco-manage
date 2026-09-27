@@ -122,7 +122,7 @@ hooks/          useMe (user, membership, role), useSiteStream (stream state, Inb
                 useSiteLive (snapshot)
 components/     scene/ (SiteScene: three.js engine + 2D fallback), shadcn/ui in ui/ (App v2 palette)
 pages/          Login, InviteAccept (auth/ layout), Home (home/), Devices (devices/), History (history/),
-                Bills (bills/), Inbox (inbox/), and Settings (from v1, until P4-08 replaces it)
+                Bills (bills/), Inbox (inbox/), Settings (settings/)
 ```
 
 Routes: `/login`, `/invite/:token`, and the signed-in app at the top level: `/` (Home),
@@ -208,6 +208,25 @@ theirs, even when not on the first page) in detail:
 - **Alert:** what triggered it, how it closes, its resolution, a timeline, and the actions the API
   allows now (`actions`): acknowledge, pause emails, remote fixes from the profile, close as a false
   alarm while the condition is true, or resolve with a cause and a note once it has cleared.
+**Settings (P4-08).** As App v2, seven tabs (`?tab=`): Site (details for the owner; solar arrays
+and battery for the owner or installer; the gateway card), Tariff (owner edits, managers view: a
+live price strip per season and day type from the shared `dayPrices`, gaps and overlaps from the
+shared `validateTariff` as you type, and the server's 422 issues on save; a new version starts
+today at the earliest), Rules (approval settings and each rule on or off with its limits, and how
+often and why it was declined in 30 days), Calendar, Site model, People and Notifications.
+
+- **Drafts and the sticky bar:** each section is edited as a draft kept while switching tabs; the
+  bar lists the changed tabs and saves each section to its own endpoint (only changed fields, one
+  PATCH per changed rule), keeping the drafts that failed with their error. Leaving the page with
+  unsaved changes asks first. People changes (role, access until, remove, invite, revoke) apply
+  straight away instead.
+- **Site model:** the scene in the iso view with live labels. "Move" then a click on the model
+  places a source, a load or the hub there (the engine raycasts a click that isn't a drag; the
+  label floats 1.2 m above). Saving creates the next model version, which Home then draws. Uploading
+  a 3D file is shown but not available until the P5-02 pipeline.
+- **Access until** is a local date for invites and memberships: access lasts to the end of that
+  day in the site's time zone.
+- The password change from the v1 Settings page is now in Profile (avatar menu).
 **Shell (P4-01).** A 68 px icon rail as in App v2: Home, Devices, History, Bills, Inbox,
 Settings. Installers don't get Bills (`RequireRole` sends them Home, and the API refuses them
 anyway). The role comes from `/auth/me`: the first active membership, the same rule the API uses.

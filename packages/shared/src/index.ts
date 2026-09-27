@@ -28,3 +28,5 @@ export * from './siteModel';
 export * from './history';
 export * from './api/reports';
 export * from './api/bills';
+export * from './api/people';
+export * from './api/rules';
