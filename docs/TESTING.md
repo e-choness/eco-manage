@@ -1,7 +1,7 @@
 # Testing
 
-All suites run inside the dev container. As of P4-07: **api 313, web 69, ingest 29, simulator 32, rules 43, recs 33,
-shared 126, profiles 20, db 11, worker 53**, all passing. Lint and typecheck also pass. The api,
+All suites run inside the dev container. As of P4-08: **api 328, web 79, ingest 29, simulator 32, rules 43, recs 33,
+shared 129, profiles 20, db 11, worker 53**, all passing. Lint and typecheck also pass. The api,
 ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest and rules; the worker's SMTP test uses Mailpit).
 
 ```bash
@@ -24,7 +24,7 @@ docker compose run --rm api pnpm --filter @ecomanage/api test:coverage   # 55% g
 | Suite                                  | What it checks                                                    |
 | -------------------------------------- | ----------------------------------------------------------------- |
 | `routes.contract.test.ts`              | Every v1 endpoint through `createApp()`: status codes, bodies, auth guard. Models are stubbed via `mongoose.model(name)` |
-| `integration/*.test.ts`                | Against a **real MongoDB** (and Redis): role matrix over every route, an audit inventory (`audit.test.ts`: every write route lists its audit action, or why it has none, and each action is checked by a test), invites (token only hashed, single use, expiry, existing accounts), gateway jobs (scan, commission) and the maintenance log with a stub gateway, history series and totals (daily sums, hours, quarter hours, fallback over 400 bars, compare, no money for installers), exports and reports, migration, site snapshot and SSE stream, v2 devices, P0-05 fixes still in use |
+| `integration/*.test.ts`                | Against a **real MongoDB** (and Redis): role matrix over every route, an audit inventory (`audit.test.ts`: every write route lists its audit action, or why it has none, and each action is checked by a test), invites (token only hashed, single use, expiry, existing accounts), gateway jobs (scan, commission) and the maintenance log with a stub gateway, history series and totals (daily sums, hours, quarter hours, fallback over 400 bars, compare, no money for installers), exports and reports, people (access until a local date, last owner kept, invites revoked) and rules (settings checked, decline counts), the site model saved as versions, migration, site snapshot and SSE stream, v2 devices, P0-05 fixes still in use |
 | `security.test.ts`                     | Refresh cookie flags and rotation, logout revocation, 429 limits, CORS, helmet, no credentials in logs |
 | `middleware/auth.test.ts`              | `requireUser`: 401 cases, and DB errors passed to the error handler |
 | `routes/authRoutes.test.ts`            | Auth routes with a mocked user service                            |
@@ -58,6 +58,7 @@ docker compose run --rm --no-deps api pnpm --filter @ecomanage/web test:watch
 | `pages/Bills.test.tsx`                 | App v2 Bills: 12-month figures, bars and rows, open and closed periods (lines, tariff versions, estimated stretches, saving), statement and CSV downloads, Open in History, owner upload (the upload call is replaced: jsdom files can't pass through msw) and typed total, range spending |
 | `pages/History.test.tsx`               | App v2 History: range text, warnings, totals (5, or 4 for installers), estimated bars, compare deltas, views and cap line, preset and resolution requests, CSV export through the worker, report builder and list |
 | `pages/Devices.test.tsx`               | App v2 Devices: list order, live power (loads positive), statuses and summary; detail (24 h, model, quality, commissioning, log, last message); proposing a reserve change and an action with `until`; installers: read-only controls, visit notes, scan → add → commission, commissioning a pending device |
+| `pages/Settings.test.tsx`              | App v2 Settings: sticky bar saves only changed fields to each endpoint, drafts across tabs and discard, rules and approval, roles (installer hardware only, tariff and people hidden), tariff strip, live gap check and the server's 422, people actions, site model anchors, notifications with quiet hours together |
 | `pages/Inbox.test.tsx`                 | App v2 Inbox: list with counts and paging; decision (sections, slider re-checks once after 300 ms, Approve off on a failing check, approve with params, decline with a reason, installers without buttons, declined outcome); alert (acknowledge, pause, fix, false-alarm and cause forms, email link); command (timeline, cancel early, not for installers) |
 | `shell/AppShell.test.tsx`              | App v2 shell: rail by role (no Bills for installers), Inbox badge from counts then stream `inbox` events, saved theme applied and a switch saved on the user, avatar menu (role from the membership, Profile, Sign out), no-site screen |
 

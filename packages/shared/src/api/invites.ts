@@ -8,13 +8,11 @@ import { ROLES } from '../models';
 export const INVITE_DAYS = 7;
 export const MIN_PASSWORD = 8;
 
-const isoDate = z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'Not a date');
-
 export const inviteCreate = z
   .object({
     email: z.string().trim().toLowerCase().email().max(254),
     role: z.enum(ROLES),
-    until: isoDate.nullable().optional(), // access ends then (recommended for installers)
+    until: z.string().date().nullable().optional(), // last local day with access (recommended for installers)
   })
   .strict();
 export type InviteCreate = z.infer<typeof inviteCreate>;
@@ -32,7 +30,7 @@ export interface InviteView {
   id: string;
   email: string;
   role: (typeof ROLES)[number];
-  until: string | null;
+  until: string | null; // last local day with access (YYYY-MM-DD)
   expiresAt: string;
   invitedBy: string | null;
 }
@@ -42,7 +40,7 @@ export interface InvitePreview {
   siteName: string;
   email: string;
   role: (typeof ROLES)[number];
-  until: string | null;
+  until: string | null; // last local day with access (YYYY-MM-DD)
   expiresAt: string;
   invitedBy: string | null;
   hasAccount: boolean; // sign in with the existing password instead of creating one

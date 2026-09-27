@@ -269,7 +269,7 @@ describe('invite emails (P4-02)', () => {
       siteId,
       email: 'sam@test.example',
       role: 'installer',
-      until: new Date('2026-12-31T05:00:00Z'),
+      until: new Date('2027-01-01T05:00:00Z'), // end of 31 Dec in Toronto
       invitedBy: ids.owner,
       tokenHash: 'x'.repeat(64),
       expiresAt: new Date(NOON.getTime() + 7 * 24 * 60 * MIN),

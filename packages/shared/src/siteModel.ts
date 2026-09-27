@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { SiteSnapshot } from './api/site';
 
 // The 3D site model (plan §2 `siteModels`, P4-03). Home draws the site from it: where the
@@ -92,3 +93,19 @@ export const sceneFlows = (s: Pick<SiteSnapshot, 'flows' | 'battery' | 'devices'
     building: s.flows.building == null ? null : { label: 'Building', kw: round1(s.flows.building), dir: null, sub: 'calculated remainder' },
   };
 };
+
+const vec3 = z.tuple([z.number().finite().min(-500).max(500), z.number().finite().min(-50).max(200), z.number().finite().min(-500).max(500)]);
+
+/** PUT /api/site/model (owner, installer): the edited model, saved as a new version (P4-08). */
+export const siteModelInput = z
+  .object({
+    hub: vec3,
+    anchors: z
+      .array(z.object({ key: z.enum(FLOW_KEYS), at: vec3, label: vec3 }).strict())
+      .max(FLOW_KEYS.length)
+      .refine((a) => new Set(a.map((x) => x.key)).size === a.length, 'Each source or load has one anchor'),
+    buildingLabel: vec3,
+    camera: z.object({ view: z.enum(SCENE_VIEWS) }).strict(),
+  })
+  .strict();
+export type SiteModelInput = z.infer<typeof siteModelInput>;

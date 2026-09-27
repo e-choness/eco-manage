@@ -19,7 +19,7 @@ const preview = (over: Partial<InvitePreview> = {}): InvitePreview => ({
   siteName: 'Maple Grove School',
   email: 'sam@example.com',
   role: 'installer',
-  until: '2026-12-31T12:00:00.000Z',
+  until: '2026-12-31',
   expiresAt: '2026-10-03T12:00:00.000Z',
   invitedBy: 'Priya Shah',
   hasAccount: false,

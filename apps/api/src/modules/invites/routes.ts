@@ -6,6 +6,7 @@ import type { AuthenticatedRequest } from '../../middleware/auth';
 import { requireRole } from '../../middleware/roles';
 import { setRefreshCookie } from '../../utils/cookies';
 import { acceptInvite, createInvite, previewInvite } from './service';
+import { revokeInvite } from '../people/service';
 
 const FALLBACK = { status: 500, body: { error: { code: 500, message: 'Invite request failed' } } };
 
@@ -17,6 +18,14 @@ export const siteInviteRoutes = (jobs?: JobClient): Router => {
     ...requireRole('owner'),
     handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
       res.status(201).json(await createInvite(jobs, req.site!, userIdOf(req), parseBody(inviteCreate, req.body)));
+    })
+  );
+  router.delete(
+    '/:id',
+    ...requireRole('owner'),
+    handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
+      await revokeInvite(req.site!, userIdOf(req), req.params.id);
+      res.status(204).end();
     })
   );
   return router;

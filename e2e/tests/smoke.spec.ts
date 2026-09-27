@@ -55,6 +55,11 @@ test('the manager sees live values from the simulated site', async ({ page }) =>
   await expect(page.getByRole('heading', { name: 'Inbox' })).toBeVisible()
   await expect(page.getByRole('list', { name: 'Inbox items' })).toBeAttached()
   await expect(page.getByRole('group', { name: 'Open or closed' }).getByRole('button', { name: /^Open \(\d+\)$/ })).toBeVisible()
+
+  // Settings (P4-08): the manager reads the rules and can change them.
+  await page.getByRole('link', { name: 'Settings' }).click()
+  await page.getByRole('tab', { name: 'Rules' }).click()
+  await expect(page.getByRole('switch', { name: 'Peak shaving on' })).toBeEnabled()
 })
 
 test('a signed-out visitor is sent to sign in, and old addresses still work', async ({ page }) => {

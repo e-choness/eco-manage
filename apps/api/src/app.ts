@@ -16,6 +16,8 @@ import { inviteRoutes, siteInviteRoutes } from './modules/invites/routes';
 import historyRoutes from './modules/history/routes';
 import { exportsRoutes } from './modules/exports/routes';
 import reportsRoutes from './modules/reports/routes';
+import peopleRoutes from './modules/people/routes';
+import rulesRoutes from './modules/rules/routes';
 import { siteRoutes } from './modules/site/routes';
 import tariffRoutes from './modules/tariffs/routes';
 import { billsRoutes } from './modules/bills/routes';
@@ -65,6 +67,7 @@ export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogg
   app.use('/api/inbox', inboxRoutes);
   app.use('/api/audit', auditRoutes);
   app.use('/api/site/invites', siteInviteRoutes(jobs));
+  app.use('/api/site/members', peopleRoutes);
   app.use('/api/invites', inviteRoutes());
   app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs, gateway, jobs }));
   app.use('/api/tariffs', tariffRoutes);
@@ -75,6 +78,7 @@ export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogg
   app.use('/api/history', historyRoutes);
   app.use('/api/exports', exportsRoutes(jobs));
   app.use('/api/reports', reportsRoutes);
+  app.use('/api/rules', rulesRoutes);
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: 404, message: 'Not found' } });

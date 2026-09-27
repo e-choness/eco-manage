@@ -1,4 +1,3 @@
-import type { ReactNode } from "react"
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { ThemeProvider } from "./components/ui/theme-provider"
 import { Toaster } from "./components/ui/toaster"
@@ -14,8 +13,6 @@ import { Bills } from "./pages/Bills"
 import { Inbox } from "./pages/Inbox"
 import { Settings } from "./pages/Settings"
 
-// Pages from before App v2, shown in the new shell until their screens are rebuilt (P4-03..P4-08).
-const Interim = ({ children }: { children: ReactNode }) => <main className="mx-auto max-w-7xl p-6">{children}</main>
 
 // Addresses from before P4-02: /dashboard/<page> is now /<page>.
 const OLD_PATHS: Record<string, string> = { "": "/", live: "/", monitoring: "/devices", alerts: "/inbox", optimization: "/inbox" }
@@ -47,7 +44,7 @@ function App() {
                 }
               />
               <Route path="inbox" element={<Inbox />} />
-              <Route path="settings" element={<Interim><Settings /></Interim>} />
+              <Route path="settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

@@ -55,9 +55,10 @@ const invite = async (body: object) => as('owner', request(app).post('/api/site/
 
 describe('POST /api/site/invites', () => {
   it('stores only a hash of the token, emails the link, and audits', async () => {
-    const res = await invite({ email: ' New.Installer@Example.com ', role: 'installer', until: '2099-01-01T00:00:00Z' });
+    const res = await invite({ email: ' New.Installer@Example.com ', role: 'installer', until: '2099-01-01' });
     expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({ email: 'new.installer@example.com', role: 'installer', until: '2099-01-01T00:00:00.000Z', invitedBy: 'Priya Shah' });
+    expect(res.body).toMatchObject({ email: 'new.installer@example.com', role: 'installer', until: '2099-01-01', invitedBy: 'Priya Shah' });
+    expect((await Invite.findById(res.body.id).lean())!.until).toEqual(new Date('2099-01-02T05:00:00Z')); // end of the local day
     expect(Date.parse(res.body.expiresAt) - Date.now()).toBeGreaterThan(6.9 * 86_400_000);
     expect(res.body).not.toHaveProperty('token');
     expect(sent).toHaveLength(1);
@@ -118,7 +119,7 @@ describe('the invite link', () => {
   it('signs in an existing account with its own password and adds the site', async () => {
     const password = await generatePasswordHash('existing-pw');
     await User.create({ email: 'other@example.com', name: 'Northside Solar', password });
-    await invite({ email: 'other@example.com', role: 'installer', until: '2099-06-30T00:00:00Z' });
+    await invite({ email: 'other@example.com', role: 'installer', until: '2099-06-30' });
     const { token } = sent[0];
     expect((await request(app).get(`/api/invites/${token}`)).body.hasAccount).toBe(true);
     const wrong = await request(app).post(`/api/invites/${token}/accept`).send({ password: 'guess' });
@@ -128,7 +129,7 @@ describe('the invite link', () => {
     expect(res.status).toBe(200);
     expect(res.body.name).toBe('Northside Solar');
     const m = await Membership.findOne({ siteId, userId: res.body._id }).lean();
-    expect(m).toMatchObject({ role: 'installer', until: new Date('2099-06-30T00:00:00Z') });
+    expect(m).toMatchObject({ role: 'installer', until: new Date('2099-07-01T04:00:00Z') });
   });
 
   it('refuses unknown and expired links', async () => {

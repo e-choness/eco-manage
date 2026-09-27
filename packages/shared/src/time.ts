@@ -77,3 +77,9 @@ export const siteClock = (at: Date, tz: string): string => inZone(at, tz).toForm
 
 /** Local time with its UTC offset, e.g. "2026-09-24T12:00:00-04:00" (CSV exports, P4-05). */
 export const siteLocalIso = (at: Date, tz: string): string => inZone(at, tz).toISO({ suppressMilliseconds: true }) as string;
+
+/** "Access until 2026-12-31": the instant that local day ends (P4-08; memberships and invites). */
+export const endOfLocalDate = (date: string, tz: string): Date => endOfSiteDay(siteDateStart(date, tz), tz);
+
+/** Back from such an instant to its last local day. */
+export const lastLocalDate = (end: Date, tz: string): string => siteDate(new Date(end.getTime() - 1), tz);

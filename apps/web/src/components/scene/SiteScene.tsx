@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { FLOW_KEYS, type SceneFlows, type SceneView, type SiteModel } from "@ecomanage/shared"
+import { FLOW_KEYS, type SceneFlows, type SceneView, type SiteModel, type Vec3 } from "@ecomanage/shared"
 import { SiteFlow2D } from "./SiteFlow2D"
 import { createScene, hasWebGL, type SceneHandle } from "./sceneEngine"
 
@@ -11,6 +11,8 @@ interface Props {
   safeLeft?: number
   safeRight?: number
   shiftY?: number
+  /** Click to pick a point on the site (Settings → Site model). */
+  onPick?: (p: Vec3) => void
   className?: string
 }
 
@@ -18,10 +20,13 @@ interface Props {
  * The site in 3D (App v2 Home), with live flows. Without WebGL, or if three.js fails to load, the
  * same flows are drawn flat. A table with the same numbers is always there for screen readers.
  */
-export function SiteScene({ model, flows, theme, view, safeLeft, safeRight, shiftY, className }: Props) {
+export function SiteScene({ model, flows, theme, view, safeLeft, safeRight, shiftY, className, onPick }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const handle = useRef<SceneHandle | null>(null)
   const latest = useRef(flows)
+  const pick = useRef(onPick)
+  pick.current = onPick
+  const picking = !!onPick
   latest.current = flows
   const [flat, setFlat] = useState(() => !hasWebGL())
 
@@ -29,7 +34,7 @@ export function SiteScene({ model, flows, theme, view, safeLeft, safeRight, shif
   useEffect(() => {
     if (flat || !host.current) return
     let cancelled = false
-    createScene(host.current, { theme, model, view, safeLeft, safeRight, shiftY }, latest.current)
+    createScene(host.current, { theme, model, view, safeLeft, safeRight, shiftY, onPick: picking ? (p) => pick.current?.(p) : undefined }, latest.current)
       .then((h) => {
         if (cancelled) h.dispose()
         else handle.current = h
@@ -42,7 +47,7 @@ export function SiteScene({ model, flows, theme, view, safeLeft, safeRight, shif
       handle.current?.dispose()
       handle.current = null
     }
-  }, [flat, theme, model, view, safeLeft, safeRight, shiftY])
+  }, [flat, theme, model, view, safeLeft, safeRight, shiftY, picking])
 
   useEffect(() => {
     handle.current?.setFlows(flows)
