@@ -44,6 +44,11 @@ test('the manager sees live values from the simulated site', async ({ page }) =>
   await expect(page.getByTestId('range-text')).toContainText('1 day · hourly')
   expect(await page.getByTestId('history-bar').count()).toBeGreaterThanOrEqual(23) // 23–25 on DST days
   await expect(page.getByRole('list', { name: 'Totals' }).getByRole('listitem')).toHaveCount(5)
+
+  // Bills (P4-06): every billing period listed, the newest open one in detail.
+  await page.getByRole('link', { name: 'Bills' }).click()
+  await expect(page.getByRole('table', { name: 'Bills' }).getByRole('row').nth(1)).toContainText('In progress')
+  await expect(page.getByTestId('bill-total')).toHaveText(/^\$[\d,]+$/)
 })
 
 test('a signed-out visitor is sent to sign in, and old addresses still work', async ({ page }) => {

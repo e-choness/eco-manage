@@ -121,7 +121,7 @@ shell/          App v2 shell (P4-01): AppShell, Rail, AvatarMenu, ProfileDialog,
 hooks/          useMe (user, membership, role), useSiteStream (stream state, Inbox counts),
                 useSiteLive (snapshot)
 components/     scene/ (SiteScene: three.js engine + 2D fallback), shadcn/ui in ui/ (App v2 palette)
-pages/          Login, InviteAccept (auth/ layout), Home (home/), Devices (devices/), History (history/),
+pages/          Login, InviteAccept (auth/ layout), Home (home/), Devices (devices/), History (history/), Bills (bills/),
                 and the pages shown in the shell until their screens replace them: Alerts (inbox), Settings
 ```
 
@@ -184,6 +184,14 @@ empty buckets are filled from `bucketStarts` (shared), so the bars line up with 
 - **Reports:** the builder saves a definition for the range on screen (name, format, schedule,
   recipients, sections, notes); the list shows each with its status. Rendering and schedules are
   the reports worker (P5-01), so new reports wait until then.
+**Bills (P4-06, owners and managers).** As App v2: the last 12 months (total, saved, highest
+demand, our estimate against the utility bills), every bill as stacked bars (energy, demand,
+fixed; the open period dashed) and as a list with where each utility bill stands, the selected
+period (`?period=`) with its lines, tariff, peak, grid energy, estimated stretches and saving, and
+spending for any date range (`/api/bills/range`). The owner uploads the utility bill (PDF or CSV,
+read by the worker; the panel polls while it is read) or types its total. Statement (PDF) and
+15-min data (CSV, the History export) download signed in; "Open in History" opens
+`/history?from=&to=` for the period or range.
 **Shell (P4-01).** A 68 px icon rail as in App v2: Home, Devices, History, Bills, Inbox,
 Settings. Installers don't get Bills (`RequireRole` sends them Home, and the API refuses them
 anyway). The role comes from `/auth/me`: the first active membership, the same rule the API uses.

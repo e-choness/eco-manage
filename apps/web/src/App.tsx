@@ -6,10 +6,11 @@ import { AuthProvider } from "./contexts/AuthContext"
 import { Login } from "./pages/Login"
 import { InviteAccept } from "./pages/InviteAccept"
 import { ProtectedRoute } from "./components/ProtectedRoute"
-import { AppShell, PageFrame, RequireRole, ScreenPlaceholder } from "./shell/AppShell"
+import { AppShell, RequireRole } from "./shell/AppShell"
 import { Home } from "./pages/Home"
 import { Devices } from "./pages/Devices"
 import { History } from "./pages/History"
+import { Bills } from "./pages/Bills"
 import { Alerts } from "./pages/Alerts"
 import { Settings } from "./pages/Settings"
 
@@ -41,7 +42,7 @@ function App() {
                 path="bills"
                 element={
                   <RequireRole roles={["owner", "manager"]}>
-                    <PageFrame title="Bills"><ScreenPlaceholder text="Monthly bills, statements and utility bill checks will be shown here." /></PageFrame>
+                    <Bills />
                   </RequireRole>
                 }
               />

@@ -12,7 +12,9 @@ export const dayLine = (at: Date, tz: string): string => {
 
 /** Whole units: "$3,418". */
 export const money = (cents: number, currency: string): string =>
-  new Intl.NumberFormat("en-CA", { style: "currency", currency, currencyDisplay: "narrowSymbol", maximumFractionDigits: 0 }).format(cents / 100)
+  new Intl.NumberFormat("en-CA", { style: "currency", currency, currencyDisplay: "narrowSymbol", maximumFractionDigits: 0 })
+    .format(cents / 100)
+    .replace(/^-(\D*0)$/, "$1") // no "-$0"
 
 /** A price per kWh: "$0.09". */
 export const unitPrice = (cents: number, currency: string): string =>
