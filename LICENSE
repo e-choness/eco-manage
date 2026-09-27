@@ -1,21 +1,27 @@
-MIT License
+Copyright (c) 2025-2026 Echo (Beili) Yin. All rights reserved.
 
-Copyright (c) 2025 Echo (Beili) Yin
+EcoManage, including its source code, documentation, designs, data models and other files in
+this repository (the "Software"), is proprietary and confidential to the copyright holder.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+No license is granted. Without the prior written permission of the copyright holder, you may
+not use, copy, modify, merge, publish, distribute, sublicense, sell, host or offer as a service,
+or create derivative works of the Software, in whole or in part.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Viewing the Software where it is published does not grant any of these rights. Where the
+Software is hosted on a platform whose terms grant users limited rights (for example, to view
+or fork a public repository on GitHub), only those rights apply, and only on that platform.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Earlier versions of the Software that were published under the MIT License remain available
+under that license to those who received them. This notice applies to this version and to all
+later versions.
+
+Third-party components used by the Software are licensed by their own authors under their own
+terms, and nothing here changes those terms.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For licensing enquiries, contact the copyright holder: echo_ybl@hotmail.com

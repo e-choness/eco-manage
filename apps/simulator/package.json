@@ -16,7 +16,7 @@
     "lint": "eslint src",
     "test": "vitest run"
   },
-  "license": "ISC",
+  "license": "UNLICENSED",
   "dependencies": {
     "@ecomanage/profiles": "workspace:*",
     "@ecomanage/shared": "workspace:*",

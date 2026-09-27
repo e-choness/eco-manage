@@ -1,6 +1,6 @@
 # 🌱 EcoManage
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-20-43853d?logo=node.js)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-18-61dafb?logo=react)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178c6?logo=typescript)](https://www.typescriptlang.org/)
@@ -149,4 +149,5 @@ The old npm entry points still work from the root as aliases: `pnpm server`, `pn
 
 ## License
 
-MIT, see [LICENSE](./LICENSE).
+Proprietary. Copyright (c) 2025-2026 Echo (Beili) Yin. All rights reserved. No use, copying,
+modification or distribution without written permission; see [LICENSE](./LICENSE).
