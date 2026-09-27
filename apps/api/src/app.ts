@@ -15,7 +15,7 @@ import auditRoutes from './modules/audit/routes';
 import { inviteRoutes, siteInviteRoutes } from './modules/invites/routes';
 import historyRoutes from './modules/history/routes';
 import { exportsRoutes } from './modules/exports/routes';
-import reportsRoutes from './modules/reports/routes';
+import reportsRoutes, { reportLinkRoutes } from './modules/reports/routes';
 import peopleRoutes from './modules/people/routes';
 import rulesRoutes from './modules/rules/routes';
 import { siteRoutes } from './modules/site/routes';
@@ -77,7 +77,8 @@ export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogg
   app.use('/api/forecast', forecastRoutes);
   app.use('/api/history', historyRoutes);
   app.use('/api/exports', exportsRoutes(jobs));
-  app.use('/api/reports', reportsRoutes);
+  app.use('/api/reports', reportsRoutes(jobs));
+  app.use('/api/report-links', reportLinkRoutes());
   app.use('/api/rules', rulesRoutes);
 
   app.use((_req, res) => {

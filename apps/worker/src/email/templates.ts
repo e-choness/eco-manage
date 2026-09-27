@@ -122,3 +122,25 @@ export const exportEmail = (site: Pick<SiteDoc, 'name'>, e: { _id: unknown; from
     [`The CSV of every 15-minute interval from ${e.from} to ${e.to}${e.rows != null ? ` (${e.rows.toLocaleString('en-US')} rows)` : ''} is ready.`],
     { label: 'Download it from History', url: `${appUrl}/history?export=${String(e._id)}` }
   );
+
+const dayText = (date: string) => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`)).replace('Sept', 'Sep');
+
+/** A report run is ready (P5-01): recipients may not have an account, so the link needs none. */
+export const reportEmail = (
+  site: Pick<SiteDoc, 'name' | 'tz'>,
+  report: { name: string; format: string },
+  range: { from: string; to: string },
+  to: string,
+  link: string,
+  expiresAt: Date
+): Message =>
+  message(
+    to,
+    `[${site.name}] ${report.name}`,
+    [
+      `The report "${report.name}" for ${range.from === range.to ? dayText(range.from) : `${dayText(range.from)} to ${dayText(range.to)}`} is ready (${report.format.toUpperCase()}).`,
+      `Anyone with the link can download it until ${dayText(new Intl.DateTimeFormat('en-CA', { timeZone: site.tz }).format(expiresAt))}.`,
+    ],
+    { label: 'Download the report', url: link },
+    'You get this report because someone at the site added you to its recipients.'
+  );

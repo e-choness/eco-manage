@@ -1,8 +1,8 @@
 # Testing
 
-All suites run inside the dev container. As of P4-09: **api 328, web 81, ingest 29, simulator 32, rules 43, recs 33,
-shared 129, profiles 20, db 11, worker 53**, all passing. Lint and typecheck also pass. The api,
-ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest and rules; the worker's SMTP test uses Mailpit).
+All suites run inside the dev container. As of P5-01: **api 332, web 81, ingest 29, simulator 32, rules 43, recs 33,
+shared 134, profiles 20, db 11, worker 67**, all passing. Lint and typecheck also pass. The api,
+ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest, rules and the worker's report schedules; the worker's SMTP test uses Mailpit, and its PDF test prints through Gotenberg when it is running).
 
 ```bash
 docker compose up -d mongodb redis          # the API integration tests need MongoDB

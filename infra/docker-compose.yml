@@ -103,12 +103,15 @@ services:
       APP_URL: http://localhost:5173
       WEATHER_PROVIDER: ${WEATHER_PROVIDER:-simulated}
       WEATHER_SEED: ${SIM_SEED:-42}
+      GOTENBERG_URL: http://gotenberg:3000
     depends_on:
       mongodb:
         condition: service_healthy
       redis:
         condition: service_healthy
       mailpit:
+        condition: service_started
+      gotenberg:
         condition: service_started
     restart: unless-stopped
 
@@ -167,6 +170,22 @@ services:
       timeout: 3s
       retries: 12
       start_period: 5s
+    restart: unless-stopped
+
+  # Prints report PDFs from HTML (P5-01): headless Chromium in its own container, JavaScript off,
+  # and Chromium may open only its own temporary files, so report text can't make it fetch anything.
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    command:
+      - gotenberg
+      - --chromium-disable-javascript=true
+      - --chromium-allow-list=^file:///tmp/.*
+      - --api-timeout=60s
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
 
   # Catches every email in development (P2-09): web UI and API at http://localhost:8025.

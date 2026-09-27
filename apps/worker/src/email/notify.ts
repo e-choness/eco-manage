@@ -91,7 +91,7 @@ export const recipients = async (siteId: string, now: Date): Promise<Recipient[]
  */
 export const sendOnce = async (
   mailer: Mailer,
-  claim: { key: string; siteId: string; userId: string | null; kind: 'alert' | 'escalation' | 'daily' | 'proposal' | 'invite' | 'export'; alertId?: string },
+  claim: { key: string; siteId: string; userId: string | null; kind: 'alert' | 'escalation' | 'daily' | 'proposal' | 'invite' | 'export' | 'report'; alertId?: string },
   message: Message,
   now: Date
 ): Promise<boolean> => {

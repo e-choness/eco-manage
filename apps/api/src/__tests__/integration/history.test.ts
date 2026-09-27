@@ -1,15 +1,17 @@
 /**
  * P4-05: History series and totals from the 15-minute intervals, exports (queued for the worker)
- * and report definitions.
+ * and reports (P5-01: queued or scheduled for the reports worker, emailed links).
  */
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { AuditEvent, Export, Interval15, Membership, Report, Site, putFile } from '@ecomanage/db';
-import type { DocumentJobs, HistoryBucket } from '@ecomanage/shared';
+import { createHash } from 'node:crypto';
+import { AuditEvent, Export, Interval15, Membership, Report, Site, fileInfo, putFile } from '@ecomanage/db';
+import { nextReportRun, type DocumentJobs, type HistoryBucket } from '@ecomanage/shared';
 import { connectTestDb, disconnectTestDb } from './db';
 import { createApp } from '../../app';
 import type { JobClient } from '../../lib/jobs';
+import { logPath } from '../../lib/http';
 import User from '../../modules/auth/model';
 import { generatePasswordHash } from '../../utils/password';
 
@@ -18,7 +20,12 @@ const tokens: Record<string, string> = {};
 const users: Record<string, string> = {};
 const env = { CORS_ORIGINS: [], RATE_LIMIT_WINDOW_MS: 60_000, RATE_LIMIT_MAX: 1e6, AUTH_RATE_LIMIT_MAX: 1e6 };
 const queued: { name: string; data: unknown }[] = [];
-const jobs = { add: async (name: string, data: DocumentJobs['export-csv']['data']) => void queued.push({ name, data }) } as unknown as JobClient;
+const jobs = {
+  add: async (name: string, data: DocumentJobs['export-csv']['data']) => void queued.push({ name, data }),
+  renderReport: async (reportId: string) => void queued.push({ name: 'report', data: { reportId } }),
+  scheduleReport: async (reportId: string, schedule: string, tz: string) => void queued.push({ name: 'schedule', data: { reportId, schedule, tz } }),
+  unscheduleReport: async (reportId: string) => void queued.push({ name: 'unschedule', data: { reportId } }),
+} as unknown as JobClient;
 let app: ReturnType<typeof createApp>;
 
 const Q = 15 * 60_000;
@@ -164,6 +171,21 @@ describe('/api/reports', () => {
     const file = await as('manager', request(app).get(`/api/reports/${res.body.id}/file`));
     expect(file.status).toBe(409);
     expect(file.body.error.message).toBe('This report hasn’t been generated yet');
+    // A monthly report gets a job scheduler in the site's zone and runs next on the 1st at 07:00.
+    expect(queued).toEqual([{ name: 'schedule', data: { reportId: res.body.id, schedule: 'monthly', tz: 'America/Toronto' } }]);
+    expect(res.body).toMatchObject({ error: null, lastRunAt: null, lastRange: null });
+    expect(res.body.nextRunAt).toBe(nextReportRun('monthly', 'America/Toronto', new Date()).toISOString());
+    expect(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(res.body.nextRunAt))).toBe('01, 07:00');
+  });
+
+  it('renders a one-off report straight away, and says why one failed', async () => {
+    const res = await as('owner', request(app).post('/api/reports')).send({ ...body, schedule: 'once', recipients: [] });
+    expect(queued).toEqual([{ name: 'report', data: { reportId: res.body.id } }]);
+    expect(res.body.nextRunAt).toBeNull();
+    await Report.updateOne({ _id: res.body.id }, { $set: { status: 'failed', error: 'PDF rendering failed (503)' } });
+    const file = await as('owner', request(app).get(`/api/reports/${res.body.id}/file`));
+    expect(file.status).toBe(409);
+    expect(file.body.error.message).toBe('This report failed to render: PDF rendering failed (503)');
   });
 
   it('keeps cost out of installer reports and asks scheduled reports for a recipient', async () => {
@@ -180,6 +202,62 @@ describe('/api/reports', () => {
     expect((await as('installer', request(app).delete(`/api/reports/${id}`))).status).toBe(403);
     expect((await as('owner', request(app).delete(`/api/reports/${id}`))).status).toBe(204);
     expect(await AuditEvent.countDocuments({ action: 'report.delete', target: `report:${id}` })).toBe(1);
+    expect(queued.at(-1)).toEqual({ name: 'unschedule', data: { reportId: id } });
     expect((await as('owner', request(app).delete(`/api/reports/${id}`))).status).toBe(404);
+  });
+});
+
+describe('/api/report-links (emailed, no sign-in)', () => {
+  const token = 'a'.repeat(43);
+  const hash = (t: string) => createHash('sha256').update(t).digest('hex');
+  const withRun = async (linkExpiresAt: Date) => {
+    const fileId = await putFile('september-energy-2026-09-01-to-2026-09-30.csv', Buffer.from('# Energy summary\n'), { siteId: String(siteId), kind: 'report', contentType: 'text/csv' });
+    return Report.create({
+      siteId,
+      createdBy: users.owner,
+      name: 'September energy',
+      from: '2026-09-01',
+      to: '2026-09-30',
+      sections: ['summary'],
+      format: 'csv',
+      schedule: 'monthly',
+      recipients: ['board@example.com'],
+      status: 'ready',
+      fileId,
+      lastRunAt: new Date(),
+      files: [{ runAt: new Date(), from: '2026-09-01', to: '2026-09-30', status: 'ready', fileId, tokenHash: hash(token), linkExpiresAt }],
+    });
+  };
+
+  it('downloads the run’s file while the link lasts', async () => {
+    const r = await withRun(new Date(Date.now() + 86_400_000));
+    const res = await request(app).get(`/api/report-links/${token}`);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/^text\/csv/);
+    expect(res.headers['content-disposition']).toBe('attachment; filename="september-energy-2026-09-01-to-2026-09-30.csv"');
+    expect(res.headers['cache-control']).toBe('private, no-store');
+    expect(res.text).toBe('# Energy summary\n');
+    const view = (await as('owner', request(app).get('/api/reports'))).body.items[0];
+    expect(view).toMatchObject({ status: 'ready', lastRange: { from: '2026-09-01', to: '2026-09-30' } });
+
+    // Removing the report removes its files, and the link stops working.
+    await as('owner', request(app).delete(`/api/reports/${r._id}`));
+    expect(await fileInfo(r.fileId!)).toBeNull();
+    expect((await request(app).get(`/api/report-links/${token}`)).status).toBe(404);
+  });
+
+  it('refuses expired, unknown and malformed links', async () => {
+    await withRun(new Date(Date.now() - 1000));
+    const expired = await request(app).get(`/api/report-links/${token}`);
+    expect(expired.status).toBe(410);
+    expect(expired.body.error.message).toBe('This link has expired. Ask the site for a new copy of the report.');
+    expect((await request(app).get(`/api/report-links/${'b'.repeat(43)}`)).status).toBe(404);
+    expect((await request(app).get('/api/report-links/short')).status).toBe(404);
+  });
+
+  it('keeps link tokens out of request logs', () => {
+    expect(logPath(`/api/report-links/${token}?x=1`)).toBe('/api/report-links/:token');
+    expect(logPath('/api/invites/abc/accept')).toBe('/api/invites/:token/accept');
+    expect(logPath('/api/reports/123/file?y=2')).toBe('/api/reports/123/file');
   });
 });

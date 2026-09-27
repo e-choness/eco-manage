@@ -453,7 +453,7 @@ const emailSchema = new Schema(
     key: { type: String, required: true },
     siteId: { type: ObjectId, ref: 'Site', required: true },
     userId: { type: ObjectId, ref: 'User', default: null },
-    kind: { type: String, enum: ['alert', 'escalation', 'daily', 'proposal', 'invite', 'export'], required: true },
+    kind: { type: String, enum: ['alert', 'escalation', 'daily', 'proposal', 'invite', 'export', 'report'], required: true },
     alertId: { type: ObjectId, ref: 'Alert', default: null },
     to: { type: String, required: true },
     subject: { type: String, required: true },
@@ -619,8 +619,23 @@ exportSchema.index({ status: 1, large: 1, emailedAt: 1 });
 export type ExportDoc = InferSchemaType<typeof exportSchema> & { _id: Types.ObjectId; createdAt: Date };
 export const Export = mongoose.model('Export', exportSchema, 'exports');
 
-// Report definitions from History → Create report. The reports worker (P5-01) renders them and
-// runs the schedules; until then a report is `waiting`.
+// Report definitions from History → Create report. The reports worker (P5-01) renders them: once
+// for a one-off, and on each run of a weekly or monthly schedule. `status`, `fileId` and
+// `lastRunAt` describe the latest run; `files` keeps the recent ones with their emailed link (only
+// the SHA-256 of its token is kept).
+const reportFileSchema = new Schema(
+  {
+    runAt: { type: Date, required: true },
+    from: { type: String, required: true },
+    to: { type: String, required: true },
+    status: { type: String, enum: ['ready', 'failed'], required: true },
+    fileId: { type: String, default: null },
+    error: { type: String, default: null },
+    tokenHash: { type: String, default: null },
+    linkExpiresAt: { type: Date, default: null },
+  },
+  { _id: false }
+);
 const reportSchema = new Schema(
   {
     siteId: { type: ObjectId, ref: 'Site', required: true },
@@ -636,10 +651,13 @@ const reportSchema = new Schema(
     status: { type: String, enum: ['waiting', 'ready', 'failed'], default: 'waiting' },
     fileId: { type: String, default: null },
     lastRunAt: { type: Date, default: null },
+    error: { type: String, default: null },
+    files: { type: [reportFileSchema], default: [] },
   },
   { timestamps: true }
 );
 reportSchema.index({ siteId: 1, createdAt: -1 });
+reportSchema.index({ 'files.tokenHash': 1 }, { sparse: true });
 export type ReportDoc = InferSchemaType<typeof reportSchema> & { _id: Types.ObjectId; createdAt: Date };
 export const Report = mongoose.model('Report', reportSchema, 'reports');
 
