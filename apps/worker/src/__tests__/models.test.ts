@@ -47,7 +47,7 @@ beforeEach(async () => {
   seen.length = 0
 })
 
-const queued = async (format = 'ifc') => {
+const queued = async (format: 'ifc' | 'fbx' = 'ifc') => {
   const key = `uploads/${siteId}/x/original.${format}`
   stored.set(key, { body: Buffer.from('ISO-10303-21;'), type: 'application/octet-stream' })
   return ModelUpload.create({ siteId, userId, originalName: `school.${format}`, format, bytes: 13, originalKey: key })

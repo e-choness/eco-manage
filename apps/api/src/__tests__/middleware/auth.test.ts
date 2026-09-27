@@ -1,3 +1,4 @@
+import type { Mocked, Mock } from 'vitest';
 /**
  * Auth Middleware Tests
  *
@@ -10,11 +11,11 @@ import * as authUtils from '../../utils/auth';
 import UserService from '../../modules/auth/userService';
 import mongoose from 'mongoose';
 
-jest.mock('../../utils/auth');
-jest.mock('../../modules/auth/userService');
+vi.mock('../../utils/auth');
+vi.mock('../../modules/auth/userService');
 
-const mockAuthUtils = authUtils as jest.Mocked<typeof authUtils>;
-const mockUserService = UserService as jest.Mocked<typeof UserService>;
+const mockAuthUtils = authUtils as Mocked<typeof authUtils>;
+const mockUserService = UserService as Mocked<typeof UserService>;
 
 describe('Auth Middleware', () => {
   const userId = new mongoose.Types.ObjectId();
@@ -26,7 +27,7 @@ describe('Auth Middleware', () => {
     createdAt: new Date(),
     lastLoginAt: new Date(),
     isActive: true,
-    toJSON: jest.fn(() => ({
+    toJSON: vi.fn(() => ({
       _id: userId,
       email: 'test@example.com',
       name: 'Test User',
@@ -35,21 +36,21 @@ describe('Auth Middleware', () => {
 
   let req: Partial<AuthenticatedRequest>;
   let res: Partial<Response>;
-  let next: jest.Mock;
+  let next: Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     req = {
       headers: {},
     } as any;
 
     res = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
     } as any;
 
-    next = jest.fn();
+    next = vi.fn();
   });
 
   describe('requireUser middleware', () => {

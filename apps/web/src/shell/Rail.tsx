@@ -7,7 +7,7 @@ import { navFor } from "./nav"
 import { useThemeToggle } from "./useThemeToggle"
 import { AvatarMenu } from "./AvatarMenu"
 
-const ICON_BUTTON = "relative flex h-[42px] w-[42px] items-center justify-center rounded-[11px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
+const ICON_BUTTON = "relative flex h-[42px] w-[42px] items-center justify-center rounded-[11px] outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
 
 // The 68 px icon rail (App v2). The Inbox badge counts what needs someone: decisions waiting
 // and open alerts. It is kept current by the stream's `inbox` events.

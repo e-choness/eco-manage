@@ -1,3 +1,4 @@
+import type { Types } from 'mongoose';
 import { NotificationPrefs, recordAudit, type NotificationPrefsDoc, type SiteDoc } from '@ecomanage/db';
 import { DEFAULT_NOTIFICATION_PREFS, type NotificationPrefs as Prefs, type NotificationPrefsPatch, type Role } from '@ecomanage/shared';
 import { HttpError } from '../../lib/http';
@@ -18,10 +19,10 @@ const toPrefs = (doc: NotificationPrefsDoc | null, fallbackEmail: string): Prefs
   escalateMin: doc?.escalateMin ?? DEFAULT_NOTIFICATION_PREFS.escalateMin,
 });
 
-export const getPrefs = async (site: SiteDoc, user: { _id: unknown; email: string }): Promise<Prefs> =>
+export const getPrefs = async (site: SiteDoc, user: { _id: Types.ObjectId | string; email: string }): Promise<Prefs> =>
   toPrefs(await NotificationPrefs.findOne({ userId: user._id, siteId: site._id }).lean<NotificationPrefsDoc>(), user.email);
 
-export const updatePrefs = async (site: SiteDoc, user: { _id: unknown; email: string }, role: Role, patch: NotificationPrefsPatch): Promise<Prefs> => {
+export const updatePrefs = async (site: SiteDoc, user: { _id: Types.ObjectId | string; email: string }, role: Role, patch: NotificationPrefsPatch): Promise<Prefs> => {
   if (patch.failures === false && ALWAYS_FAILURES.includes(role))
     throw new HttpError(422, { error: { code: 422, message: 'Command failure emails are always on for owners and managers' } });
   const before = await getPrefs(site, user);

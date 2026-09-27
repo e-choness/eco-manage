@@ -46,7 +46,7 @@ function Loaded({ r, tz, currency, role }: { r: RecommendationDetail; tz: string
 
   // Re-check 300 ms after the last slider move.
   useEffect(() => {
-    if (!changed) return setChecked(null)
+    if (!changed) return
     let live = true
     const t = setTimeout(() => {
       checkRecommendation(r.id, params)
@@ -59,11 +59,13 @@ function Loaded({ r, tz, currency, role }: { r: RecommendationDetail; tz: string
     }
   }, [params, changed, r.id])
 
-  const checks = checked?.checks ?? r.checks
-  const saving = checked?.expectedSavingCents ?? r.expectedSavingCents
-  const calc = checked?.calc ?? r.calc
+  // A check only counts while the settings still differ from the proposal.
+  const liveCheck = changed ? checked : null
+  const checks = liveCheck?.checks ?? r.checks
+  const saving = liveCheck?.expectedSavingCents ?? r.expectedSavingCents
+  const calc = liveCheck?.calc ?? r.calc
   const allPass = checks.every((c) => c.pass)
-  const settled = !changed || checked !== null
+  const settled = !changed || liveCheck !== null
   const cmd = command.data
   const span = `${clockAt(r.window.start, tz)}–${clockAt(r.window.end, tz)}`
 

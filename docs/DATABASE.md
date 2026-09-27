@@ -1,6 +1,6 @@
 # Database
 
-MongoDB 7, database `ecomanage`. `users`, `alerts` and `recommendations` are v1 collections keyed
+MongoDB 8, database `ecomanage`. `users`, `alerts` and `recommendations` are v1 collections keyed
 by user (their models are in `apps/api/src/modules/<module>/model.ts`; alerts and recommendations
 are replaced in Phases 2–3). Everything else belongs to a site; see
 [v2 collections](#v2-collections-packagesdb).

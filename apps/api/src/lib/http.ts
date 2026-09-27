@@ -1,4 +1,4 @@
-import { RequestHandler, Response } from 'express';
+import type { Request, RequestHandler, Response } from 'express';
 import { z } from 'zod';
 import { logger } from '../config/logger';
 import type { IUser } from '../modules/auth/model';
@@ -15,6 +15,12 @@ export class HttpError extends Error {
     super(String(body.message ?? body.error ?? status));
   }
 }
+
+/** A route parameter as one string (Express 5 types allow arrays, for wildcard segments). */
+export const paramOf = (req: Request, name: string): string => {
+  const v = req.params[name];
+  return Array.isArray(v) ? v.join('/') : (v ?? '');
+};
 
 /** A request path for logs: no query, and link tokens (invites, report links) left out. */
 export const logPath = (url: string): string => url.split('?')[0].replace(/^(\/api\/(?:invites|report-links)\/)[^/]+/, '$1:token');

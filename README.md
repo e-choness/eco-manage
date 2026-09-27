@@ -1,9 +1,9 @@
 # 🌱 EcoManage
 
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](./LICENSE)
-[![Node.js](https://img.shields.io/badge/Node.js-20-43853d?logo=node.js)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-18-61dafb?logo=react)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178c6?logo=typescript)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-24-43853d?logo=node.js)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178c6?logo=typescript)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker)](https://www.docker.com/)
 
 **Energy monitoring for a single site: production, consumption, devices, alerts and costs.**
@@ -81,7 +81,7 @@ apps/
   worker/     BullMQ jobs: interval costs, bills, statement PDFs, utility bill reading
   rules/      alert checks on every reading (opens and auto-resolves alerts)
   simulator/  simulated site + gateway (MQTT topics, commands, jobs, fault injection)
-  web/        React 18 + Vite + Tailwind + shadcn/ui client
+  web/        React 19 + Vite 8 + Tailwind 4 + Radix client
 packages/
   shared/     types, zod schemas, MQTT topics, units, sign rules, site-time and live helpers
   db/         Mongoose models for the v2 data model

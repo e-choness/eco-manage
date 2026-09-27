@@ -10,7 +10,7 @@ export const login = async (email: string, password: string): Promise<SessionUse
     const response = await api.post('/api/auth/login', { email, password });
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 
@@ -23,7 +23,7 @@ export const updateProfile = async (data: { name?: string; theme?: "dark" | "lig
     const response = await api.put('/api/auth/profile', data);
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 
@@ -36,7 +36,7 @@ export const changePassword = async (currentPassword: string, newPassword: strin
     const response = await api.put('/api/auth/password', { currentPassword, newPassword });
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 
@@ -48,6 +48,6 @@ export const logout = async () => {
   try {
     return await api.post('/api/auth/logout');
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };

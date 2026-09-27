@@ -13,7 +13,7 @@ class UserService {
       return await User.find();
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      throw new Error(`Database error while listing users: ${error.message}`);
+      throw new Error(`Database error while listing users: ${error.message}`, { cause: err });
     }
   }
 
@@ -22,7 +22,7 @@ class UserService {
       return await User.findOne({ _id: id }).exec();
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      throw new Error(`Database error while getting the user by their ID: ${error.message}`);
+      throw new Error(`Database error while getting the user by their ID: ${error.message}`, { cause: err });
     }
   }
 
@@ -31,7 +31,7 @@ class UserService {
       return await User.findOne({ email }).exec();
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      throw new Error(`Database error while getting the user by their email: ${error.message}`);
+      throw new Error(`Database error while getting the user by their email: ${error.message}`, { cause: err });
     }
   }
 
@@ -40,7 +40,7 @@ class UserService {
       return await User.findOneAndUpdate({ _id: id }, data, { new: true, upsert: false });
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      throw new Error(`Database error while updating user ${id}: ${error.message}`);
+      throw new Error(`Database error while updating user ${id}: ${error.message}`, { cause: err });
     }
   }
 
@@ -50,7 +50,7 @@ class UserService {
       return result.deletedCount === 1;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      throw new Error(`Database error while deleting user ${id}: ${error.message}`);
+      throw new Error(`Database error while deleting user ${id}: ${error.message}`, { cause: err });
     }
   }
 
@@ -70,7 +70,7 @@ class UserService {
       return updatedUser;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      throw new Error(`Database error while authenticating user ${email} with password: ${error.message}`);
+      throw new Error(`Database error while authenticating user ${email} with password: ${error.message}`, { cause: err });
     }
   }
 
@@ -94,7 +94,7 @@ class UserService {
       return user;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      throw new Error(`Database error while creating new user: ${error.message}`);
+      throw new Error(`Database error while creating new user: ${error.message}`, { cause: err });
     }
   }
 
@@ -110,7 +110,7 @@ class UserService {
       return user;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      throw new Error(`Database error while setting user password: ${error.message}`);
+      throw new Error(`Database error while setting user password: ${error.message}`, { cause: err });
     }
   }
 }

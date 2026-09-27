@@ -148,7 +148,7 @@ describe('Bills', () => {
   it('shows the 12-month figures, every bill as bars and rows, and the open period', async () => {
     setup('manager')
     const figures = await screen.findByRole('list', { name: 'Bill figures' })
-    expect(within(figures).getAllByRole('listitem').map((c) => c.textContent)).toEqual([
+    expect((await within(figures).findAllByRole('listitem')).map((c) => c.textContent)).toEqual([
       'Last 12 months$5,500Jul 2026 – Aug 2026',
       'Saved, last 12 months$300vs buying all energy from the grid',
       'Highest demand, last 12 months120 kWJul 2026 · $1,920 demand charge',

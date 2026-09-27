@@ -145,7 +145,7 @@ function Commission({ deviceId }: { deviceId: string }) {
         </p>
       ) : null}
       {result?.ok ? null : (
-        <button type="button" onClick={() => void run()} disabled={running} className="h-[34px] self-start rounded-lg bg-[#3ecf8e] px-3.5 text-[13px] font-semibold text-[#06140d] disabled:opacity-70">
+        <button type="button" onClick={() => void run()} disabled={running} className="h-[34px] self-start rounded-lg bg-flow-bat px-3.5 text-[13px] font-semibold text-[#06140d] disabled:opacity-70">
           {running ? "Checking…" : "Commission"}
         </button>
       )}
@@ -187,7 +187,7 @@ function Maintenance({ deviceId, entries, canLog, tz }: { deviceId: string; entr
         <form onSubmit={save} className="flex flex-col gap-2">
           <label className="flex flex-col gap-1 text-xs text-app-sb">
             What was done
-            <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} maxLength={500} autoFocus className="rounded-lg border border-app-ln bg-app-bg px-2.5 py-2 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} maxLength={500} autoFocus className="rounded-lg border border-app-ln bg-app-bg px-2.5 py-2 text-[13px] text-app-tx outline-hidden focus-visible:ring-2 focus-visible:ring-ring" />
           </label>
           {error ? (
             <p role="alert" className="m-0 text-xs text-tag-hp">

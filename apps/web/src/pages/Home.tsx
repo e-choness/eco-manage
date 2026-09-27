@@ -150,7 +150,7 @@ function Battery({ snap }: { snap: SiteSnapshot }) {
       </div>
       <div className="flex gap-[3px]" aria-hidden>
         {[0, 1, 2, 3, 4].map((i) => (
-          <span key={i} className={`h-1.5 flex-1 rounded-sm ${i < lit ? "bg-[#3ecf8e]" : "bg-app-tr"}`} />
+          <span key={i} className={`h-1.5 flex-1 rounded-sm ${i < lit ? "bg-flow-bat" : "bg-app-tr"}`} />
         ))}
       </div>
       <div className="text-xs text-app-sb">{text}</div>

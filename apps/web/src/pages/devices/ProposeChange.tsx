@@ -6,7 +6,7 @@ import { proposeChange } from "@/api/devices"
 import { useToast } from "@/hooks/useToast"
 
 const MIN = 60_000
-const input = "h-9 rounded-lg border border-app-ln bg-app-bg px-2.5 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring"
+const input = "h-9 rounded-lg border border-app-ln bg-app-bg px-2.5 text-[13px] text-app-tx outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
 
 const label = (id: string) => id.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())
 

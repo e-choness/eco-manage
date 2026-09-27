@@ -146,7 +146,7 @@ describe('forecastSite and scoring', () => {
   beforeEach(async () => {
     await Promise.all([Site.deleteMany({}), Device.deleteMany({}), Interval15.deleteMany({}), Forecast.deleteMany({}), Calendar.deleteMany({})])
     await Site.create({ _id: siteId, name: 'Maple Grove School', tz: TZ, lat: DEMO_SITE.lat, lon: DEMO_SITE.lon, pvArrays: demoArrays.map((a, i) => ({ id: `a${i}`, name: `Roof ${i}`, ...a })) })
-    await Device.create(inverters.map((d) => ({ _id: d.id, siteId, type: 'pv', name: d.name, ratedKw: d.ratedKw, status: 'live' })))
+    await Device.insertMany(inverters.map((d) => ({ _id: d.id, siteId, type: 'pv' as const, name: d.name, ratedKw: d.ratedKw, status: 'live' as const })))
   })
 
   const intervalsFor = (days: number, kw = 40) =>

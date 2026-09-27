@@ -16,16 +16,17 @@
   },
   "license": "UNLICENSED",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/client-s3": "^3.1141.0",
     "@ecomanage/shared": "workspace:*"
   },
   "peerDependencies": {
-    "mongoose": "^8.1.1"
+    "mongoose": "^9.10.2"
   },
   "devDependencies": {
-    "eslint": "^9.13.0",
-    "mongoose": "^8.1.1",
-    "typescript": "~5.6.2",
-    "vitest": "^1.6.1"
+    "@types/node": "^24.19.0",
+    "eslint": "^10.11.0",
+    "mongoose": "^9.10.2",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.2"
   }
 }

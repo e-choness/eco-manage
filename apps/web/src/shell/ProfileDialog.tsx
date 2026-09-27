@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react"
+import { useState, type FormEvent } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -16,13 +16,6 @@ export function ProfileDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [name, setName] = useState(user?.name ?? "")
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    if (open) {
-      setName(user?.name ?? "")
-      setError("")
-    }
-  }, [open, user?.name])
 
   const [pw, setPw] = useState({ current: "", next: "", message: "", error: "" })
   const changePw = async (e: FormEvent) => {

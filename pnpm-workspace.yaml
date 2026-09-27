@@ -1,3 +1,19 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# Supply chain (pnpm 12): packages newer than a day are refused (the default minimumReleaseAge),
+# and dependencies may run install scripts only when listed here.
+allowBuilds:
+  esbuild: true # its binary check; tsx, vite and vitest use it
+  # Optional extras we don't need: a native canvas for jsdom, msgpack speed-ups, msw's worker copy.
+  canvas: false
+  msgpackr-extract: false
+  msw: false
+  '@parcel/watcher': false # file watching; not used
+
+overrides:
+  # @types/multer accepts any Express types; keep a single (Express 5) copy.
+  '@types/express': ^5.0.6
+  # exceljs (latest) still asks for uuid 8; 11 keeps the CommonJS API it uses and has the fix.
+  exceljs>uuid: ^11.1.1

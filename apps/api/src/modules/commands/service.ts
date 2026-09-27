@@ -9,7 +9,7 @@ import { HttpError } from '../../lib/http';
 // command already on its way, asks for the revert, which the rules service sends.
 
 const fail = (status: number, message: string) => new HttpError(status, { error: { code: status, message } });
-const ACTIVE = ['created', 'sent', 'acked', 'verified'];
+const ACTIVE: CommandDoc['status'][] = ['created', 'sent', 'acked', 'verified'];
 
 const iso = (d: Date | null | undefined) => d?.toISOString() ?? null;
 

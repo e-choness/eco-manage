@@ -3,9 +3,9 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "pnpm@12.6.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "scripts": {
     "build": "pnpm -r build",
@@ -23,13 +23,13 @@
     "client-install": "pnpm install"
   },
   "devDependencies": {
-    "@eslint/js": "^9.13.0",
-    "eslint": "^9.13.0",
-    "eslint-plugin-react-hooks": "^5.0.0",
-    "eslint-plugin-react-refresh": "^0.4.14",
-    "globals": "^15.11.0",
-    "typescript": "~5.6.2",
-    "typescript-eslint": "^8.11.0"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.12.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.1"
   },
   "license": "UNLICENSED"
 }

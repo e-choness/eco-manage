@@ -1,13 +1,14 @@
 import fs from "fs"
 import path from "path"
 import react from "@vitejs/plugin-react"
+import tailwindcss from "@tailwindcss/vite"
 import { defineConfig, type Plugin } from "vite"
 
 // three.js decoders for uploaded site models (P5-02): Draco meshes and KTX2 (Basis) textures.
 // Served at /decoders/… in development and copied into the build, so nothing loads from a
 // third-party CDN.
 const DECODERS: Record<string, string> = { draco: "three/examples/jsm/libs/draco/gltf", basis: "three/examples/jsm/libs/basis" }
-const decoderDir = (lib: string) => path.resolve(__dirname, "node_modules", DECODERS[lib])
+const decoderDir = (lib: string) => path.resolve(import.meta.dirname, "node_modules", DECODERS[lib])
 
 function threeDecoders(): Plugin {
   return {
@@ -30,10 +31,10 @@ function threeDecoders(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), threeDecoders()],
+  plugins: [react(), tailwindcss(), threeDecoders()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   server: {

@@ -253,7 +253,7 @@ export function Settings() {
               >
                 Discard
               </button>
-              <button type="button" disabled={saving || !dirty.length} onClick={() => void save()} className="h-[34px] rounded-lg bg-[#3ecf8e] px-4 text-[13px] font-semibold text-[#06140d] disabled:opacity-60">
+              <button type="button" disabled={saving || !dirty.length} onClick={() => void save()} className="h-[34px] rounded-lg bg-flow-bat px-4 text-[13px] font-semibold text-[#06140d] disabled:opacity-60">
                 {saving ? "Saving…" : "Save changes"}
               </button>
             </span>

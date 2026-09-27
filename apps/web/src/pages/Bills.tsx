@@ -13,7 +13,7 @@ import { BillPanel } from "./bills/BillPanel"
 import { monthLabel, utilityStatus } from "./bills/labels"
 
 const card = "rounded-[14px] border border-app-l2 bg-app-ps"
-const field = "h-[34px] rounded-lg border border-app-ln bg-app-bg px-2.5 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring"
+const field = "h-[34px] rounded-lg border border-app-ln bg-app-bg px-2.5 text-[13px] text-app-tx outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
 
 /**
  * App v2 Bills (owners and managers): the last 12 months at a glance, every bill as a chart and a
@@ -105,13 +105,13 @@ export function Bills() {
                 <span
                   className={cn(
                     "flex w-full flex-col-reverse overflow-hidden rounded-t-[3px] outline-offset-2",
-                    b.period === selected?.period ? "outline outline-2 outline-app-tx" : b.inProgress ? "outline-dashed outline-[1.5px] outline-app-sb" : "opacity-80"
+                    b.period === selected?.period ? "outline-solid outline-2 outline-app-tx" : b.inProgress ? "outline-dashed outline-[1.5px] outline-app-sb" : "opacity-80"
                   )}
                   style={{ height: `${Math.max(2, (b.totalCents / maxTotal) * 128)}px` }}
                 >
-                  <span className="block min-h-0 bg-[#5b9dff]" style={{ flex: `${Math.max(0, energy)} 1 0` }} />
-                  <span className="block min-h-0 bg-[#b48cff]" style={{ flex: `${Math.max(0, b.lines.demandCents)} 1 0` }} />
-                  <span className="block min-h-0 bg-[#9aa7bd]" style={{ flex: `${Math.max(0, b.lines.fixedCents)} 1 0` }} />
+                  <span className="block min-h-0 bg-flow-grid" style={{ flex: `${Math.max(0, energy)} 1 0` }} />
+                  <span className="block min-h-0 bg-flow-ev" style={{ flex: `${Math.max(0, b.lines.demandCents)} 1 0` }} />
+                  <span className="block min-h-0 bg-flow-gw" style={{ flex: `${Math.max(0, b.lines.fixedCents)} 1 0` }} />
                 </span>
                 <span className="h-3 whitespace-nowrap text-center font-mono text-[10px] text-app-dm">
                   {month % 3 === 1 || i === 0 ? `${monthLabel(b.period).slice(0, 3)}${month === 1 || i === 0 ? ` ${b.period.slice(2, 4)}` : ""}` : ""}

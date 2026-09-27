@@ -60,7 +60,7 @@ function FlowLabel({ k, flow, at }: { k: FlowKey | "building"; flow: SceneFlow; 
   return (
     <div
       data-testid={`scene-label-${k}`}
-      className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg border border-app-ln bg-app-pn px-2.5 py-1.5 backdrop-blur"
+      className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg border border-app-ln bg-app-pn px-2.5 py-1.5 backdrop-blur-sm"
       style={{ left: `${at.x}%`, top: `${at.y}%` }}
     >
       <div className="flex items-center gap-1.5 text-[11px] tracking-[.02em] text-app-sb">

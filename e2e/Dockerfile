@@ -1,5 +1,5 @@
 # Playwright with browsers preinstalled; the version must match @playwright/test in package.json.
-FROM mcr.microsoft.com/playwright:v1.49.0-noble
+FROM mcr.microsoft.com/playwright:v1.63.0-noble
 
 WORKDIR /tests
 COPY package.json ./

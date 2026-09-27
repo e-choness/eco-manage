@@ -30,7 +30,7 @@ export function Timeline({ steps, current }: { steps: [string, string][]; curren
       <ol className="m-0 flex list-none flex-col gap-2 p-0">
         {steps.map(([label, time], i) => (
           <li key={`${label}${i}`} data-state={i < current ? "done" : i === current ? "now" : "next"} className={cn("grid grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-2.5 text-[13px]", i <= current ? "text-app-tx" : "text-app-dm")}>
-            <span className={cn("h-2.5 w-2.5 rounded-full", i < current ? "bg-[#3ecf8e]" : i === current ? "bg-[#f2b33d]" : "bg-app-tr")} aria-hidden />
+            <span className={cn("h-2.5 w-2.5 rounded-full", i < current ? "bg-flow-bat" : i === current ? "bg-[#f2b33d]" : "bg-app-tr")} aria-hidden />
             <span>{label}</span>
             <span className="text-xs text-app-dm">{time}</span>
           </li>
@@ -47,7 +47,7 @@ export function Btn({ children, onClick, primary, disabled, title }: { children:
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={cn("h-[34px] rounded-lg px-3.5 text-[13px] font-medium disabled:cursor-not-allowed disabled:opacity-45", primary ? "bg-[#3ecf8e] font-semibold text-[#06140d]" : "border border-app-ln text-app-tx")}
+      className={cn("h-[34px] rounded-lg px-3.5 text-[13px] font-medium disabled:cursor-not-allowed disabled:opacity-45", primary ? "bg-flow-bat font-semibold text-[#06140d]" : "border border-app-ln text-app-tx")}
     >
       {children}
     </button>

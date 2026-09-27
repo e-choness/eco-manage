@@ -22,6 +22,8 @@ export function AvatarMenu() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [profileOpen, setProfileOpen] = useState(false)
+  // A new key each time it opens, so the form starts from the saved name.
+  const [profileKey, setProfileKey] = useState(0)
   if (!user) return null
   const who = user.name || user.email
 
@@ -40,7 +42,7 @@ export function AvatarMenu() {
         <DropdownMenuTrigger
           aria-label={`Account: ${who}${roleLabel ? `, ${roleLabel}` : ""}`}
           title={`${who}${roleLabel ? ` · ${roleLabel}` : ""}`}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-app-ch text-xs font-semibold text-tag-grid outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-app-ch text-xs font-semibold text-tag-grid outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
         >
           {initialsOf(user.name, user.email)}
         </DropdownMenuTrigger>
@@ -55,7 +57,12 @@ export function AvatarMenu() {
             ) : null}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => setProfileOpen(true)}>
+          <DropdownMenuItem
+            onSelect={() => {
+              setProfileKey((k) => k + 1)
+              setProfileOpen(true)
+            }}
+          >
             <UserRound className="mr-2 h-4 w-4" aria-hidden />
             Profile
           </DropdownMenuItem>
@@ -65,7 +72,7 @@ export function AvatarMenu() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+      <ProfileDialog key={profileKey} open={profileOpen} onOpenChange={setProfileOpen} />
     </>
   )
 }

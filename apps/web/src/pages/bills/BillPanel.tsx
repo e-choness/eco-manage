@@ -201,7 +201,7 @@ function Utility({ bill, currency, canUpload }: { bill: BillSummary; currency: s
         <form onSubmit={enter} className="flex items-end gap-2">
           <label className="flex flex-col gap-1 text-xs text-app-sb">
             Total on the utility bill
-            <input value={total} onChange={(e) => setTotal(e.target.value)} inputMode="decimal" placeholder="3418.20" className="h-9 w-40 rounded-lg border border-app-ln bg-app-ps px-2.5 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            <input value={total} onChange={(e) => setTotal(e.target.value)} inputMode="decimal" placeholder="3418.20" className="h-9 w-40 rounded-lg border border-app-ln bg-app-ps px-2.5 text-[13px] text-app-tx outline-hidden focus-visible:ring-2 focus-visible:ring-ring" />
           </label>
           <button type="submit" className={button}>
             Save

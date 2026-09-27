@@ -135,7 +135,7 @@ const setup = (role: Role) => {
 describe('History', () => {
   it('shows the range, totals, the chart with estimated bars, and warnings', async () => {
     setup('manager')
-    expect(await screen.findByTestId('range-text')).toHaveTextContent('22–24 Sep 2026 · 3 days · daily')
+    await waitFor(() => expect(screen.getByTestId('range-text')).toHaveTextContent('22–24 Sep 2026 · 3 days · daily'))
     expect(screen.getByRole('note')).toHaveTextContent('No data after today.')
     const cards = within(screen.getByRole('list', { name: 'Totals' })).getAllByRole('listitem')
     expect(cards.map((c) => c.textContent)).toEqual([

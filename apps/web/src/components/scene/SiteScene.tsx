@@ -25,10 +25,13 @@ export function SiteScene({ model, flows, theme, view, safeLeft, safeRight, shif
   const handle = useRef<SceneHandle | null>(null)
   const latest = useRef(flows)
   const pick = useRef(onPick)
-  pick.current = onPick
   const picking = !!onPick
-  latest.current = flows
   const [flat, setFlat] = useState(() => !hasWebGL())
+  // The newest flows and pick handler, for the scene built below (refs are written after render).
+  useEffect(() => {
+    pick.current = onPick
+    latest.current = flows
+  })
 
   // (Re)build when the look or the model changes; flows update in place below.
   useEffect(() => {

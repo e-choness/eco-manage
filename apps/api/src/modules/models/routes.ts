@@ -1,7 +1,7 @@
 import { Router, type RequestHandler } from 'express';
 import multer from 'multer';
 import { MODEL_MAX_BYTES } from '@ecomanage/shared';
-import { handle, userIdOf } from '../../lib/http';
+import { handle, userIdOf, paramOf } from '../../lib/http';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import { requireRole } from '../../middleware/roles';
 import { createUpload, deleteUpload, getUpload, listUploads, useUpload, type UploadDeps } from './service';
@@ -46,7 +46,7 @@ export default function modelUploadRoutes(deps: UploadDeps): Router {
     '/:id',
     ...requireRole('owner', 'manager', 'installer'),
     handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
-      res.json(await getUpload(req.site!, req.params.id));
+      res.json(await getUpload(req.site!, paramOf(req, 'id')));
     })
   );
 
@@ -54,7 +54,7 @@ export default function modelUploadRoutes(deps: UploadDeps): Router {
     '/:id/use',
     ...editors,
     handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
-      res.json(await useUpload(req.site!, userIdOf(req), req.params.id));
+      res.json(await useUpload(req.site!, userIdOf(req), paramOf(req, 'id')));
     })
   );
 
@@ -62,7 +62,7 @@ export default function modelUploadRoutes(deps: UploadDeps): Router {
     '/:id',
     ...editors,
     handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
-      await deleteUpload(deps, req.site!, userIdOf(req), req.params.id);
+      await deleteUpload(deps, req.site!, userIdOf(req), paramOf(req, 'id'));
       res.status(204).end();
     })
   );

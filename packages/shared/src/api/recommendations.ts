@@ -40,12 +40,12 @@ const window = z
 
 /** POST /api/recommendations: a manual request from the Devices page. */
 export const manualRecommendationBody = z
-  .object({ deviceId: z.string().min(1), action: z.string().min(1), params: z.record(z.unknown()).default({}), window })
+  .object({ deviceId: z.string().min(1), action: z.string().min(1), params: z.record(z.string(), z.unknown()).default({}), window })
   .strict();
 export type ManualRecommendationBody = z.infer<typeof manualRecommendationBody>;
 
 /** POST /:id/check and /:id/approve: the action as adjusted in the Inbox (e.g. the kW slider). */
-export const adjustRecommendationBody = z.object({ params: z.record(z.unknown()).optional() }).strict();
+export const adjustRecommendationBody = z.object({ params: z.record(z.string(), z.unknown()).optional() }).strict();
 
 export const declineRecommendationBody = z.object({ reason: z.string().trim().min(3, 'Say why, so the rule can be tuned').max(500) }).strict();
 

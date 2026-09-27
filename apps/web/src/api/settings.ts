@@ -28,7 +28,7 @@ const call = async <T>(p: Promise<{ data: T }>): Promise<T> => {
   try {
     return (await p).data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 
@@ -61,7 +61,7 @@ export const createTariff = async (input: TariffInput): Promise<TariffVersion> =
   } catch (error) {
     const issues = axios.isAxiosError(error) ? (error.response?.data as { error?: { details?: { issues?: TariffIssue[] } } })?.error?.details?.issues : undefined;
     if (issues?.length) throw new TariffRejected(issues);
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 

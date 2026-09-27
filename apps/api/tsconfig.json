@@ -1,11 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    },
-    "types": ["node", "jest"],
+    "types": ["node", "vitest/globals"],
     "sourceMap": true
   },
   "include": ["src/**/*"],

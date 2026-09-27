@@ -16,24 +16,24 @@
   "dependencies": {
     "@ecomanage/db": "workspace:*",
     "@ecomanage/shared": "workspace:*",
-    "bullmq": "^5.21.0",
+    "bullmq": "^6.3.9",
     "exceljs": "^4.4.0",
-    "ioredis": "^5.4.1",
-    "mongoose": "^8.1.1",
-    "nodemailer": "^6.9.16",
-    "pdfkit": "^0.15.0",
-    "pino": "^9.5.0",
-    "tsx": "^4.7.0",
-    "unpdf": "^0.12.1",
-    "zod": "^3.23.8"
+    "ioredis": "^6.0.0",
+    "mongoose": "^9.10.2",
+    "nodemailer": "^10.0.10",
+    "pdfkit": "^0.20.2",
+    "pino": "^10.3.1",
+    "tsx": "^4.23.15",
+    "unpdf": "^1.8.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@ecomanage/simulator": "workspace:*",
-    "@types/node": "^20.11.5",
-    "@types/nodemailer": "^6.4.17",
-    "@types/pdfkit": "^0.13.5",
-    "eslint": "^9.13.0",
-    "typescript": "~5.6.2",
-    "vitest": "^1.6.1"
+    "@types/node": "^24.19.0",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pdfkit": "^0.17.6",
+    "eslint": "^10.11.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.2"
   }
 }

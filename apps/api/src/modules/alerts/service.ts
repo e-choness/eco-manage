@@ -50,7 +50,7 @@ const deviceOf = (site: SiteDoc, deviceId: string | null) =>
 const fixesOf = (device: DeviceDoc | null) => (device?.profileId ? (getProfile(device.profileId)?.fixes ?? []) : []);
 
 export const listAlerts = async (site: SiteDoc, q: { state: 'open' | 'closed'; limit: number; before?: Date }) => {
-  const states = q.state === 'open' ? ['open', 'ack'] : ['resolved'];
+  const states: AlertDoc['state'][] = q.state === 'open' ? ['open', 'ack'] : ['resolved'];
   const filter = { siteId: site._id, state: { $in: states }, ...(q.before ? { openedAt: { $lt: q.before } } : {}) };
   const [docs, open, closed] = await Promise.all([
     Alert.find(filter).sort({ openedAt: -1, _id: -1 }).limit(Math.min(q.limit, PAGE_MAX)).lean<AlertDoc[]>(),

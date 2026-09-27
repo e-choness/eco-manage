@@ -1,4 +1,4 @@
-import mongoose, { type FilterQuery } from 'mongoose';
+import mongoose, { type QueryFilter } from 'mongoose';
 import { Alert, Command, Device, Recommendation, type AlertDoc, type CommandDoc, type DeviceDoc, type RecommendationDoc, type SiteDoc } from '@ecomanage/db';
 import {
   INBOX_TYPES,
@@ -61,7 +61,7 @@ export const inboxCounts = async (site: SiteDoc): Promise<InboxCounts> => {
 /** Items of one source up to the cursor time, newest first. */
 const fetchSource = (site: SiteDoc, type: InboxType, state: State, before: Date | null, limit: number) => {
   const at = AT[type];
-  const filter: FilterQuery<unknown> = { siteId: site._id, ...FILTERS[type][state], ...(before ? { [at]: { $lte: before } } : {}) };
+  const filter: QueryFilter<unknown> = { siteId: site._id, ...FILTERS[type][state], ...(before ? { [at]: { $lte: before } } : {}) };
   // Items sharing the cursor's exact time are sorted out after merging, hence the spare rows.
   return modelOf(type)
     .find(filter)

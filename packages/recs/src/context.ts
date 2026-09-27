@@ -24,7 +24,7 @@ import { currentDemand } from './demand';
 
 // Loads a site's state for the recommendation rules at one quarter hour.
 
-const OPEN_COMMANDS = ['created', 'sent', 'acked'];
+const OPEN_COMMANDS: CommandDoc['status'][] = ['created', 'sent', 'acked'];
 
 const parse = <T>(raw: string | null): T | null => {
   if (!raw) return null;

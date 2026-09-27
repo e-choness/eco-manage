@@ -1,0 +1,52 @@
+# Weekly update PRs. Each waits two days after a release (pnpm itself refuses packages under a
+# day old); minor and patch updates come grouped, majors one by one.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 2
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # typescript-eslint and the rest of the toolchain support TypeScript below 6.1 for now.
+      - dependency-name: typescript
+        versions: [">=6.1"]
+      # Node types follow the Node version in the images (24 LTS).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 2
+    groups:
+      e2e:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directories: [/, /apps/modelconv, /e2e]
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 2
+
+  - package-ecosystem: docker-compose
+    directory: /infra
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 2
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 2

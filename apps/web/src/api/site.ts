@@ -9,6 +9,6 @@ export const getSnapshot = async (): Promise<SiteSnapshot> => {
     const response = await api.get('/api/site/snapshot');
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };

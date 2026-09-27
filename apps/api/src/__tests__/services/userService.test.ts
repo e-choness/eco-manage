@@ -1,3 +1,4 @@
+import type { Mocked, Mock } from 'vitest';
 /**
  * User Service Tests
  *
@@ -9,20 +10,20 @@ import UserService from '../../modules/auth/userService';
 import * as passwordUtils from '../../utils/password';
 
 // Mock User model
-jest.mock('../../modules/auth/model');
+vi.mock('../../modules/auth/model');
 // Mock password utilities
-jest.mock('../../utils/password');
+vi.mock('../../utils/password');
 
 import User from '../../modules/auth/model';
 
 const mockUser = User as unknown as {
-  findOne: jest.Mock;
-  find: jest.Mock;
-  findOneAndUpdate: jest.Mock;
-  deleteOne: jest.Mock;
+  findOne: Mock;
+  find: Mock;
+  findOneAndUpdate: Mock;
+  deleteOne: Mock;
   prototype: any;
 };
-const mockPasswordUtils = passwordUtils as jest.Mocked<typeof passwordUtils>;
+const mockPasswordUtils = passwordUtils as Mocked<typeof passwordUtils>;
 
 describe('UserService', () => {
   const userId = new mongoose.Types.ObjectId();
@@ -35,8 +36,8 @@ describe('UserService', () => {
     lastLoginAt: new Date(),
     isActive: true,
     refreshToken: 'some-token-123',
-    save: jest.fn(),
-    toJSON: jest.fn(() => ({
+    save: vi.fn(),
+    toJSON: vi.fn(() => ({
       _id: userId,
       email: 'test@example.com',
       name: 'Test User',
@@ -47,7 +48,7 @@ describe('UserService', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockPasswordUtils.generatePasswordHash.mockResolvedValue('hashed-password');
     mockPasswordUtils.validatePassword.mockResolvedValue(true);
   });
@@ -55,9 +56,9 @@ describe('UserService', () => {
   describe('create', () => {
     it('should create a new user with valid input', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
+        exec: vi.fn().mockResolvedValue(null),
       });
-      mockUser.prototype.save = jest.fn().mockResolvedValue(mockUserData);
+      mockUser.prototype.save = vi.fn().mockResolvedValue(mockUserData);
 
       const result = await UserService.create({
         email: 'newuser@example.com',
@@ -71,7 +72,7 @@ describe('UserService', () => {
 
     it('should throw error if email already exists', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockUserData),
+        exec: vi.fn().mockResolvedValue(mockUserData),
       });
 
       await expect(
@@ -102,9 +103,9 @@ describe('UserService', () => {
 
     it('should create user with default name if not provided', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
+        exec: vi.fn().mockResolvedValue(null),
       });
-      mockUser.prototype.save = jest.fn().mockResolvedValue(mockUserData);
+      mockUser.prototype.save = vi.fn().mockResolvedValue(mockUserData);
 
       await UserService.create({
         email: 'newuser@example.com',
@@ -118,7 +119,7 @@ describe('UserService', () => {
   describe('get', () => {
     it('should return user by id', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockUserData),
+        exec: vi.fn().mockResolvedValue(mockUserData),
       });
 
       const result = await UserService.get(userId.toString());
@@ -129,7 +130,7 @@ describe('UserService', () => {
 
     it('should return null if user not found', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
+        exec: vi.fn().mockResolvedValue(null),
       });
 
       const result = await UserService.get('nonexistent-id');
@@ -139,7 +140,7 @@ describe('UserService', () => {
 
     it('should throw error on database error', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockRejectedValue(new Error('Database connection error')),
+        exec: vi.fn().mockRejectedValue(new Error('Database connection error')),
       });
 
       await expect(UserService.get(userId.toString())).rejects.toThrow(
@@ -151,7 +152,7 @@ describe('UserService', () => {
   describe('getByEmail', () => {
     it('should return user by email', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockUserData),
+        exec: vi.fn().mockResolvedValue(mockUserData),
       });
 
       const result = await UserService.getByEmail('test@example.com');
@@ -162,7 +163,7 @@ describe('UserService', () => {
 
     it('should return null if email not found', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
+        exec: vi.fn().mockResolvedValue(null),
       });
 
       const result = await UserService.getByEmail('notfound@example.com');
@@ -172,7 +173,7 @@ describe('UserService', () => {
 
     it('should throw error on database error', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockRejectedValue(new Error('Database error')),
+        exec: vi.fn().mockRejectedValue(new Error('Database error')),
       });
 
       await expect(UserService.getByEmail('test@example.com')).rejects.toThrow(
@@ -242,7 +243,7 @@ describe('UserService', () => {
   describe('delete', () => {
     it('should delete user successfully', async () => {
       mockUser.deleteOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+        exec: vi.fn().mockResolvedValue({ deletedCount: 1 }),
       });
 
       const result = await UserService.delete(userId.toString());
@@ -253,7 +254,7 @@ describe('UserService', () => {
 
     it('should return false if user not found', async () => {
       mockUser.deleteOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue({ deletedCount: 0 }),
+        exec: vi.fn().mockResolvedValue({ deletedCount: 0 }),
       });
 
       const result = await UserService.delete('nonexistent-id');
@@ -263,7 +264,7 @@ describe('UserService', () => {
 
     it('should throw error on database error', async () => {
       mockUser.deleteOne.mockReturnValue({
-        exec: jest.fn().mockRejectedValue(new Error('Delete failed')),
+        exec: vi.fn().mockRejectedValue(new Error('Delete failed')),
       });
 
       await expect(UserService.delete(userId.toString())).rejects.toThrow(
@@ -274,9 +275,9 @@ describe('UserService', () => {
 
   describe('authenticateWithPassword', () => {
     it('should authenticate user with correct password', async () => {
-      const userWithSave = { ...mockUserData, save: jest.fn().mockResolvedValue(mockUserData) };
+      const userWithSave = { ...mockUserData, save: vi.fn().mockResolvedValue(mockUserData) };
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(userWithSave),
+        exec: vi.fn().mockResolvedValue(userWithSave),
       });
       mockPasswordUtils.validatePassword.mockResolvedValue(true);
 
@@ -291,7 +292,7 @@ describe('UserService', () => {
 
     it('should return null if password is incorrect', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockUserData),
+        exec: vi.fn().mockResolvedValue(mockUserData),
       });
       mockPasswordUtils.validatePassword.mockResolvedValue(false);
 
@@ -302,7 +303,7 @@ describe('UserService', () => {
 
     it('should return null if user not found', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
+        exec: vi.fn().mockResolvedValue(null),
       });
 
       const result = await UserService.authenticateWithPassword('notfound@example.com', 'password123');
@@ -324,7 +325,7 @@ describe('UserService', () => {
 
     it('should update lastLoginAt on successful authentication', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockUserData),
+        exec: vi.fn().mockResolvedValue(mockUserData),
       });
       mockPasswordUtils.validatePassword.mockResolvedValue(true);
 
@@ -335,7 +336,7 @@ describe('UserService', () => {
 
     it('should throw error on database error', async () => {
       mockUser.findOne.mockReturnValue({
-        exec: jest.fn().mockRejectedValue(new Error('Database error')),
+        exec: vi.fn().mockRejectedValue(new Error('Database error')),
       });
 
       await expect(
@@ -356,7 +357,7 @@ describe('UserService', () => {
     });
 
     it('should not save if user is new', async () => {
-      const user = { ...mockUserData, isNew: true, save: jest.fn() } as any;
+      const user = { ...mockUserData, isNew: true, save: vi.fn() } as any;
       mockPasswordUtils.generatePasswordHash.mockResolvedValue('new-hashed-password');
 
       await UserService.setPassword(user, 'newpassword123');
@@ -371,7 +372,7 @@ describe('UserService', () => {
     });
 
     it('should throw error on database error', async () => {
-      const user = { ...mockUserData, save: jest.fn().mockRejectedValue(new Error('Save error')) } as any;
+      const user = { ...mockUserData, save: vi.fn().mockRejectedValue(new Error('Save error')) } as any;
       mockPasswordUtils.generatePasswordHash.mockResolvedValue('new-hashed-password');
 
       await expect(

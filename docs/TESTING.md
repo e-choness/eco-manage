@@ -1,6 +1,6 @@
 # Testing
 
-All suites run inside the dev container. As of P5-02: **api 343, web 83, ingest 29, simulator 32, rules 43, recs 33,
+All suites run inside the dev container. As of P5-02 and the September 2026 dependency update (Node 24, Vitest everywhere): **api 343, web 83, ingest 29, simulator 32, rules 43, recs 33,
 shared 139, profiles 20, db 11, worker 70, modelconv 13**, all passing. Lint and typecheck also pass. The api,
 ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest, rules and the worker's report schedules; the worker's SMTP test uses Mailpit, and its PDF test prints through Gotenberg when it is running).
 
@@ -13,11 +13,11 @@ docker compose run --rm api pnpm -r typecheck
 
 Every change should pass all four gates (`build`, `lint`, `typecheck`, `test`).
 
-## API (`apps/api`, Jest + ts-jest + supertest)
+## API (`apps/api`, Vitest + supertest)
 
 ```bash
 docker compose run --rm api pnpm --filter @ecomanage/api test
-docker compose run --rm api pnpm --filter @ecomanage/api test -- src/__tests__/security.test.ts
+docker compose run --rm api pnpm --filter @ecomanage/api test src/__tests__/security.test.ts
 docker compose run --rm api pnpm --filter @ecomanage/api test:coverage   # 55% global threshold
 ```
 
@@ -63,7 +63,7 @@ docker compose run --rm --no-deps api pnpm --filter @ecomanage/web test:watch
 | `shell/AppShell.test.tsx`              | App v2 shell: rail by role (no Bills for installers), Inbox badge from counts then stream `inbox` events, saved theme applied and a switch saved on the user, avatar menu (role from the membership, Profile, Sign out), no-site screen |
 
 `src/__tests__/setup.ts` starts an MSW server (base `http://localhost:3000`), mocks `localStorage`
-and `matchMedia`, and stubs `ResizeObserver` for Recharts. If a page lists `toast` as an effect
+and `matchMedia`, and stubs `ResizeObserver` (jsdom has none). If a page lists `toast` as an effect
 dependency, mock `useToast` with a stable function (`vi.hoisted`). A new `vi.fn()` on every render
 makes the effect loop forever.
 
@@ -73,7 +73,7 @@ In the dev container the converter's glTF tests run with the rest (the ones that
 IfcOpenShell or toktx are skipped there). All of them run in the converter's own read-only image:
 
 ```bash
-docker compose run --rm --no-deps modelconv sh -c "cp vitest.config.mjs /tmp/ && node_modules/.bin/vitest run --config /tmp/vitest.config.mjs"
+docker compose run --rm --no-deps -e HOME=/tmp modelconv sh -c "cp vitest.config.mjs /tmp/ && node_modules/.bin/vitest run --config /tmp/vitest.config.mjs"
 ```
 
 They build their inputs in code (boxes, a 320,000-triangle terrain, an OBJ, an ASCII FBX made by
@@ -94,7 +94,7 @@ It signs in as the demo manager, lands on Home (the live view), checks the site 
 "Live" badge, waits for a newer grid-meter reading within 10 s (it compares reading timestamps,
 because one-decimal kW values can repeat) and checks that every simulated device is live. A
 second test checks that signed-out visitors are sent away from Home. The `e2e` image pins
-Playwright 1.49.0. Reports and traces go to `e2e/playwright-report` and `e2e/test-results`.
+Playwright 1.63. Reports and traces go to `e2e/playwright-report` and `e2e/test-results`.
 
 An accessibility spec (P4-09, `a11y.spec.ts`, `@axe-core/playwright`) signs in once at 1024 x 768
 and visits every page and Settings tab in both themes, moving in the app rather than reloading
@@ -103,3 +103,25 @@ On each page it checks there is no horizontal scroll and runs axe with the WCAG 
 which include text contrast of at least 4.5:1. It then checks the keyboard: the rail links, device
 rows, the skip link, the Settings tabs (arrow keys, Home, End) and the table alternative to the
 site picture. It restores the theme the demo manager started with.
+
+## Continuous integration (`.github/workflows/ci.yml`)
+
+Pushes to `main` and every pull request run the same gates in the same images, so nothing is
+installed on the runner:
+
+- **checks:** build the images, start the services the tests use, then typecheck, lint, every
+  suite one package at a time, the web build, the converter's tests in its read-only image, and
+  `pnpm audit --audit-level=moderate`. Service logs are printed when a step fails.
+- **e2e:** the whole stack with the demo seed, then the Playwright smoke and accessibility specs.
+  The report and traces are uploaded when it fails.
+
+## Dependencies
+
+- `pnpm audit` must stay clean (it is a CI step). Two overrides in `pnpm-workspace.yaml` keep it
+  so: a single `@types/express` (5), and `uuid` 11 under `exceljs`.
+- pnpm 12 refuses releases under a day old and runs install scripts only for packages named in
+  `allowBuilds` (esbuild today). See TROUBLESHOOTING.md if a change trips either.
+- Dependabot (`.github/dependabot.yml`) proposes weekly updates for npm, the Dockerfiles, the
+  compose images and the Actions, two days after a release. It skips TypeScript 6.1 and later
+  (typescript-eslint doesn't support them yet) and `@types/node` majors (they follow the Node 24
+  images).

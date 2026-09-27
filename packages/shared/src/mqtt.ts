@@ -115,7 +115,7 @@ export type GatewayStatusMessage = z.infer<typeof gatewayStatusMessage>;
 export const commandMessage = z.object({
   deviceId: z.string(),
   action: z.string(),
-  params: z.record(z.unknown()).default({}),
+  params: z.record(z.string(), z.unknown()).default({}),
   expiresAt: isoTs,
   revertAt: isoTs.nullable(),
 });
@@ -125,14 +125,14 @@ export const commandAckMessage = z.object({ ok: z.boolean(), error: z.string().o
 export type CommandAckMessage = z.infer<typeof commandAckMessage>;
 
 export const JOB_TYPES = ['scan', 'commission', 'restart'] as const;
-export const jobMessage = z.object({ type: z.enum(JOB_TYPES), params: z.record(z.unknown()).default({}) });
+export const jobMessage = z.object({ type: z.enum(JOB_TYPES), params: z.record(z.string(), z.unknown()).default({}) });
 export type JobMessage = z.infer<typeof jobMessage>;
 
 export const jobResultMessage = z.object({
   ok: z.boolean(),
   ts: isoTs,
   error: z.string().optional(),
-  data: z.record(z.unknown()).default({}),
+  data: z.record(z.string(), z.unknown()).default({}),
 });
 export type JobResultMessage = z.infer<typeof jobResultMessage>;
 

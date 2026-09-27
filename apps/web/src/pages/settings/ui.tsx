@@ -28,7 +28,7 @@ export function Toggle({ label, on, set, disabled }: { label: string; on: boolea
       aria-label={label}
       disabled={disabled}
       onClick={() => set(!on)}
-      className={cn("relative h-6 w-11 flex-none rounded-full transition-colors disabled:opacity-50", on ? "bg-[#3ecf8e]" : "bg-app-tr")}
+      className={cn("relative h-6 w-11 flex-none rounded-full transition-colors disabled:opacity-50", on ? "bg-flow-bat" : "bg-app-tr")}
     >
       <span className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all", on ? "left-[22px]" : "left-0.5")} />
     </button>

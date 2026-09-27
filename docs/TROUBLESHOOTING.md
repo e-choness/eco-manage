@@ -64,10 +64,37 @@ back to power readings and are marked estimated.
 ### A web test hangs until the timeout
 
 A page effect that lists `toast` as a dependency loops forever when a test's `useToast` mock
-returns a new function on each render. Hoist a single `vi.fn()` (see TESTING.md). Recharts pages
-also need the `ResizeObserver` stub in `setup.ts`.
+returns a new function on each render. Hoist a single `vi.fn()` (see TESTING.md).
 
 ### Git warns "LF will be replaced by CRLF"
 
 This is Windows `core.autocrlf` at work, and it's harmless. Files are committed with the line
 endings git normalises to.
+
+### MongoDB won't start after pulling the new images ("Invalid featureCompatibilityVersion")
+
+The stack moved from MongoDB 7 to 8 (September 2026). A data volume made by 7 must go through
+8.0 once, then be raised to the running version:
+
+```bash
+docker compose stop mongodb
+docker run -d --name mongo-fcv -v ecomanage_mongo_data:/data/db mongo:8.0
+docker exec mongo-fcv mongosh --quiet --eval 'db.adminCommand({ setFeatureCompatibilityVersion: "8.0", confirm: true })'
+docker rm -f mongo-fcv
+docker compose up -d mongodb
+docker compose exec mongodb mongosh --quiet --eval 'db.adminCommand({ setFeatureCompatibilityVersion: db.version().split(".").slice(0, 2).join("."), confirm: true })'
+```
+
+Or drop the volume and reseed (`docker compose down -v`, then `docker compose run --rm mongo-seed`).
+
+### pnpm refuses a package ("minimumReleaseAge") or a build script ("ignored builds")
+
+pnpm 12 refuses versions published in the last day and only runs install scripts listed under
+`allowBuilds` in `pnpm-workspace.yaml`. Don't add `minimumReleaseAgeExclude` entries: lower the
+version range floor to a release that is a day old, or wait. A new dependency that really needs
+its install script is allowed by name in `allowBuilds`, with a comment saying why.
+
+### The converter's tests fail with EROFS or "Failed to create Vitest API token"
+
+Its container is read-only: run them with `-e HOME=/tmp` and the config copied to `/tmp` (the
+command is in TESTING.md). On Git Bash, prefix `MSYS_NO_PATHCONV=1` so `/tmp` isn't rewritten.

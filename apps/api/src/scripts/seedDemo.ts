@@ -158,14 +158,14 @@ export async function seedDemoData(log: Log = () => {}): Promise<SeedSummary> {
         resolution: { cause: 'Condition cleared', note: '', by: null, auto: true },
       },
     ]);
-    await Maintenance.create(
+    await Maintenance.insertMany(
       [
         ['invA', 'Panels cleaned.', '2026-06-12'],
         ['invB', 'Panels cleaned.', '2026-06-12'],
         ['invB', 'String 2 connector replaced.', '2026-08-03'],
         ['bat', 'Firmware 3.2.1 installed. SoH 97%.', '2026-09-02'],
         ['meter', 'CT direction checked at commissioning.', '2024-03-14'],
-      ].map(([key, text, day]) => ({ siteId: DEMO_SITE_ID, deviceId: devId(key), at: new Date(`${day}T15:00:00Z`), by: installerId, source: 'visit', text }))
+      ].map(([key, text, day]) => ({ siteId: DEMO_SITE_ID, deviceId: devId(key), at: new Date(`${day}T15:00:00Z`), by: installerId, source: 'visit' as const, text }))
     );
 
     // Tariff history (App v2: version 3 valid from 1 Apr 2026; earlier rates were a little lower).

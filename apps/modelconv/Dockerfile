@@ -1,7 +1,7 @@
 # The sandboxed 3D model converter (P5-02). Debian rather than Alpine: assimp, IfcOpenShell and
 # KTX-Software ship glibc builds. Run by compose read-only, as a non-root user, with no
 # capabilities and only an internal network.
-FROM node:20-bookworm-slim
+FROM node:24-bookworm-slim
 
 ARG KTX_VERSION=4.4.2
 RUN apt-get update \
@@ -13,7 +13,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/* /tmp/ktx.deb /root/.cache
 
 ENV COREPACK_HOME=/opt/corepack
-RUN corepack enable && corepack prepare pnpm@9.15.0 --activate && chmod -R a+rX /opt/corepack
+RUN corepack enable && corepack prepare pnpm@12.6.0 --activate && chmod -R a+rX /opt/corepack
 WORKDIR /repo
 
 # Only the converter's dependencies, from the workspace lockfile.

@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 /**
  * Auth Routes Integration Tests
  *
@@ -11,11 +12,11 @@ import UserService from '../../modules/auth/userService';
 import * as authUtils from '../../utils/auth';
 import mongoose from 'mongoose';
 
-jest.mock('../../modules/auth/userService');
-jest.mock('../../utils/auth');
+vi.mock('../../modules/auth/userService');
+vi.mock('../../utils/auth');
 
-const mockUserService = UserService as jest.Mocked<typeof UserService>;
-const mockAuthUtils = authUtils as jest.Mocked<typeof authUtils>;
+const mockUserService = UserService as Mocked<typeof UserService>;
+const mockAuthUtils = authUtils as Mocked<typeof authUtils>;
 
 describe('Auth Routes Integration Tests', () => {
   let app: Express;
@@ -29,8 +30,8 @@ describe('Auth Routes Integration Tests', () => {
     lastLoginAt: new Date(),
     isActive: true,
     refreshToken: 'old-refresh-token',
-    save: jest.fn().mockResolvedValue(undefined),
-    toJSON: jest.fn(() => ({
+    save: vi.fn().mockResolvedValue(undefined),
+    toJSON: vi.fn(() => ({
       _id: userId,
       email: 'test@example.com',
       name: 'Test User',
@@ -40,7 +41,7 @@ describe('Auth Routes Integration Tests', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Create a fresh Express app for each test
     app = express();

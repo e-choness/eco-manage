@@ -1,7 +1,7 @@
 import { Router, type Response } from 'express';
 import { fileInfo, openFile } from '@ecomanage/db';
 import { reportCreate, type Role } from '@ecomanage/shared';
-import { handle, HttpError, parseBody, userIdOf } from '../../lib/http';
+import { handle, HttpError, parseBody, userIdOf, paramOf } from '../../lib/http';
 import type { JobClient } from '../../lib/jobs';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import { requireRole } from '../../middleware/roles';
@@ -50,7 +50,7 @@ export default function reportsRoutes(jobs?: JobClient): Router {
     '/:id/file',
     ...all,
     handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
-      const r = await reportFile(req.site!, req.params.id);
+      const r = await reportFile(req.site!, paramOf(req, 'id'));
       await sendFile(res, r.fileId!, r.format, String(req.site!._id));
     })
   );
@@ -59,7 +59,7 @@ export default function reportsRoutes(jobs?: JobClient): Router {
     '/:id',
     ...all,
     handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
-      await deleteReport(jobs, req.site!, userIdOf(req), roleOf(req), req.params.id);
+      await deleteReport(jobs, req.site!, userIdOf(req), roleOf(req), paramOf(req, 'id'));
       res.status(204).end();
     })
   );
@@ -73,7 +73,7 @@ export function reportLinkRoutes(): Router {
   router.get(
     '/:token',
     handle(FALLBACK, async (req, res) => {
-      const f = await reportLinkFile(req.params.token);
+      const f = await reportLinkFile(paramOf(req, 'token'));
       res.setHeader('Cache-Control', 'private, no-store');
       res.setHeader('Referrer-Policy', 'no-referrer');
       await sendFile(res, f.fileId, f.format, f.siteId);

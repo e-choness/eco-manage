@@ -32,7 +32,7 @@ const writeAction = z
     description: z.string(),
     reg: z.number().int().nonnegative().optional(),
     message: z.string().optional(),
-    params: z.record(
+    params: z.record(z.string(), 
       z
         .object({
           type: z.enum(['number', 'integer', 'boolean', 'time', 'schedule']),
@@ -48,7 +48,7 @@ const writeAction = z
   .strict();
 
 // A remote fix an alert can offer (Backend Coverage §3: "only fixes listed in the device profile").
-const fix = z.object({ id: z.string(), label: z.string(), action: z.string(), params: z.record(z.unknown()).default({}) }).strict();
+const fix = z.object({ id: z.string(), label: z.string(), action: z.string(), params: z.record(z.string(), z.unknown()).default({}) }).strict();
 
 export const deviceProfile = z
   .object({
@@ -59,9 +59,9 @@ export const deviceProfile = z
     deviceTypes: z.array(z.enum(DEVICE_TYPES)).min(1),
     fields: z.array(field),
     read: z.array(source),
-    write: z.record(writeAction).default({}),
-    states: z.record(z.string()).default({}),
-    faults: z.record(z.string()).default({}),
+    write: z.record(z.string(), writeAction).default({}),
+    states: z.record(z.string(), z.string()).default({}),
+    faults: z.record(z.string(), z.string()).default({}),
     fixes: z.array(fix).default([]),
     pollMs: z.number().int().min(500),
     version: z.number().int().positive(),

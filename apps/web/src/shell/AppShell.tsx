@@ -19,7 +19,7 @@ export function AppShell() {
           Skip to content
         </a>
         <Rail />
-        <div id="content" tabIndex={-1} className="pl-[68px] outline-none">
+        <div id="content" tabIndex={-1} className="pl-[68px] outline-hidden">
           <Outlet />
         </div>
       </div>

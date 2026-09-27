@@ -4,7 +4,7 @@
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { AuditEvent, Command, Device, Membership, Recommendation, Site } from '@ecomanage/db';
+import { AuditEvent, Command, Device, Membership, Recommendation, Site, type CommandDoc } from '@ecomanage/db';
 import { connectTestDb, disconnectTestDb } from './db';
 import { createApp } from '../../app';
 import User from '../../modules/auth/model';
@@ -40,7 +40,7 @@ beforeEach(async () => {
 
 const as = (who: string, r: request.Test) => r.set('Authorization', `Bearer ${tokens[who]}`);
 
-const command = async (status: string, over: object = {}) => {
+const command = async (status: CommandDoc['status'], over: object = {}) => {
   const rec = await Recommendation.create({
     siteId,
     ruleId: 'peak-shaving',

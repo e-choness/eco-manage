@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom/vitest'
 import { afterEach, beforeAll, afterAll, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import { setupServer } from 'msw/node'
@@ -86,7 +86,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-// jsdom has no ResizeObserver; recharts' ResponsiveContainer needs one.
+// jsdom has no ResizeObserver; the site scene and size-aware panels use one.
 class ResizeObserverStub {
   observe() {}
   unobserve() {}

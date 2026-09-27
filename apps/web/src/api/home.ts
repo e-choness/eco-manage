@@ -5,7 +5,7 @@ const call = async <T>(p: Promise<{ data: T }>): Promise<T> => {
   try {
     return (await p).data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 

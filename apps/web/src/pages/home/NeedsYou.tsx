@@ -42,7 +42,7 @@ export function NeedsYou({ tz, role, narrow }: { tz: string; role: Role | null; 
           onClick={() => navigate("/inbox?type=active")}
           className="flex items-center gap-2 rounded-[10px] border border-[rgba(62,207,142,.3)] bg-app-pn px-3.5 py-2.5 text-left text-[13px] text-app-tx"
         >
-          <span className="h-[7px] w-[7px] rounded-full bg-[#3ecf8e]" aria-hidden />
+          <span className="h-[7px] w-[7px] rounded-full bg-flow-bat" aria-hidden />
           {activeCount} active{names ? `: ${names}` : ""} · view
         </button>
       ) : null}
@@ -121,7 +121,7 @@ function Decision({ item, tz, canDecide }: { item: InboxItem; tz: string; canDec
               onChange={(e) => setReason(e.target.value)}
               maxLength={500}
               autoFocus
-              className="h-9 rounded-lg border border-app-ln bg-app-bg px-2.5 text-[13px] text-app-tx outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-9 rounded-lg border border-app-ln bg-app-bg px-2.5 text-[13px] text-app-tx outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
             />
           </label>
           <div className="flex gap-2">
@@ -139,7 +139,7 @@ function Decision({ item, tz, canDecide }: { item: InboxItem; tz: string; canDec
             type="button"
             disabled={busy}
             onClick={() => void act(() => approveRecommendation(item.id), `Approved. ${item.deviceName ?? "The device"} gets the command when its window starts.`)}
-            className="h-[34px] rounded-lg bg-[#3ecf8e] px-3.5 text-[13px] font-semibold text-[#06140d] disabled:opacity-70"
+            className="h-[34px] rounded-lg bg-flow-bat px-3.5 text-[13px] font-semibold text-[#06140d] disabled:opacity-70"
           >
             Approve
           </button>

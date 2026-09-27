@@ -9,7 +9,7 @@ export const getMe = async (): Promise<MeResponse> => {
     const response = await api.get('/api/auth/me');
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 
@@ -21,6 +21,6 @@ export const getInboxCounts = async (): Promise<InboxCounts> => {
     const response = await api.get('/api/inbox/counts');
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };

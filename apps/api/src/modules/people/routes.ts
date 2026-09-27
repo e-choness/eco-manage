@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { memberPatch } from '@ecomanage/shared';
-import { handle, parseBody, userIdOf } from '../../lib/http';
+import { handle, parseBody, userIdOf, paramOf } from '../../lib/http';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import { requireRole } from '../../middleware/roles';
 import { listPeople, removeMember, updateMember } from './service';
@@ -23,7 +23,7 @@ router.patch(
   '/:id',
   ...owner,
   handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
-    res.json(await updateMember(req.site!, userIdOf(req), req.params.id, parseBody(memberPatch, req.body)));
+    res.json(await updateMember(req.site!, userIdOf(req), paramOf(req, 'id'), parseBody(memberPatch, req.body)));
   })
 );
 
@@ -31,7 +31,7 @@ router.delete(
   '/:id',
   ...owner,
   handle(FALLBACK, async (req: AuthenticatedRequest, res) => {
-    await removeMember(req.site!, userIdOf(req), req.params.id);
+    await removeMember(req.site!, userIdOf(req), paramOf(req, 'id'));
     res.status(204).end();
   })
 );

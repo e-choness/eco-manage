@@ -197,7 +197,7 @@ services:
   # Prints report PDFs from HTML (P5-01): headless Chromium in its own container, JavaScript off,
   # and Chromium may open only its own temporary files, so report text can't make it fetch anything.
   gotenberg:
-    image: gotenberg/gotenberg:8
+    image: gotenberg/gotenberg:8.37.0
     command:
       - gotenberg
       - --chromium-disable-javascript=true
@@ -275,7 +275,7 @@ services:
 
   # Catches every email in development (P2-09): web UI and API at http://localhost:8025.
   mailpit:
-    image: axllent/mailpit:v1.21
+    image: axllent/mailpit:v1.31.3
     ports:
       - "8025:8025"
     environment:
@@ -283,7 +283,7 @@ services:
     restart: unless-stopped
 
   mongodb:
-    image: mongo:7
+    image: mongo:8
     ports:
       - "27017:27017"
     volumes:
@@ -296,7 +296,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     ports:
       - "6379:6379"
     healthcheck:
@@ -307,7 +307,7 @@ services:
     restart: unless-stopped
 
   mqtt-certs:
-    image: alpine:3.20
+    image: alpine:3.24
     command: ["sh", "/gen-certs.sh"]
     environment:
       # Space-separated site ids that get a gateway certificate (CN = site id).
@@ -318,7 +318,7 @@ services:
     restart: "no"
 
   mosquitto:
-    image: eclipse-mosquitto:2
+    image: eclipse-mosquitto:2.0.22
     ports:
       # 8883 falls in a Windows reserved port range on some hosts, so the host side is 18883.
       - "${MQTT_HOST_PORT:-18883}:8883"
