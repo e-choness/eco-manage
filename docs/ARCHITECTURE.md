@@ -121,8 +121,8 @@ shell/          App v2 shell (P4-01): AppShell, Rail, AvatarMenu, ProfileDialog,
 hooks/          useMe (user, membership, role), useSiteStream (stream state, Inbox counts),
                 useSiteLive (snapshot)
 components/     scene/ (SiteScene: three.js engine + 2D fallback), shadcn/ui in ui/ (App v2 palette)
-pages/          Login, InviteAccept (auth/ layout), Home (home/), Devices (devices/), and the pages
-                shown in the shell until their App v2 screens replace them: Alerts (inbox), Settings
+pages/          Login, InviteAccept (auth/ layout), Home (home/), Devices (devices/), History (history/),
+                and the pages shown in the shell until their screens replace them: Alerts (inbox), Settings
 ```
 
 Routes: `/login`, `/invite/:token`, and the signed-in app at the top level: `/` (Home),
@@ -168,6 +168,22 @@ control, the maintenance log and the last message as received.
   job's result topic before publishing it and waits), add what was found as a pending device, and
   commission it (`POST /api/devices/:id/commission`), watching the gateway's checks. A pending
   device can also be commissioned from its panel. They log maintenance visits.
+**History (P4-05).** As App v2: presets (today, 7 days, this and last month, this year, all data,
+custom), dates limited to the site's data, resolution (Auto or 15-min to monthly) and compare
+(previous period or last year). The server moves a range into the data it has and falls back to
+the Auto resolution above 400 bars, with a warning either way; the page shows the range it drew.
+Totals cards (solar, bought, sold, highest demand, energy cost) with the change against the
+comparison; four views of stacked bars (sources, consumers, demand with the cap line, cost),
+estimated buckets outlined dashed, and the same numbers in a hidden table. Installers see no cost.
+Buckets are summed in MongoDB with `$dateTrunc` in the site's time zone (weeks from Monday), and
+empty buckets are filled from `bucketStarts` (shared), so the bars line up with local days.
+
+- **Export CSV:** the worker writes every 15-min interval (`export-csv` job on the documents
+  queue); the page polls the export and downloads it signed in. Ranges over a year are also
+  emailed as a link to `/history?export=<id>`, where the page offers the download.
+- **Reports:** the builder saves a definition for the range on screen (name, format, schedule,
+  recipients, sections, notes); the list shows each with its status. Rendering and schedules are
+  the reports worker (P5-01), so new reports wait until then.
 **Shell (P4-01).** A 68 px icon rail as in App v2: Home, Devices, History, Bills, Inbox,
 Settings. Installers don't get Bills (`RequireRole` sends them Home, and the API refuses them
 anyway). The role comes from `/auth/me`: the first active membership, the same rule the API uses.
@@ -338,6 +354,7 @@ The `email` queue (P2-09) runs every 30 s and sends through SMTP (Mailpit in dev
   - A paused (snoozed) alert sends nothing.
   - Alerts older than 24 h aren't emailed.
 - **Escalation:** an alert still `open` (not acknowledged) after the owner's `escalateMin` is emailed to the owner once.
+- **Exports (P4-05):** exports over a year are emailed to the requester as a link to History once the worker has written them. Key `export:{exportId}`.
 - **Invites (P4-02):** on demand, an `invite` job (from `POST /api/site/invites`) carries the invite id and the plain token; the worker emails the link `{APP_URL}/invite/{token}` unless the invite was replaced, used or has expired meanwhile. The job is removed once done, so the token isn't kept. Key `invite:{inviteId}`.
 - **Daily summary:** in the hour after 07:00 site time, once per site and day. It covers yesterday's energy cost, grid kWh, peak demand, and solar and battery savings (computed with the shared bill maths), plus open alerts.
 - **Sending once:** each email's key is first claimed in `emails` (unique), then the mail is sent and marked `sent`. A failed send drops the claim so the next pass retries, and a restart or a second worker never sends twice. Keys:

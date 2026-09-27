@@ -6,7 +6,7 @@ import type { Readable } from 'node:stream';
 
 export interface FileMeta {
   siteId: string;
-  kind: 'utility-bill' | 'statement' | 'report';
+  kind: 'utility-bill' | 'statement' | 'report' | 'export';
   contentType: string;
   [key: string]: unknown;
 }

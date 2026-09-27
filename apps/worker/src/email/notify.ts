@@ -2,6 +2,7 @@ import mongoose, { type Types } from 'mongoose';
 import {
   Alert,
   Email,
+  Export,
   Invite,
   Interval15,
   Membership,
@@ -11,6 +12,7 @@ import {
   Site,
   Tariff,
   type AlertDoc,
+  type ExportDoc,
   type InviteDoc,
   type MembershipDoc,
   type NotificationPrefsDoc,
@@ -35,7 +37,7 @@ import {
   type InviteJob,
 } from '@ecomanage/shared';
 import type { Mailer, Message } from './mailer';
-import { alertEmail, dailyEmail, escalationEmail, inviteEmail, proposalEmail, type DailySummary } from './templates';
+import { alertEmail, dailyEmail, escalationEmail, exportEmail, inviteEmail, proposalEmail, type DailySummary } from './templates';
 
 // Alert emails, escalation and the daily summary (plan P2-09). Runs every 30 s from the worker;
 // everything it sends is claimed in `emails` first, so each email goes out once.
@@ -89,7 +91,7 @@ export const recipients = async (siteId: string, now: Date): Promise<Recipient[]
  */
 export const sendOnce = async (
   mailer: Mailer,
-  claim: { key: string; siteId: string; userId: string | null; kind: 'alert' | 'escalation' | 'daily' | 'proposal' | 'invite'; alertId?: string },
+  claim: { key: string; siteId: string; userId: string | null; kind: 'alert' | 'escalation' | 'daily' | 'proposal' | 'invite' | 'export'; alertId?: string },
   message: Message,
   now: Date
 ): Promise<boolean> => {
@@ -247,4 +249,16 @@ export const sendInvite = async (mailer: Mailer, appUrl: string, job: InviteJob,
     inviteEmail(site, invite, by ? by.name || by.email : null, url),
     now
   );
+};
+
+/** Big exports are emailed as a link when ready (P4-05; the History page also offers them). */
+export const notifyExports = async (mailer: Mailer, appUrl: string, now = new Date()): Promise<number> => {
+  let sent = 0;
+  const ready = await Export.find({ status: 'done', large: true, emailedAt: null, updatedAt: { $gte: new Date(now.getTime() - ALERT_EMAIL_WINDOW_MS) } }).lean<ExportDoc[]>();
+  for (const e of ready) {
+    const [site, user] = await Promise.all([Site.findById(e.siteId).lean<SiteDoc>(), mongooseUsers().findById(e.userId).lean<UserLean>()]);
+    if (site && user && (await sendOnce(mailer, { key: `export:${e._id}`, siteId: String(e.siteId), userId: String(e.userId), kind: 'export' }, exportEmail(site, e, user.email, appUrl), now))) sent++;
+    await Export.updateOne({ _id: e._id }, { $set: { emailedAt: now } });
+  }
+  return sent;
 };

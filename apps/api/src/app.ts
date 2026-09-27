@@ -13,6 +13,9 @@ import { commandsRoutes } from './modules/commands/routes';
 import inboxRoutes from './modules/inbox/routes';
 import auditRoutes from './modules/audit/routes';
 import { inviteRoutes, siteInviteRoutes } from './modules/invites/routes';
+import historyRoutes from './modules/history/routes';
+import { exportsRoutes } from './modules/exports/routes';
+import reportsRoutes from './modules/reports/routes';
 import { siteRoutes } from './modules/site/routes';
 import tariffRoutes from './modules/tariffs/routes';
 import { billsRoutes } from './modules/bills/routes';
@@ -69,6 +72,9 @@ export const createApp = ({ env, redis, hub, jobs, gateway, logger = defaultLogg
   app.use('/api/calendar', calendarRoutes(jobs));
   app.use('/api/me', notificationRoutes);
   app.use('/api/forecast', forecastRoutes);
+  app.use('/api/history', historyRoutes);
+  app.use('/api/exports', exportsRoutes(jobs));
+  app.use('/api/reports', reportsRoutes);
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: 404, message: 'Not found' } });

@@ -1,5 +1,5 @@
 import mongoose, { InferSchemaType, Schema, Types } from 'mongoose';
-import { RECOMMENDATION_STATUSES, ALERT_RULE_IDS, ALERT_SEVERITIES, ALERT_STATES, DEVICE_STATUSES, DEVICE_TYPES, FLOW_KEYS, QUALITY, ROLES, SCENE_VIEWS } from '@ecomanage/shared';
+import { RECOMMENDATION_STATUSES, ALERT_RULE_IDS, ALERT_SEVERITIES, ALERT_STATES, DEVICE_STATUSES, DEVICE_TYPES, FLOW_KEYS, QUALITY, REPORT_FORMATS, REPORT_SCHEDULES, REPORT_SECTIONS, ROLES, SCENE_VIEWS } from '@ecomanage/shared';
 
 // v2 data model (plan §2). Models are registered on the default mongoose connection; the app that
 // imports them owns connecting. Collection names are given explicitly so they match the plan.
@@ -453,7 +453,7 @@ const emailSchema = new Schema(
     key: { type: String, required: true },
     siteId: { type: ObjectId, ref: 'Site', required: true },
     userId: { type: ObjectId, ref: 'User', default: null },
-    kind: { type: String, enum: ['alert', 'escalation', 'daily', 'proposal', 'invite'], required: true },
+    kind: { type: String, enum: ['alert', 'escalation', 'daily', 'proposal', 'invite', 'export'], required: true },
     alertId: { type: ObjectId, ref: 'Alert', default: null },
     to: { type: String, required: true },
     subject: { type: String, required: true },
@@ -594,6 +594,55 @@ siteModelSchema.index({ siteId: 1, version: 1 }, { unique: true });
 export type SiteModelDoc = InferSchemaType<typeof siteModelSchema> & { _id: Types.ObjectId };
 export const SiteModel = mongoose.model('SiteModel', siteModelSchema, 'siteModels');
 
+// ---- exports and reports (P4-05) -----------------------------------------------------------------
+
+// A CSV of every 15-minute interval in a range, made by the worker. `large` ones are also emailed
+// to the requester as a link when ready (Backend Coverage: POST /api/exports).
+const exportSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    userId: { type: ObjectId, ref: 'User', required: true },
+    from: { type: String, required: true }, // local dates, both included
+    to: { type: String, required: true },
+    includeCost: { type: Boolean, default: false }, // not for installers
+    status: { type: String, enum: ['queued', 'done', 'failed'], default: 'queued' },
+    fileId: { type: String, default: null },
+    rows: { type: Number, default: null },
+    error: { type: String, default: null },
+    large: { type: Boolean, default: false },
+    emailedAt: { type: Date, default: null },
+  },
+  { timestamps: true }
+);
+exportSchema.index({ siteId: 1, createdAt: -1 });
+exportSchema.index({ status: 1, large: 1, emailedAt: 1 });
+export type ExportDoc = InferSchemaType<typeof exportSchema> & { _id: Types.ObjectId; createdAt: Date };
+export const Export = mongoose.model('Export', exportSchema, 'exports');
+
+// Report definitions from History → Create report. The reports worker (P5-01) renders them and
+// runs the schedules; until then a report is `waiting`.
+const reportSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    createdBy: { type: ObjectId, ref: 'User', required: true },
+    name: { type: String, required: true },
+    from: { type: String, required: true },
+    to: { type: String, required: true },
+    sections: { type: [String], enum: REPORT_SECTIONS, default: [] },
+    format: { type: String, enum: REPORT_FORMATS, required: true },
+    schedule: { type: String, enum: REPORT_SCHEDULES, required: true },
+    recipients: { type: [String], default: [] },
+    notes: { type: String, default: '' },
+    status: { type: String, enum: ['waiting', 'ready', 'failed'], default: 'waiting' },
+    fileId: { type: String, default: null },
+    lastRunAt: { type: Date, default: null },
+  },
+  { timestamps: true }
+);
+reportSchema.index({ siteId: 1, createdAt: -1 });
+export type ReportDoc = InferSchemaType<typeof reportSchema> & { _id: Types.ObjectId; createdAt: Date };
+export const Report = mongoose.model('Report', reportSchema, 'reports');
+
 // ---- audit ------------------------------------------------------------------------------------
 
 const auditSchema = new Schema(
@@ -612,7 +661,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, FleetVehicle, Recommendation, SiteModel, AuditEvent] as const;
+export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, FleetVehicle, Recommendation, SiteModel, Export, Report, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

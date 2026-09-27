@@ -9,6 +9,7 @@ import {
   siteClock,
   siteDate,
   siteDateStart,
+  siteLocalIso,
   siteMinuteOfDay,
   siteWeekday,
   startOfSiteDay,
@@ -110,5 +111,12 @@ describe('billing periods', () => {
     expect(() => billingPeriod(new Date(), TO, 0)).toThrow(RangeError)
     expect(() => billingPeriod(new Date(), TO, 29)).toThrow(RangeError)
     expect(() => billingPeriod(new Date(), TO, 1.5)).toThrow(RangeError)
+  })
+})
+
+describe('siteLocalIso', () => {
+  it('writes local time with its offset, before and after DST ends', () => {
+    expect(siteLocalIso(u('2026-09-24T16:00:00Z'), TO)).toBe('2026-09-24T12:00:00-04:00')
+    expect(siteLocalIso(u('2026-11-02T17:15:00Z'), TO)).toBe('2026-11-02T12:15:00-05:00')
   })
 })
