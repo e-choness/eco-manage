@@ -6,6 +6,7 @@ import { logger } from './config/logger';
 import { createApp } from './app';
 import { SiteEventHub } from './lib/siteEvents';
 import { createJobClient } from './lib/jobs';
+import { createObjectStore, objectStoreConfigFromEnv } from '@ecomanage/db';
 import { createGatewayLink } from './lib/gatewayLink';
 import { syncPendingGatewayConfigs } from './modules/site/settings';
 
@@ -44,7 +45,11 @@ gateway?.onConnect(() => {
     .catch((err: Error) => logger.error({ err: err.message }, 'gateway config sync failed'));
 });
 
-const app = createApp({ env, redis, hub, jobs, gateway });
+// 3D model uploads (P5-02) go to S3-compatible storage when it is configured.
+const storeConfig = objectStoreConfigFromEnv();
+const objects = storeConfig ? createObjectStore(storeConfig) : undefined;
+
+const app = createApp({ env, redis, hub, jobs, objects, gateway });
 
 const server = app.listen(env.PORT, () => {
   logger.info(`Server running at http://localhost:${env.PORT}`);

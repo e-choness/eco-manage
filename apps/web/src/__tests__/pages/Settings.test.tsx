@@ -56,7 +56,14 @@ const tou = { ...TARIFF_TEMPLATES[0].tariff, validFrom: '2024-03-14', version: 2
 const calls: Record<string, unknown[]> = {}
 const record = (key: string, body: unknown) => (calls[key] ??= []).push(body)
 
-const setup = (role: Role, tab = 'site', over: { tariff422?: boolean } = {}) => {
+const upload = (over: object) => ({ originalName: 'School.glb', format: 'glb', bytes: 5_200_000, reason: null, glbUrl: null, thumbUrl: null, glbBytes: null, tris: null, trisIn: null, bbox: null, scale: null, inUse: false, createdBy: { id: 'u2', name: 'Northside Solar' }, createdAt: '2026-09-27T12:00:00.000Z', processedAt: null, ...over })
+const UPLOADS = [
+  upload({ id: 'up1', status: 'ready', glbUrl: '/cdn/models/a/model.glb', thumbUrl: '/cdn/models/a/thumb.png', glbBytes: 812_000, tris: 180_000, trisIn: 420_000, scale: 0.01 }),
+  upload({ id: 'up2', originalName: 'Tiny.fbx', format: 'fbx', status: 'rejected', reason: 'The model is only 1.0 cm across. Export it in metres.' }),
+]
+const UPLOADED_MODEL = { ...DEFAULT_SITE_MODEL, version: 3, source: 'upload', upload: { uploadId: 'up1', glbUrl: '/cdn/models/a/model.glb', thumbUrl: null, originalName: 'School.glb', tris: 180_000, bytes: 812_000, bbox: { min: [-20, 0, -12], max: [20, 9, 12] }, scale: 0.01 } }
+
+const setup = (role: Role, tab = 'site', over: { tariff422?: boolean; uploadedModel?: boolean } = {}) => {
   for (const k of Object.keys(calls)) delete calls[k]
   server.use(
     http.get(`${BASE}/api/auth/me`, () => HttpResponse.json({ _id: 'u1', email: 'priya@example.com', memberships: [{ siteId: 's1', siteName: 'Maple Grove School', role, until: null }] })),
@@ -79,7 +86,10 @@ const setup = (role: Role, tab = 'site', over: { tariff422?: boolean } = {}) => 
     http.patch(`${BASE}/api/rules/:id`, async ({ request, params }) => (record(`rule:${params.id}`, await request.json()), HttpResponse.json(rules))),
     http.get(`${BASE}/api/calendar`, () => HttpResponse.json({ terms: [{ name: 'Fall term', start: '2026-09-02', end: '2026-12-18' }], daysOff: [], open: '07:30', close: '17:30', weekends: 'closed', updatedAt: null })),
     http.put(`${BASE}/api/calendar`, async ({ request }) => (record('calendar', await request.json()), HttpResponse.json({}))),
-    http.get(`${BASE}/api/site/model`, () => HttpResponse.json(DEFAULT_SITE_MODEL)),
+    http.get(`${BASE}/api/site/model`, () => HttpResponse.json(over.uploadedModel ? UPLOADED_MODEL : DEFAULT_SITE_MODEL)),
+    http.get(`${BASE}/api/site/model/uploads`, () => HttpResponse.json({ items: UPLOADS })),
+    http.post(`${BASE}/api/site/model/uploads/:id/use`, ({ params }) => (record('use', params.id), HttpResponse.json(UPLOADED_MODEL))),
+    http.post(`${BASE}/api/site/model/uploads`, () => (record('upload', true), HttpResponse.json(UPLOADS[0], { status: 202 }))),
     http.put(`${BASE}/api/site/model`, async ({ request }) => (record('model', await request.json()), HttpResponse.json(DEFAULT_SITE_MODEL))),
     http.get(`${BASE}/api/me/notifications`, () => HttpResponse.json({ email: 'priya@example.com', alerts: true, daily: true, recs: true, failures: true, quietFrom: '22:00', quietTo: '06:30', escalateMin: 30 })),
     http.patch(`${BASE}/api/me/notifications`, async ({ request }) => (record('notifications', await request.json()), HttpResponse.json({}))),
@@ -221,6 +231,37 @@ describe('site model and notifications', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
     await waitFor(() => expect(calls.model).toHaveLength(1))
     expect((calls.model[0] as { anchors: { key: string }[] }).anchors.map((a) => a.key)).toEqual(['pv', 'battery', 'grid', 'ev'])
+  })
+
+  it('uses a processed upload, says why others can’t be used, and checks files before sending them', async () => {
+    setup('installer', 'model')
+    const source = await screen.findByRole('radiogroup', { name: 'Model source' })
+    expect(within(source).getByRole('radio', { name: /Generate from settings/ })).toHaveAttribute('aria-checked', 'true')
+    await userEvent.click(within(source).getByRole('radio', { name: /Upload a 3D file/ }))
+    const list = await screen.findByRole('list', { name: 'Uploaded models' })
+    const items = within(list).getAllByRole('listitem')
+    expect(items[0]).toHaveTextContent('School.glb180,000 triangles (from 420,000) · 793 KB · read as centimetres')
+    expect(items[1]).toHaveTextContent('Can’t be used: The model is only 1.0 cm across. Export it in metres.')
+    expect(within(items[1]).queryByRole('button', { name: 'Use this model' })).toBeNull()
+    await userEvent.click(within(items[0]).getByRole('button', { name: 'Use this model' }))
+    await waitFor(() => expect(calls.use).toEqual(['up1']))
+
+    // Refused before upload, with the same reason the server would give.
+    await userEvent.upload(screen.getByLabelText('3D model file'), new File(['skp'], 'site.skp'))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/^SketchUp files can’t be converted on this server/)
+    expect(calls.upload).toBeUndefined()
+  })
+
+  it('switches an uploaded model back to the generated one from the save bar', async () => {
+    setup('owner', 'model', { uploadedModel: true })
+    expect(await screen.findByTestId('model-badge')).toHaveTextContent('Version 3 · School.glb')
+    const source = screen.getByRole('radiogroup', { name: 'Model source' })
+    expect(within(source).getByRole('radio', { name: /Upload a 3D file/ })).toHaveAttribute('aria-checked', 'true')
+    await userEvent.click(within(source).getByRole('radio', { name: /Generate from settings/ }))
+    expect(await bar()).toHaveTextContent('Unsaved changes: Site model')
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(calls.model).toHaveLength(1))
+    expect(calls.model[0]).toMatchObject({ source: 'generated' })
   })
 
   it('places an anchor from typed coordinates, without the mouse', async () => {

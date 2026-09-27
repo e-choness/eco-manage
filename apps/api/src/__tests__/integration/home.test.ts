@@ -51,6 +51,7 @@ describe('GET /api/site/model', () => {
     expect((await as('manager', request(app).get('/api/site/model'))).body).toEqual({
       version: 2,
       source: 'generated',
+      upload: null,
       hub: [2, 1, 2],
       anchors: [{ key: 'pv', at: [0, 3, 0], label: [0, 4, 0] }],
       buildingLabel: [0, 3, 1],

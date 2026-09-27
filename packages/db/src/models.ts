@@ -1,5 +1,5 @@
 import mongoose, { InferSchemaType, Schema, Types } from 'mongoose';
-import { RECOMMENDATION_STATUSES, ALERT_RULE_IDS, ALERT_SEVERITIES, ALERT_STATES, DEVICE_STATUSES, DEVICE_TYPES, FLOW_KEYS, QUALITY, REPORT_FORMATS, REPORT_SCHEDULES, REPORT_SECTIONS, ROLES, SCENE_VIEWS } from '@ecomanage/shared';
+import { RECOMMENDATION_STATUSES, ALERT_RULE_IDS, ALERT_SEVERITIES, ALERT_STATES, DEVICE_STATUSES, DEVICE_TYPES, FLOW_KEYS, MODEL_FORMATS, MODEL_UPLOAD_STATUSES, QUALITY, REPORT_FORMATS, REPORT_SCHEDULES, REPORT_SECTIONS, ROLES, SCENE_VIEWS } from '@ecomanage/shared';
 
 // v2 data model (plan §2). Models are registered on the default mongoose connection; the app that
 // imports them owns connecting. Collection names are given explicitly so they match the plan.
@@ -594,6 +594,34 @@ siteModelSchema.index({ siteId: 1, version: 1 }, { unique: true });
 export type SiteModelDoc = InferSchemaType<typeof siteModelSchema> & { _id: Types.ObjectId };
 export const SiteModel = mongoose.model('SiteModel', siteModelSchema, 'siteModels');
 
+// 3D model uploads (P5-02). The original waits in object storage (private) until the worker has
+// run it through the sandboxed converter; the result is a GLB and a PNG thumbnail under a random
+// public prefix on the CDN. `rejected`: the file can't be used (reason says why); `failed`: our side.
+const modelUploadSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    userId: { type: ObjectId, ref: 'User', required: true },
+    originalName: { type: String, required: true },
+    format: { type: String, enum: MODEL_FORMATS, required: true },
+    bytes: { type: Number, required: true },
+    originalKey: { type: String, default: null }, // removed once processed
+    status: { type: String, enum: MODEL_UPLOAD_STATUSES, default: 'queued' },
+    reason: { type: String, default: null },
+    assetPrefix: { type: String, default: null }, // models/<random>/
+    glbBytes: { type: Number, default: null },
+    tris: { type: Number, default: null },
+    trisIn: { type: Number, default: null },
+    bbox: { type: new Schema({ min: [Number], max: [Number] }, { _id: false }), default: null },
+    scale: { type: Number, default: null },
+    hasThumb: { type: Boolean, default: false },
+    processedAt: { type: Date, default: null },
+  },
+  { timestamps: true }
+);
+modelUploadSchema.index({ siteId: 1, createdAt: -1 });
+export type ModelUploadDoc = InferSchemaType<typeof modelUploadSchema> & { _id: Types.ObjectId; createdAt: Date };
+export const ModelUpload = mongoose.model('ModelUpload', modelUploadSchema, 'modelUploads');
+
 // ---- exports and reports (P4-05) -----------------------------------------------------------------
 
 // A CSV of every 15-minute interval in a range, made by the worker. `large` ones are also emailed
@@ -679,7 +707,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, FleetVehicle, Recommendation, SiteModel, Export, Report, AuditEvent] as const;
+export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, FleetVehicle, Recommendation, SiteModel, ModelUpload, Export, Report, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

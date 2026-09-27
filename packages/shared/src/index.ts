@@ -26,6 +26,8 @@ export * from './api/inbox';
 export * from './api/audit';
 export * from './api/invites';
 export * from './siteModel';
+export * from './modelFiles';
+export * from './api/modelUploads';
 export * from './history';
 export * from './api/reports';
 export * from './api/bills';

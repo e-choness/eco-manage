@@ -21,6 +21,7 @@ x-workspace: &workspace
     - /repo/apps/ingest/node_modules
     - /repo/apps/worker/node_modules
     - /repo/apps/rules/node_modules
+    - /repo/apps/modelconv/node_modules
   environment: &workspace-env
     # Windows bind mounts don't deliver file events reliably, so the watchers poll.
     CHOKIDAR_USEPOLLING: "true"
@@ -43,6 +44,12 @@ services:
       DATABASE_URL: mongodb://mongodb:27017/ecomanage
       REDIS_URL: redis://redis:6379
       MQTT_URL: mqtts://mosquitto:8883
+      # 3D models (P5-02): originals go to object storage; processed models are served from /cdn.
+      S3_ENDPOINT: http://objects:9000
+      S3_BUCKET: ecomanage-assets
+      S3_ACCESS_KEY: ecomanage
+      S3_SECRET_KEY: ecomanage-dev-secret
+      ASSET_PUBLIC_URL: /cdn
     depends_on:
       mongodb:
         condition: service_healthy
@@ -50,6 +57,8 @@ services:
         condition: service_healthy
       mosquitto:
         condition: service_healthy
+      objects-setup:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/ping"]
       interval: 5s
@@ -104,6 +113,12 @@ services:
       WEATHER_PROVIDER: ${WEATHER_PROVIDER:-simulated}
       WEATHER_SEED: ${SIM_SEED:-42}
       GOTENBERG_URL: http://gotenberg:3000
+      MODELCONV_URL: http://modelconv:3100
+      S3_ENDPOINT: http://objects:9000
+      S3_BUCKET: ecomanage-assets
+      S3_ACCESS_KEY: ecomanage
+      S3_SECRET_KEY: ecomanage-dev-secret
+      ASSET_PUBLIC_URL: /cdn
     depends_on:
       mongodb:
         condition: service_healthy
@@ -113,6 +128,12 @@ services:
         condition: service_started
       gotenberg:
         condition: service_started
+      objects-setup:
+        condition: service_completed_successfully
+      modelconv:
+        condition: service_started
+    # The only service on the converter's internal network.
+    networks: [default, convert]
     restart: unless-stopped
 
   # Alert checks on every reading (P2-07); recommendations follow in Phase 3.
@@ -154,6 +175,7 @@ services:
       - /repo/apps/ingest/node_modules
       - /repo/apps/worker/node_modules
       - /repo/apps/rules/node_modules
+      - /repo/apps/modelconv/node_modules
       - simulator_state:/state
     environment:
       <<: *workspace-env
@@ -186,6 +208,69 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+
+  # S3-compatible object storage for 3D models (P5-02). Processed models are public under
+  # `models/` (the web app reaches them through /cdn, standing in for a CDN); originals under
+  # `uploads/` are private. RustFS (Apache 2.0); any S3 store works. Console on :9001.
+  objects:
+    image: rustfs/rustfs:1.0.0
+    environment:
+      RUSTFS_ACCESS_KEY: ecomanage
+      RUSTFS_SECRET_KEY: ecomanage-dev-secret
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "9001:9001"
+    volumes:
+      - objects_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  # One-shot: the bucket, with anonymous reads for processed models only (plain S3 calls).
+  objects-setup:
+    <<: *workspace
+    command: ["node", "packages/db/scripts/setup-bucket.mjs"]
+    environment:
+      S3_ENDPOINT: http://objects:9000
+      S3_BUCKET: ecomanage-assets
+      S3_ACCESS_KEY: ecomanage
+      S3_SECRET_KEY: ecomanage-dev-secret
+    depends_on:
+      objects:
+        condition: service_healthy
+    restart: "no"
+
+  # Converts and compresses uploaded 3D models (P5-02) in a sandbox: its own image with assimp,
+  # IfcOpenShell and toktx, a read-only file system (scratch space in /tmp only), no capabilities,
+  # a non-root user, limited memory, CPU and processes, and an internal network that reaches
+  # nothing but the worker. It never sees the database, Redis or storage.
+  modelconv:
+    build:
+      context: ..
+      dockerfile: apps/modelconv/Dockerfile
+    image: ecomanage-modelconv
+    read_only: true
+    tmpfs:
+      - /tmp:size=1g,mode=1777
+    user: "1000:1000"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    mem_limit: 3g
+    cpus: 2
+    networks: [convert]
+    volumes:
+      # Development: code changes without a rebuild (read-only).
+      - ../apps/modelconv/src:/repo/apps/modelconv/src:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
     restart: unless-stopped
 
   # Catches every email in development (P2-09): web UI and API at http://localhost:8025.
@@ -307,5 +392,12 @@ services:
 
 volumes:
   mongo_data:
+  objects_data:
   mosquitto_data:
   simulator_state:
+
+networks:
+  default:
+  # The model converter's only network: internal (no internet), shared with the worker alone.
+  convert:
+    internal: true

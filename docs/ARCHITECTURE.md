@@ -26,6 +26,9 @@ graph LR
 | `simulator`  | `Dockerfile.dev`       | Simulated demo site acting as its gateway over MQTT/TLS; control API on :4100 |
 | `mailpit`    | `axllent/mailpit`      | Catches every email in development; UI on :8025 |
 | `gotenberg`  | `gotenberg/gotenberg:8` | Prints report PDFs from HTML (headless Chromium; JavaScript off, local files only) |
+| `objects`    | `rustfs/rustfs:1.0.0` | S3-compatible object storage for 3D models (bucket `ecomanage-assets`; `models/` public, `uploads/` private); console on :9001 |
+| `objects-setup` | `Dockerfile.dev`    | One-shot: creates the bucket and its read policy with plain S3 calls |
+| `modelconv`  | `apps/modelconv/Dockerfile` | Sandboxed 3D model converter: assimp, IfcOpenShell, toktx; read-only, no capabilities, internal network only |
 | `mqtt-certs` | `alpine`               | One-shot: generates the dev CA and certificates into `infra/mosquitto/certs` (gitignored) |
 | `mongo-seed` | `Dockerfile.dev`       | One-shot demo data reset (profile `tools`, run on demand) |
 
@@ -224,8 +227,8 @@ often and why it was declined in 30 days), Calendar, Site model, People and Noti
   straight away instead.
 - **Site model:** the scene in the iso view with live labels. "Move" then a click on the model
   places a source, a load or the hub there (the engine raycasts a click that isn't a drag; the
-  label floats 1.2 m above). Saving creates the next model version, which Home then draws. Uploading
-  a 3D file is shown but not available until the P5-02 pipeline.
+  label floats 1.2 m above). Saving creates the next model version, which Home then draws. The model
+  source is generated or an uploaded 3D file (P5-02, below).
 - **Access until** is a local date for invites and memberships: access lasts to the end of that
   day in the site's time zone.
 - The password change from the v1 Settings page is now in Profile (avatar menu).
@@ -438,6 +441,38 @@ The `reports` queue (P5-01) renders History reports:
   24). Each recipient is emailed a link `{APP_URL}/api/report-links/{token}` that works without
   signing in for 30 days; only the token's SHA-256 is stored. Key `report:{id}:{from}:{to}:{email}`,
   so a retried run doesn't email twice. Removing a report removes its files.
+
+The `models` queue (P5-02) processes uploaded 3D site models (Data and Device Audit §6):
+
+- **Upload (API):** owners and installers send one file, up to 30 MB. The API checks the type and
+  signature (the same shared check the browser runs first), refuses SketchUp files with how to
+  export them instead (the SketchUp SDK is proprietary and doesn't run on Linux), stores the
+  original under `uploads/` (private) and queues `model-upload`.
+- **Converter (`apps/modelconv`):** a separate image and container with no database, Redis,
+  storage or internet: read-only file system with scratch space in `/tmp`, a non-root user, no
+  capabilities, limited memory, CPU and processes, and an internal network shared only with the
+  worker. Each conversion runs in its own worker thread (capped memory, a real time limit), so a
+  file that crashes a library only fails itself. Steps:
+  - OBJ and FBX → GLB with assimp; IFC → OBJ with IfcOpenShell (world coordinates, spaces and
+    openings left out, Z-up turned Y-up), then assimp.
+  - glTF/GLB: the container is checked, then the Khronos glTF validator; errors are the reason.
+  - Units: a model over 2 km across is read as centimetres (or millimetres); over 2 km after that,
+    or under 5 cm, is refused. Then dedup, prune, weld, and centre with the base at y = 0.
+  - Simplify with meshoptimizer in passes until under 200,000 triangles, allowing a little more
+    error each pass; refused if still over.
+  - Textures to KTX2 with toktx (ETC1S; UASTC for normal maps), at most 2048 px and in multiples
+    of 4; meshes Draco-compressed.
+  - A 480 × 320 PNG thumbnail drawn in software (flat shading, material colours).
+- **Result (worker):** the GLB and thumbnail go under a new random `models/<hex>/` prefix, served
+  by the CDN with `immutable` caching (a new upload is a new path, so browsers cache by version).
+  A 422 from the converter is `rejected` with its reason; anything else is `failed` and retried.
+  The original is removed once processed. "Use this model" writes the next site model version
+  with `source: "upload"`; anchors carry over.
+- **Drawing it:** Home and Settings load the GLB with GLTFLoader + DRACOLoader + KTX2Loader (one
+  loader per page; decoders served from `/decoders/…`, copied from three.js into the build) in
+  place of the generated building; camera, shadows and fog scale to the model's size. If it fails
+  to load, the generated building is drawn. In development `/cdn` is proxied to the object store;
+  in production `ASSET_PUBLIC_URL` points at the CDN.
 
 The `forecast` queue (P2-10) issues each site's PV and load forecasts for the next 48 h in 15-minute steps. It runs every hour, and once at start-up. A single site is redone when its calendar or its solar arrays change.
 - **Weather** comes from `WEATHER_PROVIDER`:

@@ -19,9 +19,21 @@ export interface SiteModelAnchor {
   label: Vec3; // where the label floats
 }
 
+export interface SiteModelUpload {
+  uploadId: string;
+  glbUrl: string; // on the CDN; the path changes with every upload, so it can be cached for good
+  thumbUrl: string | null;
+  originalName: string;
+  tris: number;
+  bytes: number;
+  bbox: { min: Vec3; max: Vec3 };
+  scale: number;
+}
+
 export interface SiteModel {
   version: number; // 0: the default model, nothing saved yet
   source: 'default' | 'generated' | 'upload';
+  upload: SiteModelUpload | null; // source 'upload': the processed GLB (P5-02)
   hub: Vec3; // where every flow meets (the main switchboard)
   anchors: SiteModelAnchor[];
   buildingLabel: Vec3;
@@ -32,6 +44,7 @@ export interface SiteModel {
 export const DEFAULT_SITE_MODEL: SiteModel = {
   version: 0,
   source: 'default',
+  upload: null,
   hub: [0, 0.95, 1.9],
   anchors: [
     { key: 'pv', at: [0, 2.45, -0.4], label: [2.6, 3.2, -1.6] },
@@ -96,7 +109,8 @@ export const sceneFlows = (s: Pick<SiteSnapshot, 'flows' | 'battery' | 'devices'
 
 const vec3 = z.tuple([z.number().finite().min(-500).max(500), z.number().finite().min(-50).max(200), z.number().finite().min(-500).max(500)]);
 
-/** PUT /api/site/model (owner, installer): the edited model, saved as a new version (P4-08). */
+/** PUT /api/site/model (owner, installer): the edited model, saved as a new version (P4-08). It keeps an
+ * uploaded model unless `source: 'generated'` switches back to the generated scene (P5-02). */
 export const siteModelInput = z
   .object({
     hub: vec3,
@@ -106,6 +120,7 @@ export const siteModelInput = z
       .refine((a) => new Set(a.map((x) => x.key)).size === a.length, 'Each source or load has one anchor'),
     buildingLabel: vec3,
     camera: z.object({ view: z.enum(SCENE_VIEWS) }).strict(),
+    source: z.literal('generated').optional(),
   })
   .strict();
 export type SiteModelInput = z.infer<typeof siteModelInput>;

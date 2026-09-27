@@ -1,9 +1,9 @@
 import { logger } from '../config/logger';
 import { Queue, QueueEvents } from 'bullmq';
 import { Redis } from 'ioredis';
-import { QUEUES, REPORT_JOB_OPTS, reportCron, reportOnceJobId, reportSchedulerId, type DocumentJobs, type InviteJob, type RepeatingSchedule, type ReportJob } from '@ecomanage/shared';
+import { QUEUES, REPORT_JOB_OPTS, reportCron, reportOnceJobId, reportSchedulerId, type DocumentJobs, type InviteJob, type ModelUploadJob, type RepeatingSchedule, type ReportJob } from '@ecomanage/shared';
 
-// Producer side of the worker's queues (documents, forecast, email, reports). Controllers get it
+// Producer side of the worker's queues (documents, forecast, email, reports, models). Controllers get it
 // through createApp, so tests can pass a stand-in that runs the job in process (or never answers).
 
 export type DocumentJobName = keyof DocumentJobs;
@@ -21,6 +21,8 @@ export interface JobClient {
   renderReport(reportId: string): Promise<void>;
   /** Weekly or monthly report: a job scheduler at 07:00 site time (Monday or the 1st). */
   scheduleReport(reportId: string, schedule: RepeatingSchedule, tz: string): Promise<void>;
+  /** Runs an uploaded 3D model through the converter (P5-02). */
+  processModelUpload(uploadId: string): Promise<void>;
   /** Stops a report's schedule. */
   unscheduleReport(reportId: string): Promise<void>;
   close(): Promise<void>;
@@ -34,6 +36,7 @@ export const createJobClient = (redisUrl: string): JobClient => {
   const forecastQueue = new Queue(QUEUES.forecast, { connection });
   const emailQueue = new Queue(QUEUES.email, { connection });
   const reportQueue = new Queue(QUEUES.reports, { connection });
+  const modelQueue = new Queue(QUEUES.models, { connection });
   // QueueEvents blocks on its connection, so it gets its own.
   const events = new QueueEvents(QUEUES.documents, { connection: connection.duplicate() });
   const opts = { attempts: 2, backoff: { type: 'fixed', delay: 2000 }, removeOnComplete: 100, removeOnFail: 500 };
@@ -65,6 +68,9 @@ export const createJobClient = (redisUrl: string): JobClient => {
     async scheduleReport(reportId, schedule, tz) {
       await reportQueue.upsertJobScheduler(reportSchedulerId(reportId), { pattern: reportCron(schedule), tz }, { name: 'report', data: { reportId, scheduled: true } satisfies ReportJob, opts: REPORT_JOB_OPTS });
     },
+    async processModelUpload(uploadId) {
+      await modelQueue.add('model-upload', { uploadId } satisfies ModelUploadJob, { attempts: 2, backoff: { type: 'fixed', delay: 15_000 }, removeOnComplete: 100, removeOnFail: 200, jobId: `model-upload-${uploadId}` });
+    },
     async unscheduleReport(reportId) {
       await reportQueue.removeJobScheduler(reportSchedulerId(reportId));
     },
@@ -74,6 +80,7 @@ export const createJobClient = (redisUrl: string): JobClient => {
       await forecastQueue.close();
       await emailQueue.close();
       await reportQueue.close();
+      await modelQueue.close();
       connection.disconnect();
     },
   };

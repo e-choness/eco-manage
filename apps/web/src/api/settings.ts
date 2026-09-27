@@ -6,6 +6,7 @@ import type {
   GatewayView,
   InviteView,
   MemberView,
+  ModelUploadView,
   NotificationPrefs,
   NotificationPrefsPatch,
   PeopleResponse,
@@ -83,3 +84,14 @@ export const patchMember = (id: string, patch: { role?: string; until?: string |
 export const removeMember = (id: string): Promise<unknown> => call(api.delete(`/api/site/members/${id}`));
 export const inviteSomeone = (body: { email: string; role: string; until?: string | null }): Promise<InviteView> => call(api.post('/api/site/invites', body));
 export const revokeInvite = (id: string): Promise<unknown> => call(api.delete(`/api/site/invites/${id}`));
+
+// ---- 3D model uploads (P5-02) -------------------------------------------------------------------
+
+export const getModelUploads = async (): Promise<ModelUploadView[]> => (await call<{ items: ModelUploadView[] }>(api.get('/api/site/model/uploads'))).items;
+export const uploadModel = (file: File): Promise<ModelUploadView> => {
+  const form = new FormData();
+  form.append('file', file);
+  return call(api.post('/api/site/model/uploads', form, { headers: { 'Content-Type': 'multipart/form-data' } }));
+};
+export const applyModelUpload = (id: string): Promise<SiteModel> => call(api.post(`/api/site/model/uploads/${id}/use`));
+export const deleteModelUpload = (id: string): Promise<unknown> => call(api.delete(`/api/site/model/uploads/${id}`));

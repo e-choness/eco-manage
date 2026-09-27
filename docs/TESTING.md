@@ -1,7 +1,7 @@
 # Testing
 
-All suites run inside the dev container. As of P5-01: **api 332, web 81, ingest 29, simulator 32, rules 43, recs 33,
-shared 134, profiles 20, db 11, worker 67**, all passing. Lint and typecheck also pass. The api,
+All suites run inside the dev container. As of P5-02: **api 343, web 83, ingest 29, simulator 32, rules 43, recs 33,
+shared 139, profiles 20, db 11, worker 70, modelconv 13**, all passing. Lint and typecheck also pass. The api,
 ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest, rules and the worker's report schedules; the worker's SMTP test uses Mailpit, and its PDF test prints through Gotenberg when it is running).
 
 ```bash
@@ -66,6 +66,19 @@ docker compose run --rm --no-deps api pnpm --filter @ecomanage/web test:watch
 and `matchMedia`, and stubs `ResizeObserver` for Recharts. If a page lists `toast` as an effect
 dependency, mock `useToast` with a stable function (`vi.hoisted`). A new `vi.fn()` on every render
 makes the effect loop forever.
+
+## 3D model converter (`apps/modelconv`)
+
+In the dev container the converter's glTF tests run with the rest (the ones that need assimp,
+IfcOpenShell or toktx are skipped there). All of them run in the converter's own read-only image:
+
+```bash
+docker compose run --rm --no-deps modelconv sh -c "cp vitest.config.mjs /tmp/ && node_modules/.bin/vitest run --config /tmp/vitest.config.mjs"
+```
+
+They build their inputs in code (boxes, a 320,000-triangle terrain, an OBJ, an ASCII FBX made by
+assimp, a hand-written IFC4 wall) and check units, centring, simplifying, KTX2 sizes, Draco, the
+thumbnail, the isolation of each conversion and every rejection reason.
 
 ## End-to-end (`e2e/`, Playwright)
 
