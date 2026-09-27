@@ -105,7 +105,8 @@ describe('rail', () => {
     const nav = await rail()
     expect(nav.getAllByRole('link').map((a) => a.getAttribute('title'))).toEqual(['Home', 'Devices', 'History', 'Bills', 'Inbox', 'Settings'])
     expect(nav.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
-    expect(await screen.findByTestId('inbox-badge')).toHaveTextContent('3') // 1 decision + 2 alerts
+    // The counts load (1 decision + 2 alerts), then the stream's newer counts replace them.
+    expect(await screen.findByTestId('inbox-badge')).toHaveTextContent(/^[35]$/)
     await waitFor(() => expect(screen.getByTestId('inbox-badge')).toHaveTextContent('5'))
     expect(nav.getByRole('link', { name: 'Inbox, 5 need you' })).toBeInTheDocument()
   })

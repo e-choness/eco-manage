@@ -8,8 +8,8 @@
     "test": "playwright test"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.10.1",
-    "@playwright/test": "1.49.0",
-    "@types/node": "^20.11.5"
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "@types/node": "^24.19.0"
   }
 }

@@ -22,9 +22,6 @@ export default {
   // Integration suites connect to MongoDB and Redis; under full parallel load a hook can take
   // longer than jest's 5 s default.
   testTimeout: 20_000,
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-  },
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',

@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(toUserData(rest));
     } catch (error) {
       clearSession();
-      throw new Error(errorMessage(error) || 'Login failed');
+      throw new Error(errorMessage(error) || 'Login failed', { cause: error });
     }
   };
 

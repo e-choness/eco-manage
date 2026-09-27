@@ -178,7 +178,8 @@ describe('report formats', () => {
 
   it('XLSX has a sheet per section with numbers as numbers', async () => {
     const wb = new ExcelJS.Workbook()
-    await wb.xlsx.load(await reportXlsx(await content({ sections: ['summary', 'sources'] })))
+    const xlsx = await reportXlsx(await content({ sections: ['summary', 'sources'] }))
+    await wb.xlsx.load(xlsx as unknown as Parameters<typeof wb.xlsx.load>[0]) // ExcelJS's types predate Node's generic Buffer
     expect(wb.worksheets.map((w) => w.name)).toEqual(['Report', 'Energy summary', 'Sources and consumers'])
     const sources = wb.getWorksheet('Sources and consumers')!
     const values = sources.getSheetValues().filter(Boolean).map((r) => (r as unknown[]).slice(1))

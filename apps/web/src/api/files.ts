@@ -6,7 +6,7 @@ export const download = async (url: string, fallbackName: string): Promise<void>
   try {
     res = await api.get(url, { responseType: 'blob', transformResponse: [(d: unknown) => d] });
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
   const name = /filename="([^"]+)"/.exec(String(res.headers['content-disposition'] ?? ''))?.[1] ?? fallbackName;
   const href = URL.createObjectURL(res.data as Blob);

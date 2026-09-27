@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { RES_LABEL, changePct, siteDate, type HistoryRes, type HistoryTotals } from "@ecomanage/shared"
@@ -57,11 +57,6 @@ export function History() {
   const exportParam = params.get("export")
   const linked = useQuery({ queryKey: ["export", exportParam], queryFn: () => getExport(exportParam!), enabled: !!exportParam, retry: false })
 
-
-  // Keep the dates shown in step with what the server drew (it may have moved them into the data).
-  useEffect(() => {
-    if (s && preset === "all" && (s.from !== range.from || s.to !== range.to)) setRange({ from: s.from, to: s.to })
-  }, [s, preset, range.from, range.to])
 
   const warnings = (s?.warnings ?? []).filter((w) => !(preset === "all" && w.startsWith("No data before")))
   const t = totals.data

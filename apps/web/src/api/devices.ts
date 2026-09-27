@@ -9,7 +9,7 @@ export const getDevices = async (): Promise<{ items: DeviceView[] }> => {
     const response = await api.get('/api/devices');
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 
@@ -20,7 +20,7 @@ export const getDevice = async (id: string): Promise<DeviceDetail> => {
     const response = await api.get(`/api/devices/${id}`);
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 
@@ -31,7 +31,7 @@ export const getDeviceTelemetry = async (id: string, params: { from?: string; to
     const response = await api.get(`/api/devices/${id}/telemetry`, { params });
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 
@@ -42,7 +42,7 @@ export const createDevice = async (body: CreateDeviceBody): Promise<DeviceView> 
     const response = await api.post('/api/devices', body);
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 
@@ -53,7 +53,7 @@ export const scanDevices = async (): Promise<{ found: FoundDevice[] }> => {
     const response = await api.post('/api/devices/scan', {});
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 
@@ -64,7 +64,7 @@ export const commissionDevice = async (id: string): Promise<CommissionResult> =>
     const response = await api.post(`/api/devices/${id}/commission`, {});
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 
@@ -75,7 +75,7 @@ export const logVisit = async (id: string, text: string): Promise<DeviceDetail['
     const response = await api.post(`/api/devices/${id}/maintenance`, { text });
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };
 
@@ -93,6 +93,6 @@ export const proposeChange = async (body: ProposeBody): Promise<{ id: string }> 
     const response = await api.post('/api/recommendations', body);
     return response.data;
   } catch (error) {
-    throw new Error(errorMessage(error));
+    throw new Error(errorMessage(error), { cause: error });
   }
 };

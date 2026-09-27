@@ -162,7 +162,7 @@ export const utilityBillJob = async ({ siteId, period, fileId }: UtilityBillJob,
 
   const data = await readFileBuffer(fileId);
   const isPdf = info.metadata.contentType === 'application/pdf' || data.subarray(0, 5).toString() === '%PDF-';
-  let totalCents: number | null = null;
+  let totalCents: number | null;
   try {
     totalCents = isPdf ? totalFromText(await pdfText(data)) : totalFromCsv(data.toString('utf8'), period);
   } catch {

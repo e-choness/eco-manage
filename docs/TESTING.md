@@ -73,7 +73,7 @@ In the dev container the converter's glTF tests run with the rest (the ones that
 IfcOpenShell or toktx are skipped there). All of them run in the converter's own read-only image:
 
 ```bash
-docker compose run --rm --no-deps modelconv sh -c "cp vitest.config.mjs /tmp/ && node_modules/.bin/vitest run --config /tmp/vitest.config.mjs"
+docker compose run --rm --no-deps -e HOME=/tmp modelconv sh -c "cp vitest.config.mjs /tmp/ && node_modules/.bin/vitest run --config /tmp/vitest.config.mjs"
 ```
 
 They build their inputs in code (boxes, a 320,000-triangle terrain, an OBJ, an ASCII FBX made by

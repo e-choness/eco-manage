@@ -1,3 +1,14 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# Supply chain (pnpm 12): packages newer than a day are refused (the default minimumReleaseAge),
+# and dependencies may run install scripts only when listed here.
+allowBuilds:
+  esbuild: true # its binary check; tsx, vite and vitest use it
+  # Optional extras we don't need: a native canvas for jsdom, msgpack speed-ups, msw's worker copy.
+  canvas: false
+  msgpackr-extract: false
+  msw: false
+  '@parcel/watcher': false # file watching for jest --watch; not used
+  unrs-resolver: true # jest 30's module resolver: fetches its native binary

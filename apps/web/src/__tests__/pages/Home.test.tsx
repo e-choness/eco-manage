@@ -122,7 +122,7 @@ const setup = (role: Role, over: { snapshot?: SiteSnapshot; today?: SiteToday; e
 describe('Home', () => {
   it('shows live flows, demand, bill and battery to a manager', async () => {
     setup('manager')
-    expect(await screen.findByTestId('site-name')).toHaveTextContent('Maple Grove School')
+    await waitFor(() => expect(screen.getByTestId('site-name')).toHaveTextContent('Maple Grove School'))
     await waitFor(() => expect(screen.getByTestId('live-status')).toHaveTextContent('live'))
     expect(screen.getByTestId('site-name').nextElementSibling?.textContent).toMatch(/^[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} · \d\d:\d\d · live$/)
     expect(screen.getByTestId('scene-2d')).toBeInTheDocument()

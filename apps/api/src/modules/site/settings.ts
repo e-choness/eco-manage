@@ -107,7 +107,7 @@ export const updateBattery = async (site: SiteDoc, userId: string, patch: Batter
 
 export const gatewayStatus = async (site: SiteDoc, redis?: Redis, now = new Date()): Promise<GatewayView> => {
   const raw = redis ? await redis.get(`gw:${site._id}`) : null;
-  let gw: { fw?: string; uptimeS?: number; buffered?: number; oldestBufferedTs?: string | null; clockOffsetMs?: number; receivedAt?: string } | null = null;
+  let gw: { fw?: string; uptimeS?: number; buffered?: number; oldestBufferedTs?: string | null; clockOffsetMs?: number; receivedAt?: string } | null;
   try {
     gw = raw ? JSON.parse(raw) : null;
   } catch {
