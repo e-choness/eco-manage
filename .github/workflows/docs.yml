@@ -1,0 +1,61 @@
+# The documentation site (VitePress) on GitHub Pages: https://e-choness.github.io/eco-manage/
+# Needs Settings → Pages → Source: "GitHub Actions" once.
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths: ["docs/**", "CHANGELOG.md", ".github/workflows/docs.yml"]
+  pull_request:
+    paths: ["docs/**", "CHANGELOG.md", ".github/workflows/docs.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # "last updated" dates come from git history
+
+      - uses: pnpm/action-setup@v6 # the version in package.json's packageManager
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install the docs package only
+        run: pnpm install --frozen-lockfile --filter @ecomanage/docs
+
+      - name: Build
+        run: pnpm --filter @ecomanage/docs build
+
+      - if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v6
+
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs/.vitepress/dist
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

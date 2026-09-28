@@ -83,7 +83,7 @@ safe to run repeatedly:
    v1 `recommendations` move to `legacy_recommendations`; nothing reads them since the v2
    Recommendations API replaced the v1 optimization routes (P3-03).
 2. The v2 collections and indexes are created.
-3. Every user without a membership gets a site named "<name>'s site" and an owner membership,
+3. Every user without a membership gets a site named "`<name>`'s site" and an owner membership,
    recorded as an audit event. The site's time zone is UTC until the owner sets it.
 
 The seed also builds the demo site (Maple Grove School, fixed id `650000000000000000000001`) with

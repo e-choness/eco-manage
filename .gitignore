@@ -184,3 +184,6 @@ bugs/
 infra/mosquitto/certs/
 # The dev gateway's factory file (serial and claim code, from gateway:register)
 infra/gateway/factory.json
+# VitePress build output and cache
+docs/.vitepress/dist/
+docs/.vitepress/cache/

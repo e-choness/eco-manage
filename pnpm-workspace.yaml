@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'docs'
 
 # Supply chain (pnpm 12): packages newer than a day are refused (the default minimumReleaseAge),
 # and dependencies may run install scripts only when listed here.
@@ -20,3 +21,6 @@ overrides:
   '@types/express': ^5.0.6
   # exceljs (latest) still asks for uuid 8; 11 keeps the CommonJS API it uses and has the fix.
   exceljs>uuid: ^11.1.1
+  # VitePress 1.6 (the docs) pins Vite 5; its dev-server advisories are fixed in 6.4.3. The web
+  # app's Vite 8 is outside this range and unaffected.
+  vite@<6.4.3: ^6.4.3
