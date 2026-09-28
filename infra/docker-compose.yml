@@ -23,6 +23,7 @@ x-workspace: &workspace
     - /repo/apps/rules/node_modules
     - /repo/apps/modelconv/node_modules
     - /repo/apps/gateway/node_modules
+    - /repo/docs/node_modules
   environment: &workspace-env
     # Windows bind mounts don't deliver file events reliably, so the watchers poll.
     CHOKIDAR_USEPOLLING: "true"
@@ -421,6 +422,16 @@ services:
       - /repo/apps/gateway/node_modules
       - /repo/packages/shared/node_modules
       - /repo/packages/profiles/node_modules
+    restart: unless-stopped
+
+  # The documentation site (VitePress): `docker compose --profile docs up -d docs`, then
+  # http://localhost:5174/eco-manage/. Published to GitHub Pages by .github/workflows/docs.yml.
+  docs:
+    <<: *workspace
+    command: ["pnpm", "--filter", "@ecomanage/docs", "dev"]
+    profiles: ["docs"]
+    ports:
+      - "5174:5174"
     restart: unless-stopped
 
   # One-shot: resets the demo accounts and data. Not started by `up`; run it with

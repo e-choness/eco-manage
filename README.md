@@ -1,156 +1,207 @@
-# 🌱 EcoManage
+<div align="center">
 
-[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](./LICENSE)
-[![Node.js](https://img.shields.io/badge/Node.js-26-43853d?logo=node.js)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178c6?logo=typescript)](https://www.typescriptlang.org/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker)](https://www.docker.com/)
+<a href="https://e-choness.github.io/eco-manage/">
+  <img src="docs/public/hero.svg" alt="EcoManage: energy flowing between solar, battery, grid, EV chargers and a heat pump through a building's switchboard" width="100%">
+</a>
 
-**Energy monitoring for a single site: production, consumption, devices, alerts and costs.**
+<p>
+  <a href="https://github.com/e-choness/eco-manage/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/e-choness/eco-manage/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white&style=flat-square"></a>
+  <a href="https://github.com/e-choness/eco-manage/actions/workflows/docs.yml"><img alt="Docs" src="https://img.shields.io/github/actions/workflow/status/e-choness/eco-manage/docs.yml?branch=main&label=docs&logo=vitepress&logoColor=white&style=flat-square"></a>
+  <a href="https://github.com/e-choness/eco-manage/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/e-choness/eco-manage?style=flat-square&logo=git&logoColor=white"></a>
+  <a href="https://github.com/e-choness/eco-manage/pulse"><img alt="Commit activity" src="https://img.shields.io/github/commit-activity/m/e-choness/eco-manage?style=flat-square&label=commits"></a>
+  <a href="https://github.com/e-choness/eco-manage/pulls"><img alt="Pull requests" src="https://img.shields.io/github/issues-pr/e-choness/eco-manage?style=flat-square&label=PRs"></a>
+  <img alt="Repository size" src="https://img.shields.io/github/repo-size/e-choness/eco-manage?style=flat-square">
+  <a href="./LICENSE"><img alt="License: proprietary" src="https://img.shields.io/badge/license-proprietary-c0392b?style=flat-square"></a>
+</p>
+<p>
+  <img alt="Node.js 26" src="https://img.shields.io/badge/Node.js-26-5fa04e?logo=nodedotjs&logoColor=white&style=flat-square">
+  <img alt="TypeScript 6" src="https://img.shields.io/badge/TypeScript-6.0-3178c6?logo=typescript&logoColor=white&style=flat-square">
+  <img alt="React 19" src="https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black&style=flat-square">
+  <img alt="three.js" src="https://img.shields.io/badge/three.js-0.186-000000?logo=threedotjs&logoColor=white&style=flat-square">
+  <img alt="MongoDB 8" src="https://img.shields.io/badge/MongoDB-8-47a248?logo=mongodb&logoColor=white&style=flat-square">
+  <img alt="Redis 8" src="https://img.shields.io/badge/Redis-8-ff4438?logo=redis&logoColor=white&style=flat-square">
+  <img alt="MQTT" src="https://img.shields.io/badge/MQTT-TLS-660066?logo=mqtt&logoColor=white&style=flat-square">
+  <img alt="Docker Compose" src="https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker&logoColor=white&style=flat-square">
+</p>
 
-![banner](./readme-img/banner-wide.jpg)
+**Energy management for real buildings.** Solar, batteries, EV chargers and heat pumps on one live
+view, bills from the site's own tariff, and changes that only reach a device once someone approves them.
 
-> **Status.** v2 Phase 1 (data backbone and simulator) is in place: sites and roles, MQTT over
-> TLS, a simulated site, ingest into a time series with 15-minute intervals, and a live view over
-> server-sent events. Money (tariffs, bills), the alert engine, recommendations with approvals and
-> the App v2 interface come in the next phases of the plan in the design handoff
-> (`IMPLEMENTATION_PLAN.md`). This README only describes what exists.
+[**Documentation**](https://e-choness.github.io/eco-manage/) ·
+[Getting started](https://e-choness.github.io/eco-manage/guide/getting-started) ·
+[What it does](https://e-choness.github.io/eco-manage/guide/features) ·
+[Changelog](./CHANGELOG.md)
 
-## What it does
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/e-choness/eco-manage?quickstart=1)
 
-- **Home (live view)**: power from solar, battery, grid, EV chargers and heat pump, the calculated
-  building load, 15-minute demand so far and projected against the cap, the month's peak, battery
-  charge and time left, and gateway status. Values update over a server-sent event stream.
-- **Devices**: every device on the site with status (live, stale after 60 s without data, offline
-  after 5 min), latest reading, profile, commissioning details, last raw message and a 24-hour
-  chart. Installers can add, change and remove devices through the API.
-- **Roles**: owner, manager and installer per site, enforced on the server for every route.
-- **Simulator**: the demo site (Maple Grove School) runs as a simulated gateway with seeded
-  weather, school-day loads, EV sessions, battery and heat pump, plus fault injection.
-- **Optimization and Alerts**: the v1 recommendation and alert lists, until the rules engine
-  (Phase 2–3) replaces them.
-- **Account**: register, sign in, profile and password.
+</div>
 
-Power is in kW and energy in kWh. Timestamps are stored in UTC; site-local time comes from the
-site's time zone.
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/public/screenshots/home-light.png">
+  <img alt="Home: the live site, with demand against the cap, the bill so far, the battery and a decision waiting" src="docs/public/screenshots/home.png">
+</picture>
 
-## Quick start (Docker)
+## ✨ What it does
 
-Everything runs in containers; you only need Docker.
+| | |
+| --- | --- |
+| ⚡ **Live site** | Power moving between solar, the battery, the grid, EV chargers, the heat pump and the building every 5 seconds, on a 3D model of the site; demand against the cap, the bill so far, today's prices. |
+| 🧾 **Bills** | Time-of-use and demand tariffs with versions, the month so far and where it's heading, savings from solar and the battery, PDF statements, and the utility's bill compared with the estimate. |
+| ✅ **Recommendations** | Peak shaving, EV off-peak charging, EV limits near the cap, heat-pump pre-conditioning, storm reserve and export caps, each with its checks and saving. Nothing is sent until someone approves; every result is measured the next day. |
+| 💬 **Explanations** | Any recommendation explained in plain words by a language model: bring any OpenAI-compatible key or Anthropic's. Only the numbers are sent, never names. |
+| 🔔 **Alerts** | Silent devices, low solar, battery below reserve, demand near the cap, failed commands; emails with escalation, remote fixes, and auto-resolve. |
+| 📈 **History and reports** | Any range by hour, day or month, CSV exports, and scheduled PDF, CSV or Excel reports by email. |
+| 🧊 **Site model** | Generated from the building's size or its OpenStreetMap outline, or uploaded as glTF, OBJ, FBX or IFC and converted in a sandbox. |
+| 🔌 **Gateway** | A Raspberry Pi agent for Modbus TCP/RTU and OCPP 1.6J chargers with a 7-day offline buffer and safety limits on every command, claimed by QR code. |
+
+<details>
+<summary><b>More screenshots</b></summary>
+
+| Inbox: a decision with its checks | Bills: the month so far |
+| --- | --- |
+| ![Inbox](docs/public/screenshots/inbox.png) | ![Bills](docs/public/screenshots/bills.png) |
+| **Devices** | **History** |
+| ![Devices](docs/public/screenshots/devices.png) | ![History](docs/public/screenshots/history.png) |
+| **Settings: the site model** | **Home in the light theme** |
+| ![Site model](docs/public/screenshots/site-model.png) | ![Home, light](docs/public/screenshots/home-light.png) |
+
+</details>
+
+## 🚀 Try it
+
+**In the browser:** open it in [GitHub Codespaces](https://codespaces.new/e-choness/eco-manage?quickstart=1);
+it builds, seeds the demo site and opens the app (a few minutes the first time).
+
+**On your machine** (only Docker needed):
 
 ```bash
-git clone https://github.com/e-choness/EcoManage.git
-cd EcoManage
+git clone https://github.com/e-choness/eco-manage.git && cd eco-manage
 docker compose up -d
+docker compose run --rm mongo-seed      # demo accounts and site
 ```
 
-| Service   | URL / port              |
-| --------- | ----------------------- |
-| Web app   | http://localhost:5173   |
-| API       | http://localhost:3000   |
-| MongoDB   | localhost:27017         |
-| Redis     | localhost:6379          |
-| MQTT (TLS)| localhost:18883         |
-| Simulator | http://localhost:4100/sim/state |
-| Mailpit (emails) | http://localhost:8025 |
+Then open **http://localhost:5173** and sign in as `manager@ecomanage.io` with `Demo1234!`.
+A simulated school (86 kWp of solar, a 200 kWh battery, four EV chargers and a heat pump) starts
+feeding it straight away.
 
-Load the demo accounts and the demo site (this **resets** them, including the site's telemetry):
+<details>
+<summary><b>Demo accounts and local services</b></summary>
 
-```bash
-docker compose run --rm mongo-seed
+| Email | Role on Maple Grove School |
+| --- | --- |
+| `demo@ecomanage.io` | owner |
+| `manager@ecomanage.io` | manager |
+| `installer@ecomanage.io` | installer (until 31 Dec 2026) |
+
+All use the password `Demo1234!`.
+
+| Service | Address |
+| --- | --- |
+| Web app | http://localhost:5173 |
+| API | http://localhost:3000 |
+| Emails (Mailpit) | http://localhost:8025 |
+| Simulator state | http://localhost:4100/sim/state |
+| Documentation | `docker compose --profile docs up -d docs` → http://localhost:5174/eco-manage/ |
+
+</details>
+
+## 🏗️ How it fits together
+
+```mermaid
+flowchart LR
+  subgraph site["On site"]
+    dev["Inverters, battery, meters<br/>Modbus TCP / RS-485"] --> gw["Gateway agent<br/>Raspberry Pi"]
+    ev["EV chargers<br/>OCPP 1.6J"] --> gw
+  end
+  sim["Simulator<br/>(the demo site)"]
+  subgraph services["EcoManage services"]
+    broker[("MQTT broker")]
+    ingest["Ingest"]
+    rules["Rules<br/>alerts, recommendations, commands"]
+    worker["Worker<br/>bills, forecasts, reports, email"]
+    api["API"]
+    conv["Model converter<br/>(sandbox)"]
+  end
+  subgraph data["Data"]
+    mongo[("MongoDB")]
+    redis[("Redis")]
+  end
+  web["Web app"] -- "REST + live stream" --> api
+  gw -- "MQTT over TLS" --> broker
+  sim -.-> broker
+  broker --> ingest
+  rules -- "commands" --> broker
+  ingest --> data
+  rules --> data
+  worker --> data
+  api --> data
+  worker --> conv
+  api -. "optional" .-> llm["Language model"]
 ```
 
-The simulator starts feeding the demo site straight away. Sign in with any of these (password
-`Demo1234!`):
+Everything runs as containers with Docker Compose; the [architecture](https://e-choness.github.io/eco-manage/ARCHITECTURE)
+page walks through each service.
 
-| Email                     | Role on Maple Grove School |
-| ------------------------- | -------------------------- |
-| `demo@ecomanage.io`       | owner                      |
-| `manager@ecomanage.io`    | manager                    |
-| `installer@ecomanage.io`  | installer (until 31 Dec 2026) |
+<details>
+<summary><b>Repository layout</b></summary>
 
-The API reads `apps/api/.env.example`, then `apps/api/.env` if it exists (gitignored), so a fresh
-clone works with no setup. Put real secrets in `apps/api/.env`.
-
-## Repository layout
-
-```
+```text
 apps/
-  api/        Express + Mongoose API (modules/<name>/{routes,controller,service,model}.ts)
-  ingest/     MQTT → telemetry time series, latest values, 15-minute intervals, live events
-  worker/     BullMQ jobs: interval costs, bills, statement PDFs, utility bill reading
-  rules/      alert checks on every reading (opens and auto-resolves alerts)
-  simulator/  simulated site + gateway (MQTT topics, commands, jobs, fault injection)
-  gateway/    the real edge agent for a Raspberry Pi: claim, Modbus, OCPP, 7-day buffer, commands
-  modelconv/  sandboxed 3D model converter
-  web/        React 19 + Vite 8 + Tailwind 4 + Radix client
+  api/        REST API and the live stream (Express, Mongoose)
+  web/        the web app (React 19, Vite 8, Tailwind 4, three.js)
+  ingest/     MQTT → telemetry, latest values, 15-minute intervals, live events
+  rules/      alerts, recommendations and command dispatch
+  worker/     bills, savings, forecasts, reports, exports and email (BullMQ)
+  simulator/  the demo site: a simulated gateway with weather, loads and faults
+  gateway/    the edge agent for a Raspberry Pi: Modbus, OCPP, buffer, commands
+  modelconv/  the sandboxed 3D model converter
 packages/
-  shared/     types, zod schemas, MQTT topics, units, sign rules, site-time and live helpers
-  db/         Mongoose models for the v2 data model
-  profiles/   device profiles (register maps, write limits, fixes)
-  recs/       recommendation rules and their context (rules service proposes, API re-checks)
-infra/        docker-compose.yml (the root compose file includes it), Mosquitto config and ACL
-e2e/          Playwright suite (outdated; replaced in P1-12)
-docs/         architecture, API, database, testing and ops notes
+  shared/     types, schemas, MQTT topics, tariff and billing maths, site time
+  db/         the data model
+  profiles/   device profiles: register maps, write limits, fixes
+  recs/       the recommendation rules
+docs/         the documentation site (VitePress)
+infra/        compose file, broker config and certificates
+e2e/          Playwright smoke and accessibility tests
 ```
 
-The repo is a pnpm workspace. Shared TypeScript settings live in `tsconfig.base.json` and lint
-rules in the root `eslint.config.js`.
+</details>
 
-## Common commands
+<details>
+<summary><b>Development</b></summary>
 
-Run everything inside the dev container:
+Every check runs inside the dev container; nothing is installed on the host.
 
 ```bash
-# all checks (integration tests need the mongodb service running)
-docker compose run --rm api pnpm -r typecheck
-docker compose run --rm api pnpm -r lint
-docker compose run --rm api pnpm -r test
-docker compose run --rm api pnpm -r build
-
-# one package
-docker compose run --rm api pnpm --filter @ecomanage/api test
-docker compose run --rm api pnpm --filter @ecomanage/web test
-
-# reseed the demo data
-docker compose run --rm mongo-seed
+docker compose exec api pnpm -r typecheck
+docker compose exec api pnpm -r lint
+docker compose exec api pnpm knip                     # unused files, exports, dependencies
+docker compose exec api pnpm -r --workspace-concurrency=1 test
+docker compose --profile e2e run --rm e2e             # Playwright against the running stack
 ```
 
-After changing dependencies, refresh the lockfile, rebuild the image, and recreate the containers
-with fresh `node_modules` volumes (`-V`). Otherwise the old volumes keep the old packages:
+CI runs the same commands in the same images on every pull request. See
+[Testing](https://e-choness.github.io/eco-manage/TESTING) and
+[Contributing](https://e-choness.github.io/eco-manage/CONTRIBUTING).
 
-```bash
-docker compose build
-docker compose up -d --force-recreate -V api web
-```
+</details>
 
-The old npm entry points still work from the root as aliases: `pnpm server`, `pnpm client`,
-`pnpm start`.
+## 📚 Documentation
 
-## Security
+| | |
+| --- | --- |
+| [Getting started](https://e-choness.github.io/eco-manage/guide/getting-started) | Run it, sign in, what to try |
+| [What it does](https://e-choness.github.io/eco-manage/guide/features) | Every page and what's behind it |
+| [Architecture](https://e-choness.github.io/eco-manage/ARCHITECTURE) | Services, data flow, security |
+| [API](https://e-choness.github.io/eco-manage/API_REFERENCE) | Every endpoint |
+| [Gateway agent](https://e-choness.github.io/eco-manage/GATEWAY) | Claiming, setup on a Pi, bench checks |
+| [Deployment](https://e-choness.github.io/eco-manage/DEPLOYMENT) | Configuration and what production needs |
+| [Hosting a demo](https://e-choness.github.io/eco-manage/guide/demo-hosting) | Free options compared |
+| [Changelog](./CHANGELOG.md) | What changed, release by release |
 
-- The access token is kept in memory in the browser. The refresh token is an httpOnly,
-  `SameSite=Strict` cookie scoped to `/api/auth`, rotated on every refresh and revoked on logout.
-- CORS only allows origins listed in `CORS_ORIGINS`. `helmet` sets security headers.
-- Rate limits are 300 requests/min per IP on `/api` and 10/min on login, register and refresh,
-  stored in Redis so they hold across API instances.
-- Request logs record method, path, status and duration only. Credentials are redacted.
-- No `.env` file has ever been committed (checked across all history in P0-02).
+The same pages are in [`docs/`](./docs) in this repository.
 
-## Documentation
-
-| Document                                      | Contents                                        |
-| --------------------------------------------- | ----------------------------------------------- |
-| [Architecture](./docs/ARCHITECTURE.md)         | Layers, request flow, auth, tech stack          |
-| [API reference](./docs/API_REFERENCE.md)       | Every endpoint with request and response shapes |
-| [Database](./docs/DATABASE.md)                 | Collections, fields and indexes                 |
-| [Testing](./docs/TESTING.md)                   | Test suites and how to run them                 |
-| [Deployment](./docs/DEPLOYMENT.md)             | Configuration and what production needs         |
-| [Gateway](./docs/GATEWAY.md)                   | The edge agent: claiming, setup, bench checks   |
-| [Contributing](./docs/CONTRIBUTING.md)         | Branches, commits, code rules                   |
-| [Troubleshooting](./docs/TROUBLESHOOTING.md)   | Known problems and fixes                        |
-
-## License
+## 📄 License
 
 Proprietary. Copyright (c) 2025-2026 Echo (Beili) Yin. All rights reserved. No use, copying,
 modification or distribution without written permission; see [LICENSE](./LICENSE).

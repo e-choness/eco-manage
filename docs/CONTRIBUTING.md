@@ -28,6 +28,11 @@ Work follows the phased plan in the design handoff (`IMPLEMENTATION_PLAN.md`).
 - **Dependencies.** The plan lists the allowed additions. Explain anything else in the PR.
 - **No TODOs without an issue link.**
 - **Docs.** Update `docs/` when behaviour or contracts change. Docs describe only what exists.
+  They are also the documentation site (VitePress): preview it with
+  `docker compose --profile docs up -d docs` at http://localhost:5174/eco-manage/; merging to
+  `main` publishes it to GitHub Pages.
+- **Changelog.** Add what users will notice (features, changes, fixes) under *Unreleased* in
+  `CHANGELOG.md`, in plain words; internal design and refactoring stay out of it.
 
 ## Adding dependencies
 

@@ -1,0 +1,16 @@
+{
+  "name": "@ecomanage/docs",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The EcoManage documentation site (VitePress), published to GitHub Pages",
+  "scripts": {
+    "dev": "vitepress dev --host 0.0.0.0 --port 5174",
+    "build": "vitepress build",
+    "preview": "vitepress preview --host 0.0.0.0 --port 5174"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  }
+}

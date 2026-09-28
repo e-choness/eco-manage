@@ -4,4 +4,5 @@
 **/.env
 .git
 docs
+!docs/package.json
 e2e
