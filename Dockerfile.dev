@@ -2,7 +2,8 @@
 # node_modules live in the image and are kept out of the bind mount by volumes.
 FROM node:26-alpine
 
-RUN corepack enable && corepack prepare pnpm@12.6.0 --activate
+# Node 25+ no longer bundles corepack, so pnpm comes from npm (the version in package.json).
+RUN npm install -g pnpm@12.6.0 && npm cache clean --force
 WORKDIR /repo
 
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./

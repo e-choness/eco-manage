@@ -1,7 +1,7 @@
 # Testing
 
-All suites run inside the dev container. As of P5-02 and the September 2026 dependency update (Node 24, Vitest everywhere): **api 343, web 83, ingest 29, simulator 32, rules 43, recs 33,
-shared 139, profiles 20, db 11, worker 70, modelconv 13**, all passing. Lint and typecheck also pass. The api,
+All suites run inside the dev container. As of P5-02 and the September 2026 dependency update (Node 26, Vitest everywhere): **api 343, web 83, ingest 29, simulator 32, rules 43, recs 33,
+shared 139, profiles 20, db 11, worker 71, modelconv 13**, all passing. Lint and typecheck also pass. The api,
 ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest, rules and the worker's report schedules; the worker's SMTP test uses Mailpit, and its PDF test prints through Gotenberg when it is running).
 
 ```bash
@@ -87,6 +87,8 @@ simulator:
 
 ```bash
 docker compose run --rm mongo-seed          # once
+# a fresh site has no bill until its first interval is priced; make the current one now
+docker compose exec worker pnpm --filter @ecomanage/worker bills:refresh
 docker compose --profile e2e run --rm e2e
 ```
 
@@ -112,7 +114,7 @@ installed on the runner:
 - **checks:** build the images, start the services the tests use, then typecheck, lint, every
   suite one package at a time, the web build, the converter's tests in its read-only image, and
   `pnpm audit --audit-level=moderate`. Service logs are printed when a step fails.
-- **e2e:** the whole stack with the demo seed, then the Playwright smoke and accessibility specs.
+- **e2e:** the whole stack with the demo seed and its current bills, then the Playwright smoke and accessibility specs.
   The report and traces are uploaded when it fails.
 
 ## Dependencies
@@ -123,5 +125,5 @@ installed on the runner:
   `allowBuilds` (esbuild today). See TROUBLESHOOTING.md if a change trips either.
 - Dependabot (`.github/dependabot.yml`) proposes weekly updates for npm, the Dockerfiles, the
   compose images and the Actions, two days after a release. It skips TypeScript 6.1 and later
-  (typescript-eslint doesn't support them yet) and `@types/node` majors (they follow the Node 24
-  images).
+  (typescript-eslint doesn't support them yet) and `@types/node` majors (they follow the Node
+  version of the images, 26).

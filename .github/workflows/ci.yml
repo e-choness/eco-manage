@@ -67,6 +67,8 @@ jobs:
         run: |
           docker compose up -d --wait
           docker compose run --rm mongo-seed
+          # A fresh site has no bill until its first interval is priced; make the current one now.
+          docker compose exec -T worker pnpm --filter @ecomanage/worker bills:refresh
 
       - name: Playwright (smoke and accessibility)
         run: docker compose --profile e2e run --rm e2e

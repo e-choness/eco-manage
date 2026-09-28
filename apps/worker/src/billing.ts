@@ -86,12 +86,15 @@ export const costPendingIntervals = async (now = new Date(), limit = 5000): Prom
   return pending.length;
 };
 
-/** Nightly: recompute the current and the previous period of every site whose local hour is `hour`. */
-export const nightlyBills = async (now = new Date(), hour = 1): Promise<number> => {
+/**
+ * Nightly: recompute the current and the previous period of every site whose local hour is `hour`
+ * (every site when `hour` is null).
+ */
+export const nightlyBills = async (now = new Date(), hour: number | null = 1): Promise<number> => {
   let done = 0;
   for (const site of await Site.find().lean<SiteDoc[]>()) {
     const localHour = Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hour12: false, timeZone: site.tz }).format(now));
-    if (localHour !== hour) continue;
+    if (hour !== null && localHour !== hour) continue;
     const current = billingPeriod(now, site.tz, site.billDay ?? 1);
     await refreshBill(site, now, now);
     await refreshBill(site, new Date(current.start.getTime() - 1), now);

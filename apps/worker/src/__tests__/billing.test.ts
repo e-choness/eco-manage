@@ -132,4 +132,11 @@ describe('nightlyBills', () => {
     expect(await nightlyBills(oneAm)).toBe(1)
     expect((await Bill.find({ siteId }).lean()).map((b) => b.period).sort()).toEqual(['2026-09', '2026-10'])
   })
+
+  it('recomputes every site at once when no hour is given', async () => {
+    expect(await nightlyBills(u('2026-10-05T12:00:00Z'), null)).toBe(1)
+    const bills = await Bill.find({ siteId }).lean()
+    expect(bills.map((b) => b.period).sort()).toEqual(['2026-09', '2026-10'])
+    expect(bills.find((b) => b.period === '2026-10')?.inProgress).toBe(true)
+  })
 })
