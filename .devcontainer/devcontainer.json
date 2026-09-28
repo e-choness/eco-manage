@@ -1,0 +1,19 @@
+{
+  // The whole EcoManage stack in GitHub Codespaces: the same compose file as local development,
+  // with the demo site seeded. Uses the visitor's own free Codespaces hours (4 cores ≈ 30 h/month).
+  "name": "EcoManage live demo",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "hostRequirements": { "cpus": 4, "memory": "16gb" },
+  "forwardPorts": [5173, 8025],
+  "portsAttributes": {
+    "5173": { "label": "EcoManage", "onAutoForward": "openBrowser" },
+    "8025": { "label": "Mailpit (the demo's email)", "onAutoForward": "silent" }
+  },
+  // First start: build, start and seed the demo (sign in as manager@ecomanage.io / Demo1234!).
+  "postCreateCommand": "docker compose up -d --build --wait && docker compose run --rm mongo-seed",
+  // Resuming: start what stopped; the data is kept.
+  "postStartCommand": "docker compose up -d --wait"
+}
