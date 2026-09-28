@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { RecommendationDetail, Role } from "@ecomanage/shared"
-import { approveRecommendation, checkRecommendation, declineRecommendation, getCommand, getRecommendation } from "@/api/inbox"
+import { approveRecommendation, checkRecommendation, declineRecommendation, explainRecommendation, getCommand, getRecommendation } from "@/api/inbox"
 import { getDevice } from "@/api/devices"
 import { useToast } from "@/hooks/useToast"
 import { clockAt, money } from "@/lib/format"
@@ -144,6 +144,7 @@ function Loaded({ r, tz, currency, role }: { r: RecommendationDetail; tz: string
       <Section title="Why it was suggested" rows={[["Rule", r.ruleId === "manual" ? "Manual request (Devices page)" : `${r.ruleTitle} · runs every 15 min`], ["Window", span], ...r.inputs.map((i): [string, string] => [i.label, i.value])]} />
       <Section title="Checks against your limits" rows={checks.map((c): [string, string, string] => [c.pass ? "Pass" : "Fails", c.text, c.pass ? "text-tag-bat" : "text-tag-hp"])} />
       <Section title={`Expected saving ${money(saving, currency)}`} text={calc} />
+      <Explanation r={r} canAsk={role === "owner" || role === "manager"} />
       {pending ? (
         <Section
           title="How it gets decided"
@@ -198,5 +199,48 @@ function Loaded({ r, tz, currency, role }: { r: RecommendationDetail; tz: string
         </p>
       ) : null}
     </div>
+  )
+}
+
+/**
+ * P5-05: the proposal in plain words, written by a language model from the server's own data (no
+ * names or typed text go to it). Owners and managers ask for it; everyone sees it once written.
+ */
+function Explanation({ r, canAsk }: { r: RecommendationDetail; canAsk: boolean }) {
+  const queryClient = useQueryClient()
+  const [busy, setBusy] = useState(false)
+  const [problem, setProblem] = useState("")
+  if (!r.explanation && !(r.explainable && canAsk)) return null
+  const ask = async () => {
+    setBusy(true)
+    setProblem("")
+    try {
+      await explainRecommendation(r.id)
+      await queryClient.invalidateQueries({ queryKey: ["recommendation", r.id] })
+    } catch (err) {
+      setProblem(err instanceof Error ? err.message : "The explanation couldn’t be written.")
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <section aria-label="In plain words" className="flex flex-col gap-2 rounded-[10px] bg-app-bg px-3.5 py-3 text-[13px]">
+      <h3 className="m-0 text-[13px] font-semibold">In plain words</h3>
+      {r.explanation ? (
+        <>
+          <p className="m-0 leading-relaxed">{r.explanation.text}</p>
+          <p className="m-0 text-xs text-app-dm">Written by a language model from the numbers above. Check them before you decide.</p>
+        </>
+      ) : (
+        <Btn onClick={() => void ask()} disabled={busy}>
+          {busy ? "Writing…" : "Explain in plain words"}
+        </Btn>
+      )}
+      {problem ? (
+        <p role="alert" className="m-0 text-xs text-tag-hp">
+          {problem}
+        </p>
+      ) : null}
+    </section>
   )
 }

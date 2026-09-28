@@ -30,6 +30,10 @@ const schema = z.object({
   MQTT_CA_KEY: z.string().optional(),
   // Overpass API for building outlines (Settings → Site model, P5-03); empty turns the lookup off.
   OVERPASS_URL: z.string().default('https://overpass-api.de/api/interpreter'),
+  // Plain-language explanations of recommendations (P5-05): on when an Anthropic API key is set.
+  ANTHROPIC_API_KEY: z.string().optional(),
+  LLM_MODEL: z.string().default('claude-opus-5'),
+  LLM_SITE_MONTHLY_TOKENS: z.coerce.number().int().nonnegative().default(200_000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

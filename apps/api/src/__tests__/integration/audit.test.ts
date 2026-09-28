@@ -35,6 +35,7 @@ const WRITES: Record<string, string[] | string> = {
   'post /api/recommendations/:id/check': 'reruns the checks and returns them; writes nothing',
   'post /api/recommendations/:id/approve': ['recommendation.approve'],
   'post /api/recommendations/:id/decline': ['recommendation.decline'],
+  'post /api/recommendations/:id/explain': ['recommendation.explain'],
   'post /api/commands/:id/cancel': ['command.cancel'],
   'patch /api/site/': ['site.update'],
   'put /api/site/pv-arrays': ['site.pv-arrays'],

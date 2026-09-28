@@ -635,6 +635,26 @@ The six App v2 rules (P3-02) live in `packages/recs/src/rules`, with defaults fr
   - Triggers when the export rate is at or below `belowCents` and the forecast shows a surplus the battery can't take.
 - Every rule is a pure function of the context. The tests give each rule fixtures for triggering, for no trigger and for a failing check.
 
+### Explanations (P5-05)
+
+Optional: with `ANTHROPIC_API_KEY` set, owners and managers can ask for a recommendation "in plain
+words" in the Inbox (`apps/api/src/modules/recommendations/explain.ts`).
+- **Input:** only the server's own proposal, rebuilt for the model: the rule's fixed title, the
+  device *type*, the action, its settings (numbers, true/false and times only), the window and time
+  zone, the checks, the calculation and the expected saving. Left out on purpose: the request
+  (the endpoint reads only the id), the title and inputs (they name devices, vehicles and people),
+  and decline reasons. Any text typed on the site (device and vehicle names, RFID tags, members'
+  names and emails, the site's name and address) that appears in a check or calculation is
+  replaced ("the EV charger", "a person") before sending. The system prompt tells the model the
+  JSON is data, not instructions.
+- **Model:** `LLM_MODEL` (default `claude-opus-5`) through the Anthropic SDK: low effort, at most
+  1,500 output tokens, server-side fallbacks on (a declined request is rerun on a fallback model);
+  a refusal that remains is an error, not an explanation.
+- **Cache and budget:** the answer is stored on the recommendation with a SHA-256 of its input, so
+  asking again is free until the proposal changes. `llmUsage` counts each site's input and output
+  tokens per month; at `LLM_SITE_MONTHLY_TOKENS` (default 200,000) new explanations stop until the
+  next month, while stored ones are still shown.
+
 
 ### Commands (P3-04)
 

@@ -45,6 +45,8 @@ services:
       DATABASE_URL: mongodb://mongodb:27017/ecomanage
       REDIS_URL: redis://redis:6379
       MQTT_URL: mqtts://mosquitto:8883
+      # Explanations of recommendations (P5-05): set ANTHROPIC_API_KEY in the shell to try them.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # 3D models (P5-02): originals go to object storage; processed models are served from /cdn.
       S3_ENDPOINT: http://objects:9000
       S3_BUCKET: ecomanage-assets
