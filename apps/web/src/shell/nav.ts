@@ -10,7 +10,7 @@ export interface NavItem {
 }
 
 // The rail (App v2): installers don't see Bills (no money views), and the API refuses them too.
-export const NAV: readonly NavItem[] = [
+const NAV: readonly NavItem[] = [
   { id: "home", label: "Home", path: "/", icon: House },
   { id: "devices", label: "Devices", path: "/devices", icon: PlugZap },
   { id: "history", label: "History", path: "/history", icon: ChartLine },
@@ -21,4 +21,3 @@ export const NAV: readonly NavItem[] = [
 
 export const navFor = (role: Role | null): NavItem[] => NAV.filter((n) => !n.roles || (role !== null && n.roles.includes(role)))
 
-export const canSee = (id: NavItem["id"], role: Role | null): boolean => navFor(role).some((n) => n.id === id)

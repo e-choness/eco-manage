@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query"
 import { getSnapshot } from "@/api/site"
 import { SNAPSHOT_KEY, useSiteStream } from "@/hooks/useSiteStream"
 
-export { SNAPSHOT_KEY }
 
 /**
  * The site's live view: the snapshot from GET /api/site/snapshot, kept current by the stream the

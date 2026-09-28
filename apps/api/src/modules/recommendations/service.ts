@@ -16,7 +16,7 @@ import {
   type SiteEvent,
 } from '@ecomanage/shared';
 import { HttpError } from '../../lib/http';
-import User from '../auth/model';
+import { personRef } from '../../lib/lists';
 import { storedExplanation } from './explain';
 import { resolveExplainer, type ExplainDeps } from './llm';
 
@@ -66,7 +66,7 @@ const view = (r: RecommendationDoc, names: Map<string, string>): RecommendationV
   expiresAt: r.expiresAt.toISOString(),
 });
 
-export const approvalOf = async (site: SiteDoc): Promise<ApprovalConfig> => {
+const approvalOf = async (site: SiteDoc): Promise<ApprovalConfig> => {
   const saved = await RuleConfig.findOne({ siteId: site._id, ruleId: 'approval' }).lean<RuleConfigDoc>();
   return { ...APPROVAL_DEFAULTS, ...((saved?.params as Partial<ApprovalConfig>) ?? {}) };
 };
@@ -101,15 +101,9 @@ const commandTimes = (window: { start: Date; end: Date }, now: Date) => ({
   revertAt: window.end,
 });
 
-const person = async (id: unknown) => {
-  if (!id) return null;
-  const u = await User.findById(id).select('name email').lean();
-  return u ? { id: String(u._id), name: u.name || u.email } : null;
-};
-
 export const recommendationDetail = async (site: SiteDoc, role: Role, id: string, now = new Date(), explainable = false): Promise<RecommendationDetail> => {
   const rec = await findRec(site, id);
-  const [names, approval, decidedBy] = await Promise.all([deviceNames(site, [rec.deviceId]), approvalOf(site), person(rec.decidedBy)]);
+  const [names, approval, decidedBy] = await Promise.all([deviceNames(site, [rec.deviceId]), approvalOf(site), personRef(rec.decidedBy)]);
   const t = commandTimes({ start: rec.window.start!, end: rec.window.end! }, now);
   return {
     ...view(rec, names),
@@ -136,7 +130,7 @@ export const createManual = async (deps: RecDeps, site: SiteDoc, userId: string,
   const action = { deviceId: body.deviceId, action: body.action, params: body.params, window: body.window };
   const checked = (await recheck(siteId, MANUAL_RULE_ID, action, { redis: deps.redis, rules: RULES, now }))!;
   const dedupeKey = dedupeKeyOf(MANUAL_RULE_ID, body.deviceId, body.window);
-  const requester = await person(userId);
+  const requester = await personRef(userId);
   try {
     const [rec] = await Recommendation.create([
       {

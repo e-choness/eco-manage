@@ -30,7 +30,7 @@ export interface CommandState {
   error: string | null;
 }
 
-export interface GatewayState {
+interface GatewayState {
   buffered: number;
   oldestBufferedTs: string | null;
   receivedAt: string;
@@ -165,7 +165,7 @@ export const gatewayBuffer = (ctx: SiteContext): CheckResult => {
   return r;
 };
 
-export const CHECKS = [deviceSilent, pvUnderperform, batteryBelowReserve, demandNearCap, commandAckSlow, commandFailed, gatewayBuffer];
+const CHECKS = [deviceSilent, pvUnderperform, batteryBelowReserve, demandNearCap, commandAckSlow, commandFailed, gatewayBuffer];
 
 export const runChecks = (ctx: SiteContext): CheckResult => {
   const all = result();

@@ -91,10 +91,10 @@ export const getDevice = async (redis: Redis, siteId: string, id: string): Promi
   };
 };
 
-export type ProfileCheck = 'ok' | 'unknown-profile' | 'profile-type-mismatch';
+type ProfileCheck = 'ok' | 'unknown-profile' | 'profile-type-mismatch';
 
 /** A profile, if given, must exist and support the device type. */
-export const checkProfile = (profileId: string | null | undefined, type: string): ProfileCheck => {
+const checkProfile = (profileId: string | null | undefined, type: string): ProfileCheck => {
   if (!profileId) return 'ok';
   const p = getProfile(profileId);
   if (!p) return 'unknown-profile';

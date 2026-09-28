@@ -17,11 +17,3 @@ export const disconnectTestDb = async (): Promise<void> => {
   await mongoose.disconnect();
 };
 
-// Counts queries per collection so tests can assert on query patterns.
-export const countQueries = (): { counts: Record<string, number>; stop: () => void } => {
-  const counts: Record<string, number> = {};
-  mongoose.set('debug', (collection: string) => {
-    counts[collection] = (counts[collection] ?? 0) + 1;
-  });
-  return { counts, stop: () => mongoose.set('debug', false) };
-};

@@ -9,7 +9,7 @@ import type { Secrets } from '../../lib/secrets';
 // OpenAI-compatible `/chat/completions` endpoint (OpenAI, OpenRouter, Groq, Mistral, a local
 // server …). The server may have a default; a site's owner may plug in their own key.
 
-export interface ExplainResult {
+interface ExplainResult {
   text: string;
   model: string;
   inputTokens: number;

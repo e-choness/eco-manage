@@ -35,7 +35,6 @@
     "helmet": "^8.0.0",
     "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
-    "mongodb": "^7.6.0",
     "mongoose": "^9.10.2",
     "mqtt": "^5.10.1",
     "multer": "^2.4.0",

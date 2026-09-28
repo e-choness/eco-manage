@@ -3,7 +3,7 @@ import type { ApprovalConfig, BatteryPatch, CalendarInput, NotificationPrefs, Pv
 // Settings drafts (P4-08): each section is edited as a draft kept across tabs, and saved or
 // discarded together from the sticky bar.
 
-export type SiteFields = Required<Omit<SitePatch, never>>
+type SiteFields = Required<Omit<SitePatch, never>>
 export type RulesDraft = { approval: ApprovalConfig; rules: Record<string, { on: boolean; params: Record<string, number | boolean> }> }
 
 export interface Drafts {

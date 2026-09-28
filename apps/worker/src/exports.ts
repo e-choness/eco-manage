@@ -7,7 +7,7 @@ import { endOfSiteDay, siteDateStart, siteLocalIso, type DocumentJobs, type Expo
 const n3 = (x: number | null | undefined) => (x ?? 0).toFixed(3);
 const money = (cents: number) => (cents / 100).toFixed(2);
 
-export const csvHeader = (includeCost: boolean, currency: string): string =>
+const csvHeader = (includeCost: boolean, currency: string): string =>
   [
     'local_start',
     'utc_start',
@@ -24,7 +24,7 @@ export const csvHeader = (includeCost: boolean, currency: string): string =>
     'quality',
   ].join(',');
 
-export const csvRow = (iv: Interval15Doc, tz: string, includeCost: boolean): string =>
+const csvRow = (iv: Interval15Doc, tz: string, includeCost: boolean): string =>
   [
     siteLocalIso(iv.start, tz),
     iv.start.toISOString(),

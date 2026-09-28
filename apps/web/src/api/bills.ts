@@ -1,13 +1,5 @@
 import type { BillDetail, BillsResponse, RangeSpend, UtilityBillView } from '@ecomanage/shared';
-import api, { errorMessage } from './api';
-
-const call = async <T>(p: Promise<{ data: T }>): Promise<T> => {
-  try {
-    return (await p).data;
-  } catch (error) {
-    throw new Error(errorMessage(error), { cause: error });
-  }
-};
+import api, { call } from './api';
 
 // Description: Every bill, newest first, with the Bills KPIs (owner, manager)
 // Endpoint: GET /api/bills

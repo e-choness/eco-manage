@@ -8,7 +8,7 @@ export type RegType = RegisterSource['type'];
 export type Table = 'holding' | 'input';
 
 /** How many 16-bit registers a value of this type takes. */
-export const WORDS: Record<RegType, number> = {
+const WORDS: Record<RegType, number> = {
   int16: 1,
   uint16: 1,
   enum16: 1,

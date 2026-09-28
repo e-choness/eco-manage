@@ -27,15 +27,7 @@ import type {
   TariffIssue,
 } from '@ecomanage/shared';
 import axios from 'axios';
-import api, { errorMessage } from './api';
-
-const call = async <T>(p: Promise<{ data: T }>): Promise<T> => {
-  try {
-    return (await p).data;
-  } catch (error) {
-    throw new Error(errorMessage(error), { cause: error });
-  }
-};
+import api, { call, errorMessage } from './api';
 
 // ---- site ---------------------------------------------------------------------------------------
 

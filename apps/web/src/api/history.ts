@@ -1,13 +1,5 @@
 import type { ExportView, HistoryRes, HistorySeries, HistoryTotalsResponse, ReportCreate, ReportView } from '@ecomanage/shared';
-import api, { errorMessage } from './api';
-
-const call = async <T>(p: Promise<{ data: T }>): Promise<T> => {
-  try {
-    return (await p).data;
-  } catch (error) {
-    throw new Error(errorMessage(error), { cause: error });
-  }
-};
+import api, { call } from './api';
 
 // Description: History chart buckets for a range of local dates
 // Endpoint: GET /api/history/series?from&to&res

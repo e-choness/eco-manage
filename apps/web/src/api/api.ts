@@ -98,3 +98,12 @@ export const errorMessage = (error: unknown): string => {
   }
   return error instanceof Error ? error.message : String(error);
 };
+
+/** A request's data, or an Error with the server's message (the API modules' wrapper). */
+export const call = async <T>(p: Promise<{ data: T }>): Promise<T> => {
+  try {
+    return (await p).data;
+  } catch (error) {
+    throw new Error(errorMessage(error), { cause: error });
+  }
+};

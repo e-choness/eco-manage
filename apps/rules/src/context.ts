@@ -27,7 +27,7 @@ const kwpOf = (site: SiteDoc, inverters: DeviceDoc[]): Map<string, number> => {
   return kwp;
 };
 
-export const loadPvRatios = async (site: SiteDoc, inverters: DeviceDoc[], now: Date): Promise<Map<string, number[]>> => {
+const loadPvRatios = async (site: SiteDoc, inverters: DeviceDoc[], now: Date): Promise<Map<string, number[]>> => {
   if (inverters.length < 2) return new Map();
   const rows = await Telemetry.find({
     'meta.siteId': new mongoose.Types.ObjectId(String(site._id)),

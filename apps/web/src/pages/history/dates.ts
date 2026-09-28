@@ -3,7 +3,7 @@ import type { HistoryBucket, HistoryRes } from "@ecomanage/shared"
 // Local calendar dates ("YYYY-MM-DD") for the History range. Adding days to a calendar date is
 // done in UTC, where no day is 23 or 25 hours long.
 
-export const shiftDate = (date: string, days: number): string =>
+const shiftDate = (date: string, days: number): string =>
   new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10)
 
 export type Preset = "today" | "7d" | "month" | "lastmonth" | "year" | "all" | "custom"

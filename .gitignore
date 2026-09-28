@@ -174,7 +174,9 @@ dist
 .claude
 .openclaude*
 
-docs/ 
+# Design handoff bundles and old notes stay local; the rest of docs/ is the documentation.
+docs/project/
+docs/README-old.md
 .pnpm-store/
 bugs/
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode

@@ -1,7 +1,7 @@
 // Simulated time runs `speed` times faster than wall-clock time (1×–60×, spec §7).
 
-export const MIN_SPEED = 1;
-export const MAX_SPEED = 60;
+const MIN_SPEED = 1;
+const MAX_SPEED = 60;
 
 export class SimClock {
   private realAnchor: number;

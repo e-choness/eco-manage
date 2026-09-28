@@ -2,8 +2,8 @@ import { Device } from '@ecomanage/db';
 
 // No data for 60 s: stale. For 5 min: offline (Data and Device Audit §4 step 6). The alert for a
 // silent device opens at 5 min in the rules service (P2-07).
-export const STALE_AFTER_MS = 60_000;
-export const OFFLINE_AFTER_MS = 5 * 60_000;
+const STALE_AFTER_MS = 60_000;
+const OFFLINE_AFTER_MS = 5 * 60_000;
 
 /** Marks live devices stale and stale devices offline. Returns how many changed. */
 export const markSilentDevices = async (now = new Date()): Promise<{ stale: number; offline: number }> => {

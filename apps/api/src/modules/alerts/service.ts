@@ -14,7 +14,7 @@ import {
 } from '@ecomanage/shared';
 import { HttpError } from '../../lib/http';
 import type { GatewayLink } from '../../lib/gatewayLink';
-import User from '../auth/model';
+import { personRef } from '../../lib/lists';
 
 // Alerts API (plan P2-08, Backend Coverage §3). The rules service opens alerts and closes them
 // when their condition clears; these endpoints record who is handling one, pause its emails,
@@ -60,12 +60,6 @@ export const listAlerts = async (site: SiteDoc, q: { state: 'open' | 'closed'; l
   return { items: docs.map(alertView), counts: { open, closed } };
 };
 
-const person = async (id: unknown) => {
-  if (!id) return null;
-  const u = await User.findById(id).select('name email').lean();
-  return u ? { id: String(u._id), name: u.name || u.email } : null;
-};
-
 export const alertDetail = async (site: SiteDoc, id: string): Promise<AlertDetail> => {
   const alert = await findAlert(site, id);
   const device = await deviceOf(site, alert.deviceId ?? null);
@@ -74,11 +68,11 @@ export const alertDetail = async (site: SiteDoc, id: string): Promise<AlertDetai
   return {
     ...view,
     deviceName: device?.name ?? null,
-    ackBy: await person(alert.ackBy),
+    ackBy: await personRef(alert.ackBy),
     ackAt: alert.ackAt?.toISOString() ?? null,
     snoozedUntil: alert.snoozedUntil?.toISOString() ?? null,
     resolution: alert.resolution
-      ? { cause: alert.resolution.cause ?? '', note: alert.resolution.note ?? '', by: await person(alert.resolution.by), auto: !!alert.resolution.auto }
+      ? { cause: alert.resolution.cause ?? '', note: alert.resolution.note ?? '', by: await personRef(alert.resolution.by), auto: !!alert.resolution.auto }
       : null,
     fixes: fixes.map((f) => ({ id: f.id, label: f.label })),
     actions: alertActions(view, fixes.length > 0),

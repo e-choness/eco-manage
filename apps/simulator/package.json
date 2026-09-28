@@ -20,14 +20,12 @@
   "dependencies": {
     "@ecomanage/profiles": "workspace:*",
     "@ecomanage/shared": "workspace:*",
-    "luxon": "^3.5.0",
     "mqtt": "^5.10.1",
     "pino": "^10.3.1",
     "tsx": "^4.23.15",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@types/luxon": "^3.4.2",
     "@types/node": "^26.6.3",
     "eslint": "^10.11.0",
     "typescript": "~6.0.3",

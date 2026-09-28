@@ -1,7 +1,7 @@
 import User, { IUser } from './model';
 import { generatePasswordHash, validatePassword } from '../../utils/password';
 
-export interface CreateUserInput {
+interface CreateUserInput {
   email: string;
   password: string;
   name?: string;

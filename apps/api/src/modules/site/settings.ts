@@ -77,7 +77,7 @@ export const replacePvArrays = async (site: SiteDoc, userId: string, input: PvAr
  * Sends the gateway its config; on failure the site is marked pending and the config is sent
  * again when the API reconnects to the broker.
  */
-export const pushGatewayConfig = async (siteId: SiteDoc['_id'], floorPct: number, gateway?: GatewayLink): Promise<boolean> => {
+const pushGatewayConfig = async (siteId: SiteDoc['_id'], floorPct: number, gateway?: GatewayLink): Promise<boolean> => {
   const sent = gateway ? await gateway.sendConfig(String(siteId), { batteryFloorPct: floorPct }) : false;
   await Site.updateOne({ _id: siteId }, { $set: { gatewayConfigPending: !sent } });
   return sent;

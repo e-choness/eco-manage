@@ -1,4 +1,4 @@
-import type { DeviceProfile, WriteAction } from '@ecomanage/profiles';
+import type { WriteAction } from '@ecomanage/profiles';
 
 // A device as the gateway talks to it (P5-04): Modbus registers or an OCPP charger.
 export interface Driver {
@@ -10,11 +10,6 @@ export interface Driver {
    */
   write(action: string, params: Record<string, unknown>, spec: WriteAction, endsAt: number | null): Promise<unknown>;
   undo(action: string, undo: unknown, spec: WriteAction | undefined): Promise<void>;
-}
-
-export interface DeviceContext {
-  id: string;
-  profile: DeviceProfile;
 }
 
 /** The parameter a single-value action writes (everything but its end time). */
