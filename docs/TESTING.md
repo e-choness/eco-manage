@@ -1,7 +1,7 @@
 # Testing
 
-All suites run inside the dev container. As of P5-03 (Node 26, Vitest everywhere): **api 349, web 88, ingest 29, simulator 32, rules 43, recs 33,
-shared 157, profiles 20, db 11, worker 71, modelconv 13**, all passing. Lint and typecheck also pass. The api,
+All suites run inside the dev container. As of P5-04 (Node 26, Vitest everywhere): **api 356, web 91, ingest 29, simulator 32, rules 43, recs 33,
+shared 163, profiles 20, db 11, worker 71, gateway 41, modelconv 13**, all passing. Lint and typecheck also pass. The api,
 ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest, rules and the worker's report schedules; the worker's SMTP test uses Mailpit, and its PDF test prints through Gotenberg when it is running).
 
 ```bash
@@ -79,6 +79,18 @@ docker compose run --rm --no-deps -e HOME=/tmp modelconv sh -c "cp vitest.config
 They build their inputs in code (boxes, a 320,000-triangle terrain, an OBJ, an ASCII FBX made by
 assimp, a hand-written IFC4 wall) and check units, centring, simplifying, KTX2 sizes, Draco, the
 thumbnail, the isolation of each conversion and every rejection reason.
+
+## Gateway agent (`apps/gateway`)
+
+Runs with the rest in the dev container. Its devices are fakes on localhost: a SunSpec inverter and
+a CT meter served over real Modbus TCP (`src/bench/fakeDevices.ts`), and OCPP chargers over a real
+WebSocket. The cloud is a stand-in link, and claiming is checked against a test CA with the same
+proof the API verifies. They cover register decoding and scale factors, the scan, commissioning
+checks, the buffer (order, resend, 7 days, restarts), every command limit, undoing on time and after
+15 minutes offline, and the OCPP messages and charging profiles.
+
+The whole flow against the real broker and API: `docker compose --profile gateway up -d gateway
+gateway-devices` (docs/GATEWAY.md), then claim, scan and commission from the app.
 
 ## End-to-end (`e2e/`, Playwright)
 

@@ -81,6 +81,8 @@ apps/
   worker/     BullMQ jobs: interval costs, bills, statement PDFs, utility bill reading
   rules/      alert checks on every reading (opens and auto-resolves alerts)
   simulator/  simulated site + gateway (MQTT topics, commands, jobs, fault injection)
+  gateway/    the real edge agent for a Raspberry Pi: claim, Modbus, OCPP, 7-day buffer, commands
+  modelconv/  sandboxed 3D model converter
   web/        React 19 + Vite 8 + Tailwind 4 + Radix client
 packages/
   shared/     types, zod schemas, MQTT topics, units, sign rules, site-time and live helpers
@@ -144,6 +146,7 @@ The old npm entry points still work from the root as aliases: `pnpm server`, `pn
 | [Database](./docs/DATABASE.md)                 | Collections, fields and indexes                 |
 | [Testing](./docs/TESTING.md)                   | Test suites and how to run them                 |
 | [Deployment](./docs/DEPLOYMENT.md)             | Configuration and what production needs         |
+| [Gateway](./docs/GATEWAY.md)                   | The edge agent: claiming, setup, bench checks   |
 | [Contributing](./docs/CONTRIBUTING.md)         | Branches, commits, code rules                   |
 | [Troubleshooting](./docs/TROUBLESHOOTING.md)   | Known problems and fixes                        |
 

@@ -195,6 +195,7 @@ describe('GET /api/site/gateway', () => {
       bufferDays: 7,
       batteryFloorPct: 20,
       configPending: false,
+      claim: null, // set up before claiming existed (P5-04)
     });
     await redis.set(`gw:${sid}`, JSON.stringify({ fw: '1.4.2', buffered: 40, receivedAt: new Date(Date.now() - 5 * 60_000).toISOString() }));
     expect((await as('installer', request(app).get('/api/site/gateway'))).body).toMatchObject({ online: false, buffered: 40 });

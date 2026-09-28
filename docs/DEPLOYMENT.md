@@ -32,6 +32,9 @@ of any invalid fields.
 | `AUTH_RATE_LIMIT_MAX`  | no       | `10`          | Per IP per window on login, register, refresh  |
 | `LOG_LEVEL`            | no       | `info`        | pino level; `silent` in tests                  |
 | `OVERPASS_URL`         | no       | `https://overpass-api.de/api/interpreter` | Building outlines from OpenStreetMap for the generated site model; empty turns the lookup off. Heavy use of the public server needs your own instance |
+| `MQTT_URL`             | no       | —             | The broker (TLS). Without it, gateway config is queued and gateways can't be claimed |
+| `MQTT_CERT_DIR`        | no       | `/repo/infra/mosquitto/certs` | `ca.crt`, `svc-api.crt` and `svc-api.key` |
+| `MQTT_CA_KEY`          | no       | `MQTT_CERT_DIR/ca.key` | The CA key (PKCS#8) that signs claimed gateways' certificates (P5-04). Without it, a claim waits. Keep it off every other machine |
 
 The placeholder secrets in `apps/api/.env.example` are for local development only.
 
@@ -45,3 +48,7 @@ The placeholder secrets in `apps/api/.env.example` are for local development onl
 4. `trust proxy` is set to one hop (`app.ts`). Adjust it if more than one proxy sits in front of
    the API, or rate limiting sees the proxy's IP.
 5. Managed MongoDB and Redis, with backups for MongoDB.
+6. Gateways (P5-04): a production CA for the broker, a bootstrap certificate for the gateway image
+   (its ACL allows only the claim topics), `gateway:register` in the factory, and certificate
+   revocation (a CRL for the broker) for gateways that are replaced or lost. See
+   [GATEWAY.md](./GATEWAY.md).

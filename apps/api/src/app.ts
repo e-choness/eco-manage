@@ -30,6 +30,7 @@ import type { JobClient } from './lib/jobs';
 import type { ObjectStore } from '@ecomanage/db';
 import type { SiteEventHub } from './lib/siteEvents';
 import type { OsmLookup } from './modules/site/osm';
+import type { CertSigner } from './modules/gateway/signer';
 
 export interface AppDeps {
   env: Pick<Env, 'CORS_ORIGINS' | 'RATE_LIMIT_WINDOW_MS' | 'RATE_LIMIT_MAX' | 'AUTH_RATE_LIMIT_MAX'>;
@@ -45,9 +46,11 @@ export interface AppDeps {
   gateway?: GatewayLink;
   /** Building outlines from OpenStreetMap (P5-03); absent when turned off. */
   osm?: OsmLookup;
+  /** Signs claimed gateways' certificates with the broker CA (P5-04); absent without the CA key. */
+  signer?: CertSigner;
 }
 
-export const createApp = ({ env, redis, hub, jobs, objects, gateway, osm, logger = defaultLogger, sseHeartbeatMs }: AppDeps): Express => {
+export const createApp = ({ env, redis, hub, jobs, objects, gateway, osm, signer, logger = defaultLogger, sseHeartbeatMs }: AppDeps): Express => {
   const app = express();
   const window = env.RATE_LIMIT_WINDOW_MS;
 
@@ -77,7 +80,7 @@ export const createApp = ({ env, redis, hub, jobs, objects, gateway, osm, logger
   app.use('/api/site/model/uploads', modelUploadRoutes({ jobs, objects }));
   app.use('/api/site/members', peopleRoutes);
   app.use('/api/invites', inviteRoutes());
-  app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs, gateway, jobs, osm }));
+  app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs, gateway, jobs, osm, signer }));
   app.use('/api/tariffs', tariffRoutes);
   app.use('/api/bills', billsRoutes(jobs));
   app.use('/api/calendar', calendarRoutes(jobs));

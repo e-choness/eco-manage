@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 import { TIME_ZONES, type Drafts } from "./model"
 import { inputClass } from "./styles"
 import { AddRow, CellRow, Field, Fields, Group, HeaderRow, NumberInput, ReadOnly, RemoveRow } from "./ui"
+import { ClaimGateway } from "./ClaimGateway"
 
 interface Props {
   site: Drafts["site"]
@@ -105,7 +106,7 @@ export function SiteTab({ site, setSite, arrays, setArrays, battery, setBattery,
         <dl className="m-0 grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3.5 text-[13px]">
           {[
             ["ID", gateway?.id ?? "—"],
-            ["Status", gateway ? (gateway.online ? "Online" : "Offline") : "—"],
+            ["Status", gateway ? (gateway.online ? "Online" : gateway.claim?.state === "waiting" ? "Waiting to connect" : "Offline") : "—"],
             ["Firmware", gateway?.fw ?? "—"],
             ["Offline buffer", gateway ? `${gateway.buffered ?? 0} readings held · keeps ${gateway.bufferDays} days` : "—"],
             ["Reserve it enforces", gateway?.batteryFloorPct != null ? `${gateway.batteryFloorPct}%${gateway.configPending ? " (update pending)" : ""}` : "—"],
@@ -116,6 +117,7 @@ export function SiteTab({ site, setSite, arrays, setArrays, battery, setBattery,
             </div>
           ))}
         </dl>
+        {canHardware ? <ClaimGateway gateway={gateway} /> : null}
       </Group>
     </>
   )

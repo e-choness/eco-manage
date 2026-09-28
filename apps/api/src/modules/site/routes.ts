@@ -9,11 +9,12 @@ import type { AuthenticatedRequest } from '../../middleware/auth';
 import { siteModelInput, type Role } from '@ecomanage/shared';
 import { saveSiteModel, siteModel, siteToday } from './home';
 import { findOsmFootprint, osmQuery, type OsmLookup } from './osm';
+import type { CertSigner } from '../gateway/signer';
 
 const ALL = ['owner', 'manager', 'installer'] as const;
 
 // Settings → Site roles (App v2): details owner; arrays and battery owner or installer.
-export const siteRoutes = (deps: SiteControllerDeps & { gateway?: GatewayLink; jobs?: JobClient; osm?: OsmLookup }): Router => {
+export const siteRoutes = (deps: SiteControllerDeps & { gateway?: GatewayLink; jobs?: JobClient; osm?: OsmLookup; signer?: CertSigner }): Router => {
   const router: Router = Router();
   const site = siteController(deps);
   const settings = settingsController(deps);
@@ -22,6 +23,7 @@ export const siteRoutes = (deps: SiteControllerDeps & { gateway?: GatewayLink; j
   router.put('/pv-arrays', ...requireRole('owner', 'installer'), settings.pvArrays);
   router.patch('/battery', ...requireRole('owner', 'installer'), settings.battery);
   router.get('/gateway', ...requireRole(...ALL), settings.gateway);
+  router.post('/gateway/claim', ...requireRole('owner', 'installer'), settings.claim);
   router.get('/snapshot', ...requireRole(...ALL), site.snapshot);
   router.get('/stream', ...requireRole(...ALL), site.stream);
   // Home (P4-03)

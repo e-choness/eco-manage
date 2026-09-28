@@ -100,6 +100,16 @@ Node 25 and later no longer ship corepack. The Dockerfiles install pnpm with
 `npm install -g pnpm@<version>` instead; do the same in any script or `docker run` that used
 `corepack enable`, with the version from `packageManager` in the root `package.json`.
 
+### A claimed gateway stays "Waiting to connect"
+
+- The gateway isn't asking yet: its log says "not claimed yet" once it reaches the broker with the
+  bootstrap certificate. Check its network, clock and `mqttUrl`.
+- The API has no CA key: its log says "No CA key" at start. Set `MQTT_CA_KEY` (or put `ca.key` in
+  `MQTT_CERT_DIR`).
+- The API log says "certificate request without a valid claim proof": the factory file on the
+  gateway isn't the one registered for that serial. Register it again and replace the file.
+- A gateway that was reset made a new key; a used code won't certify it. Register it again.
+
 ### The converter's tests fail with EROFS or "Failed to create Vitest API token"
 
 Its container is read-only: run them with `-e HOME=/tmp` and the config copied to `/tmp` (the

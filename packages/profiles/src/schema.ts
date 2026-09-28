@@ -20,6 +20,8 @@ const source = z.union([
       type: z.enum(['int16', 'uint16', 'int32', 'uint32', 'acc32', 'acc64', 'float32', 'bitfield16', 'bitfield32', 'enum16']),
       scaleReg: z.number().int().nonnegative().optional(),
       mult: z.number().optional(),
+      // Holding registers (function 3) unless the device keeps it in input registers (function 4).
+      table: z.enum(['holding', 'input']).optional(),
     })
     .strict(),
   z.object({ field, message: z.string(), measurand: z.string().optional(), mult: z.number().optional() }).strict(),
@@ -44,6 +46,11 @@ const writeAction = z
     ),
     maxDurationMin: z.number().positive().optional(),
     revertReg: z.number().int().nonnegative().optional(),
+    // How the gateway writes the value to `reg` (P5-04): its type (16-bit, signed if negative, by
+    // default), a scale-factor register and a multiplier (register = value ÷ mult ÷ 10^sf).
+    type: z.enum(['int16', 'uint16', 'int32', 'uint32', 'float32']).optional(),
+    scaleReg: z.number().int().nonnegative().optional(),
+    mult: z.number().optional(),
   })
   .strict();
 

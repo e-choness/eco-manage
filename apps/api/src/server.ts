@@ -5,6 +5,8 @@ import { loadEnv } from './config/env';
 import { logger } from './config/logger';
 import { createApp } from './app';
 import { overpassLookup } from './modules/site/osm';
+import { receiveCsr } from './modules/gateway/claim';
+import { signerFromFiles } from './modules/gateway/signer';
 import { SiteEventHub } from './lib/siteEvents';
 import { createJobClient } from './lib/jobs';
 import { createObjectStore, objectStoreConfigFromEnv } from '@ecomanage/db';
@@ -53,7 +55,15 @@ const objects = storeConfig ? createObjectStore(storeConfig) : undefined;
 // Building outlines for the generated site model (P5-03).
 const osm = env.OVERPASS_URL ? overpassLookup(env.OVERPASS_URL) : undefined;
 
-const app = createApp({ env, redis, hub, jobs, objects, gateway, osm });
+// Claiming gateways (P5-04): certificates are signed with the broker's CA and sent back over
+// the bootstrap connection.
+const signer = signerFromFiles(`${env.MQTT_CERT_DIR}/ca.crt`, env.MQTT_CA_KEY ?? `${env.MQTT_CERT_DIR}/ca.key`);
+if (gateway && !signer) logger.warn('No CA key: gateways can be claimed but not certified until it is available');
+gateway?.onClaimRequest?.((serial, payload) => {
+  receiveCsr({ gateway, signer, logger }, serial, payload).catch((err: Error) => logger.error({ err: err.message, serial }, 'certificate request failed'));
+});
+
+const app = createApp({ env, redis, hub, jobs, objects, gateway, osm, signer });
 
 const server = app.listen(env.PORT, () => {
   logger.info(`Server running at http://localhost:${env.PORT}`);

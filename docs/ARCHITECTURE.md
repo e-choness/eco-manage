@@ -329,6 +329,30 @@ itself: no reserve or command may go below it. The simulator applies it even whi
 uplink is down. If the broker is unreachable, the site is flagged `gatewayConfigPending`, and the
 API sends the config again on its next connect.
 
+## Gateway agent (`apps/gateway`, P5-04)
+
+The real gateway: Modbus TCP/RTU polling from the profiles, an OCPP 1.6J server for chargers, a
+7-day SQLite buffer, commands with the simulator's limits (`@ecomanage/profiles` safety), and
+scan / commission / restart jobs. Setup, config and the bench acceptance are in
+[GATEWAY.md](./GATEWAY.md).
+
+Claiming (Data and Device Audit §4 step 01):
+- **Factory:** `gateway:register <serial>` stores the gateway with only the claim key (SHA-256 of
+  the code) and writes the factory file (serial + code) that goes on its SD card. The label's QR
+  code reads `ecomanage-gw:1:<serial>:<code>`.
+- **First boot:** the gateway makes an EC P-256 key and a certificate request, connects with the
+  shared `bootstrap` certificate using its serial as the client id (the ACL allows only
+  `claim/%c/csr` out and `claim/%c/cert` in), and publishes `{ csr, proof, fw, ts }` every 30 s.
+  `proof` is an HMAC of the request keyed by the claim key, so another box with the bootstrap
+  certificate can't ask in its name. The API (`svc-api`, subscribed to `claim/+/csr`) keeps the
+  latest request with a valid proof.
+- **Claim:** `POST /api/site/gateway/claim` binds it to the site. The API signs the request with
+  the broker's CA (`MQTT_CA_KEY`), setting CN = the site id itself, and sends it on
+  `claim/{serial}/cert` with the CA certificate. The gateway checks that the certificate is for its
+  own key, names the site and is signed by that CA, keeps it, and reconnects with it; the broker's
+  `site/%u/#` pattern then keeps it to that site. Signing uses the code up; the same request asking
+  again (a lost answer) gets the same certificate, a new key doesn't.
+
 ## Ingest (`apps/ingest`)
 
 Subscribes with the `svc-ingest` certificate to telemetry, device status and gateway status for

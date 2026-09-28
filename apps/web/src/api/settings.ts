@@ -3,6 +3,7 @@ import type {
   BatteryPatch,
   CalendarInput,
   CalendarView,
+  GatewayClaimInput,
   GatewayView,
   InviteView,
   MemberView,
@@ -40,6 +41,8 @@ export const patchSite = (patch: SitePatch): Promise<SiteSettings> => call(api.p
 export const putPvArrays = (arrays: PvArraysInput): Promise<SiteSettings> => call(api.put('/api/site/pv-arrays', arrays));
 export const patchBattery = (patch: BatteryPatch): Promise<SiteSettings> => call(api.patch('/api/site/battery', patch));
 export const getGateway = (): Promise<GatewayView> => call(api.get('/api/site/gateway'));
+// Endpoint: POST /api/site/gateway/claim (P5-04)
+export const claimGateway = (input: GatewayClaimInput): Promise<GatewayView> => call(api.post('/api/site/gateway/claim', input));
 export const putSiteModel = (model: SiteModelInput): Promise<SiteModel> => call(api.put('/api/site/model', model));
 // Endpoint: GET /api/site/model/osm-footprint (P5-03): the building outline at the site's location.
 export const getOsmFootprint = (): Promise<OsmFootprintView> => call(api.get('/api/site/model/osm-footprint'));

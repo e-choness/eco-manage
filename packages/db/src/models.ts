@@ -45,6 +45,31 @@ const siteSchema = new Schema(
 export type SiteDoc = InferSchemaType<typeof siteSchema> & { _id: Types.ObjectId };
 export const Site = mongoose.model('Site', siteSchema, 'sites');
 
+// ---- gateways (P5-04) ------------------------------------------------------------------------------
+
+// Registered at the factory (serial + claim code on a QR label; only the claim key, a hash of the
+// code, is kept). Claiming binds it to a site; its certificate request is signed once, which uses
+// the code up. The site's gatewayId is the serial.
+const gatewaySchema = new Schema(
+  {
+    serial: { type: String, required: true },
+    claimKey: { type: String, required: true },
+    model: { type: String, default: 'EcoManage gateway (Raspberry Pi 5)' },
+    siteId: { type: ObjectId, ref: 'Site', default: null },
+    claimedAt: { type: Date, default: null },
+    claimedBy: { type: ObjectId, ref: 'User', default: null },
+    // The latest request with a valid proof, kept so claiming can sign it straight away.
+    csr: { type: new Schema({ pem: String, fw: String, at: Date }, { _id: false }), default: null },
+    // The signed certificate (public); resent if the gateway asks again with the same request.
+    cert: { type: new Schema({ serialNumber: String, pem: String, issuedAt: Date, notAfter: Date }, { _id: false }), default: null },
+  },
+  { timestamps: true }
+);
+gatewaySchema.index({ serial: 1 }, { unique: true });
+gatewaySchema.index({ siteId: 1 });
+export type GatewayDoc = InferSchemaType<typeof gatewaySchema> & { _id: Types.ObjectId };
+export const Gateway = mongoose.model('Gateway', gatewaySchema, 'gateways');
+
 // ---- people --------------------------------------------------------------------------------------
 
 const membershipSchema = new Schema(
@@ -713,7 +738,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, FleetVehicle, Recommendation, SiteModel, ModelUpload, Export, Report, AuditEvent] as const;
+export const v2Models = [Site, Gateway, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, FleetVehicle, Recommendation, SiteModel, ModelUpload, Export, Report, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

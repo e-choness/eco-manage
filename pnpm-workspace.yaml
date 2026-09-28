@@ -11,6 +11,9 @@ allowBuilds:
   msgpackr-extract: false
   msw: false
   '@parcel/watcher': false # file watching; not used
+  # RS-485 for the gateway agent (via modbus-serial): its prebuilt binaries load at runtime; the
+  # script would only compile from source when none fits, which a Pi 5 doesn't need.
+  '@serialport/bindings-cpp': false
 
 overrides:
   # @types/multer accepts any Express types; keep a single (Express 5) copy.

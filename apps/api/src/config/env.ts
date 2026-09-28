@@ -26,6 +26,8 @@ const schema = z.object({
   // MQTT to gateways (svc-api certificate). Without it, gateway config is queued as pending.
   MQTT_URL: z.string().optional(),
   MQTT_CERT_DIR: z.string().default('/repo/infra/mosquitto/certs'),
+  // The CA key that signs claimed gateways' certificates (P5-04); default MQTT_CERT_DIR/ca.key.
+  MQTT_CA_KEY: z.string().optional(),
   // Overpass API for building outlines (Settings → Site model, P5-03); empty turns the lookup off.
   OVERPASS_URL: z.string().default('https://overpass-api.de/api/interpreter'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),

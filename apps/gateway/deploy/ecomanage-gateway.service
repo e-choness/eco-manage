@@ -1,0 +1,29 @@
+# The EcoManage gateway agent on a Raspberry Pi (docs/GATEWAY.md).
+[Unit]
+Description=EcoManage gateway agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ecomanage
+Group=ecomanage
+SupplementaryGroups=dialout
+WorkingDirectory=/opt/ecomanage-gateway
+Environment=GATEWAY_CONFIG=/etc/ecomanage/gateway.json
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node --import tsx src/main.ts
+Restart=always
+RestartSec=5
+# The agent only needs its data directory; the rest of the system stays read-only to it.
+StateDirectory=ecomanage-gateway
+ProtectSystem=strict
+ReadWritePaths=/var/lib/ecomanage-gateway
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+# The OCPP port is above 1024, so no capabilities are needed.
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

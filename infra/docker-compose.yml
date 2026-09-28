@@ -22,6 +22,7 @@ x-workspace: &workspace
     - /repo/apps/worker/node_modules
     - /repo/apps/rules/node_modules
     - /repo/apps/modelconv/node_modules
+    - /repo/apps/gateway/node_modules
   environment: &workspace-env
     # Windows bind mounts don't deliver file events reliably, so the watchers poll.
     CHOKIDAR_USEPOLLING: "true"
@@ -176,6 +177,7 @@ services:
       - /repo/apps/worker/node_modules
       - /repo/apps/rules/node_modules
       - /repo/apps/modelconv/node_modules
+      - /repo/apps/gateway/node_modules
       - simulator_state:/state
     environment:
       <<: *workspace-env
@@ -376,6 +378,44 @@ services:
         condition: service_started
     restart: "no"
 
+  # The reference gateway agent (P5-04) against stand-in devices: `docker compose --profile
+  # gateway up -d`. It starts unclaimed, with only the bootstrap certificate; register it first
+  # (docs/GATEWAY.md) and claim it in Settings → Site. Its state (buffer, key, certificate) lives
+  # in the gateway_data volume, like the SD card of a real one.
+  gateway:
+    <<: *workspace
+    command: ["pnpm", "--filter", "@ecomanage/gateway", "dev"]
+    profiles: ["gateway"]
+    volumes:
+      - ..:/repo
+      - /repo/node_modules
+      - /repo/apps/gateway/node_modules
+      - /repo/packages/shared/node_modules
+      - /repo/packages/profiles/node_modules
+      - gateway_data:/var/lib/ecomanage-gateway
+    environment:
+      <<: *workspace-env
+      GATEWAY_CONFIG: /repo/infra/gateway/gateway.json
+      GATEWAY_FACTORY: /repo/infra/gateway/factory.json
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Stand-ins for the bench hardware: a SunSpec inverter (Modbus TCP 502), a CT meter (1503) and
+  # an OCPP charger that connects to the gateway.
+  gateway-devices:
+    <<: *workspace
+    command: ["pnpm", "--filter", "@ecomanage/gateway", "fake-devices"]
+    profiles: ["gateway"]
+    volumes:
+      - ..:/repo
+      - /repo/node_modules
+      - /repo/apps/gateway/node_modules
+      - /repo/packages/shared/node_modules
+      - /repo/packages/profiles/node_modules
+    restart: unless-stopped
+
   # One-shot: resets the demo accounts and data. Not started by `up`; run it with
   # `docker compose run --rm mongo-seed`.
   mongo-seed:
@@ -395,6 +435,7 @@ volumes:
   objects_data:
   mosquitto_data:
   simulator_state:
+  gateway_data:
 
 networks:
   default:
