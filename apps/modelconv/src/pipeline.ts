@@ -13,7 +13,7 @@ import { Rejected, type Tools } from './tools';
 // the uploader can act on.
 
 export const TRIANGLE_LIMIT = 200_000;
-export const TEXTURE_MAX_PX = 2048;
+const TEXTURE_MAX_PX = 2048;
 const MAX_EXTENT_M = 2000; // bigger than any school campus: the units are wrong
 const MIN_EXTENT_M = 0.05;
 

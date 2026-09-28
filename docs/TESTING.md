@@ -123,7 +123,8 @@ site picture. It restores the theme the demo manager started with.
 Pushes to `main` and every pull request run the same gates in the same images, so nothing is
 installed on the runner:
 
-- **checks:** build the images, start the services the tests use, then typecheck, lint, every
+- **checks:** build the images, start the services the tests use, then typecheck, lint, `pnpm knip` (no unused files, exports or
+  dependencies; config in `knip.json`), every
   suite one package at a time, the web build, the converter's tests in its read-only image, and
   `pnpm audit --audit-level=moderate`. Service logs are printed when a step fails.
 - **e2e:** the whole stack with the demo seed and its current bills, then the Playwright smoke and accessibility specs.

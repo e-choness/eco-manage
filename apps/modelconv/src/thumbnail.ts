@@ -30,7 +30,7 @@ interface Tri {
 }
 
 /** Every triangle in world space with its material colour. */
-export const worldTriangles = (doc: Document): Tri[] => {
+const worldTriangles = (doc: Document): Tri[] => {
   const tris: Tri[] = [];
   for (const scene of doc.getRoot().listScenes())
     scene.traverse((node) => {

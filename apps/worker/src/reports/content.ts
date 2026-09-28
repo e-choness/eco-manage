@@ -13,7 +13,7 @@ export type Block =
   | { kind: 'table'; title: string; head: string[]; rows: Cell[][]; digits?: (number | null)[] }
   | { kind: 'note'; text: string };
 
-export interface ReportSectionOut {
+interface ReportSectionOut {
   id: ReportSection;
   title: string;
   blocks: Block[];

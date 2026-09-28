@@ -65,7 +65,7 @@ const syncProfiles = async (): Promise<number> => {
 // v1 collections replaced by the v2 model (P1-10): readings by telemetry, weather by forecasts,
 // financial records by intervals x tariff, per-user devices by site devices, per-user alerts by
 // site alerts (P2-08), per-user recommendations by site recommendations (P3-03).
-export const LEGACY_COLLECTIONS = ['energyreadings', 'weathers', 'financialrecords', 'legacy_devices', 'legacy_alerts', 'legacy_recommendations'] as const;
+const LEGACY_COLLECTIONS = ['energyreadings', 'weathers', 'financialrecords', 'legacy_devices', 'legacy_alerts', 'legacy_recommendations'] as const;
 
 const dropLegacyCollections = async (): Promise<string[]> => {
   const db = mongoose.connection.db;

@@ -12,7 +12,7 @@ export class Rejected extends Error {}
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TOOL_TIMEOUT_MS = Number(process.env.TOOL_TIMEOUT_MS ?? 120_000);
 
-export const run = (cmd: string, args: string[], timeoutMs = TOOL_TIMEOUT_MS): Promise<{ stdout: string; stderr: string }> =>
+const run = (cmd: string, args: string[], timeoutMs = TOOL_TIMEOUT_MS): Promise<{ stdout: string; stderr: string }> =>
   new Promise((resolve, reject) => {
     execFile(cmd, args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, killSignal: 'SIGKILL' }, (err, stdout, stderr) => {
       if (err) {
@@ -25,7 +25,7 @@ export const run = (cmd: string, args: string[], timeoutMs = TOOL_TIMEOUT_MS): P
     });
   });
 
-export const withTemp = async <T>(fn: (dir: string) => Promise<T>): Promise<T> => {
+const withTemp = async <T>(fn: (dir: string) => Promise<T>): Promise<T> => {
   const dir = await mkdtemp(join(tmpdir(), 'modelconv-'));
   try {
     return await fn(dir);

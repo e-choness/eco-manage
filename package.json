@@ -19,8 +19,7 @@
     "server": "pnpm api",
     "client": "pnpm web",
     "start": "pnpm dev",
-    "server-install": "pnpm install",
-    "client-install": "pnpm install"
+    "knip": "knip"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -28,6 +27,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.12.0",
+    "knip": "^6.38.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.70.1"
   },

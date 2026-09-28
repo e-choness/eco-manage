@@ -1,13 +1,5 @@
 import type { AlertCause, AlertDetail, Check, CommandView, InboxPage, InboxType, RecommendationDetail, RecommendationExplanation } from '@ecomanage/shared';
-import api, { errorMessage } from './api';
-
-const call = async <T>(p: Promise<{ data: T }>): Promise<T> => {
-  try {
-    return (await p).data;
-  } catch (error) {
-    throw new Error(errorMessage(error), { cause: error });
-  }
-};
+import api, { call } from './api';
 
 // Description: Inbox items, newest first, paged with a cursor
 // Endpoint: GET /api/inbox?state&type&limit&cursor

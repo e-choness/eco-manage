@@ -10,7 +10,7 @@ const fmt = (c: Cell, digits: number | null | undefined) =>
   c == null ? '' : typeof c === 'number' ? c.toLocaleString('en-US', { minimumFractionDigits: digits ?? 0, maximumFractionDigits: digits ?? 3 }) : c;
 
 const day = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).replace('Sept', 'Sep');
-export const rangeText = (from: string, to: string) => (from === to ? day(from) : `${day(from)} – ${day(to)}`);
+const rangeText = (from: string, to: string) => (from === to ? day(from) : `${day(from)} – ${day(to)}`);
 const generated = (doc: ReportDocument) =>
   new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: doc.tz }).format(doc.generatedAt).replace('Sept', 'Sep');
 

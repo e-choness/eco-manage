@@ -8,7 +8,7 @@ import type { ModbusTarget } from './modbus/link';
 // OCPP port). Devices come from commissioning, which the gateway remembers; the config may list
 // some up front (a bench, or a site set up offline).
 
-export const factoryFile = z.object({
+const factoryFile = z.object({
   serial: z.string().regex(GATEWAY_SERIAL),
   claimCode: z.string().transform(normalizeClaimCode).refine(isClaimCode, 'Not a claim code'),
 });

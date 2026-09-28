@@ -6,7 +6,7 @@ import type { ModelUploadJob } from '@ecomanage/shared';
 // GLB and thumbnail come back and are stored under a new random prefix the CDN serves (so a new
 // upload never reuses a cached path). The original is removed once it has been processed.
 
-export type ConvertResponse =
+type ConvertResponse =
   | { ok: true; glb: Buffer; thumbnail: Buffer; stats: { trisIn: number; tris: number; bbox: { min: number[]; max: number[] }; scale: number } }
   | { ok: false; reason: string };
 

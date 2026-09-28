@@ -6,7 +6,7 @@ import { QUEUES, REPORT_JOB_OPTS, reportCron, reportOnceJobId, reportSchedulerId
 // Producer side of the worker's queues (documents, forecast, email, reports, models). Controllers get it
 // through createApp, so tests can pass a stand-in that runs the job in process (or never answers).
 
-export type DocumentJobName = keyof DocumentJobs;
+type DocumentJobName = keyof DocumentJobs;
 
 export interface JobClient {
   /** Queue a job and return straight away. */

@@ -60,7 +60,7 @@ const mongooseUsers = () =>
   mongoose.models.User ?? mongoose.model('User', new mongoose.Schema({ email: String, name: String }, { strict: false }), 'users');
 
 /** Current members of a site with their notification settings (defaults when none are saved). */
-export const recipients = async (siteId: string, now: Date): Promise<Recipient[]> => {
+const recipients = async (siteId: string, now: Date): Promise<Recipient[]> => {
   const members = await Membership.find({ siteId, $or: [{ until: null }, { until: { $gt: now } }] }).lean<MembershipDoc[]>();
   if (!members.length) return [];
   const users = mongooseUsers();
@@ -159,7 +159,7 @@ export const notifyAlerts = async (mailer: Mailer, appUrl: string, now = new Dat
 const previousDate = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
 
 /** Yesterday's cost, peak and savings for a site (energy only; demand is per billing period). */
-export const summarizeDay = async (site: SiteDoc, date: string, now: Date): Promise<DailySummary> => {
+const summarizeDay = async (site: SiteDoc, date: string, now: Date): Promise<DailySummary> => {
   const start = siteDateStart(date, site.tz);
   const end = siteDateStart(new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10), site.tz);
   const [intervals, tariffs, openAlerts] = await Promise.all([

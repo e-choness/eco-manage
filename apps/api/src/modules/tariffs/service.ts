@@ -9,7 +9,7 @@ import {
   type TariffIssue,
 } from '@ecomanage/shared';
 
-export interface TariffView extends TariffInput {
+interface TariffView extends TariffInput {
   id: string;
   version: number;
   createdAt: string | null;

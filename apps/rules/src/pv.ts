@@ -5,7 +5,7 @@
 
 export const BUCKET_MS = 5 * 60_000;
 /** Below 5% of rated output across the peers counts as night (or heavy overcast): not judged. */
-export const DAYLIGHT_SHARE = 0.05;
+const DAYLIGHT_SHARE = 0.05;
 
 export interface PvPoint {
   deviceId: string;

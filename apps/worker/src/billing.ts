@@ -13,8 +13,6 @@ import {
 // Stores interval costs and bills (plan P2-03). The pricing itself is pure and lives in
 // @ecomanage/shared (billing.ts), so the API prices custom ranges the same way.
 
-export { bucketOf, computeBill, costInterval } from '@ecomanage/shared';
-
 const loadTariffs = async (siteId: Types.ObjectId | string): Promise<TariffShape[]> =>
   (await Tariff.find({ siteId }).lean<TariffDoc[]>()).map(tariffFromDoc);
 

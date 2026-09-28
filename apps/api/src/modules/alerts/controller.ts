@@ -1,6 +1,6 @@
-import { z } from 'zod';
 import { fixAlertBody, resolveAlertBody } from '@ecomanage/shared';
 import { handle, parseBody, userIdOf, paramOf } from '../../lib/http';
+import { openClosedQuery } from '../../lib/lists';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import * as alerts from './service';
 
@@ -8,17 +8,9 @@ const FALLBACK = { status: 500, body: { error: { code: 500, message: 'Alert requ
 const siteOf = (req: AuthenticatedRequest) => req.site!;
 const idOf = (req: AuthenticatedRequest) => String(paramOf(req, 'id'));
 
-const listQuery = z
-  .object({
-    state: z.enum(['open', 'closed']).default('open'),
-    limit: z.coerce.number().int().min(1).max(200).default(50),
-    before: z.coerce.date().optional(),
-  })
-  .strict();
-
 export const alertsController = (deps: alerts.AlertDeps) => ({
   list: handle(FALLBACK, async (req, res) => {
-    res.json(await alerts.listAlerts(siteOf(req), parseBody(listQuery, req.query)));
+    res.json(await alerts.listAlerts(siteOf(req), parseBody(openClosedQuery, req.query)));
   }),
   detail: handle(FALLBACK, async (req, res) => {
     res.json(await alerts.alertDetail(siteOf(req), idOf(req)));

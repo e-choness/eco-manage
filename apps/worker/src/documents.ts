@@ -22,7 +22,7 @@ export interface StatementInput {
 }
 
 /** Statement lines in print order. Exported for the test, which reads them back from the PDF. */
-export const statementLines = ({ site, bill, tariff }: StatementInput): [string, string][] => {
+const statementLines = ({ site, bill, tariff }: StatementInput): [string, string][] => {
   const cur = site.currency || 'CAD';
   const l = bill.lines!;
   const kwh = bill.energyKwh ?? { pk: 0, md: 0, op: 0, export: 0 };

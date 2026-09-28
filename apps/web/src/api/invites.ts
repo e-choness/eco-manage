@@ -2,7 +2,7 @@ import type { InviteAccept, InvitePreview } from '@ecomanage/shared';
 import api, { errorMessage } from './api';
 import type { SessionUser } from './types';
 
-export class InviteError extends Error {
+class InviteError extends Error {
   constructor(
     message: string,
     public status: number

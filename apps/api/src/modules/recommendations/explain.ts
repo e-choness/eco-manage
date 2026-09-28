@@ -53,7 +53,7 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  * Every piece of text people typed on this site, with what to say instead: device and vehicle
  * names, RFID tags, the names and addresses of its people, and the site's own name and address.
  */
-export const siteNames = async (site: SiteDoc): Promise<[string, string][]> => {
+const siteNames = async (site: SiteDoc): Promise<[string, string][]> => {
   const [devices, vehicles, members] = await Promise.all([
     Device.find({ siteId: site._id }).select('name type').lean<DeviceDoc[]>(),
     FleetVehicle.find({ siteId: site._id }).select('name rfid').lean<{ name: string; rfid: string }[]>(),
@@ -77,10 +77,10 @@ export const siteNames = async (site: SiteDoc): Promise<[string, string][]> => {
   return pairs.filter(([s]) => s.trim().length >= 2).sort((a, b) => b[0].length - a[0].length);
 };
 
-export const redact = (text: string, names: [string, string][]): string =>
+const redact = (text: string, names: [string, string][]): string =>
   names.reduce((t, [name, instead]) => t.replace(new RegExp(escapeRe(name.trim()), 'gi'), instead), text).slice(0, 400);
 
-export const explainInput = (rec: RecommendationDoc, deviceType: string, site: SiteDoc, names: [string, string][]): ExplainInput => ({
+const explainInput = (rec: RecommendationDoc, deviceType: string, site: SiteDoc, names: [string, string][]): ExplainInput => ({
   rule: { id: rec.ruleId, title: rec.ruleId === MANUAL_RULE_ID ? 'Manual request' : (RECOMMENDATION_RULES[rec.ruleId as keyof typeof RECOMMENDATION_RULES]?.title ?? 'Recommendation') },
   device: { type: deviceType },
   action: /^[a-z_]{1,40}$/.test(rec.action) ? rec.action : 'change',
@@ -91,7 +91,7 @@ export const explainInput = (rec: RecommendationDoc, deviceType: string, site: S
   expectedSaving: { amount: (rec.expectedSavingCents ?? 0) / 100, currency: site.currency ?? 'CAD' },
 });
 
-export const inputHash = (input: ExplainInput): string => createHash('sha256').update(JSON.stringify(input)).digest('hex');
+const inputHash = (input: ExplainInput): string => createHash('sha256').update(JSON.stringify(input)).digest('hex');
 
 // ---- the endpoint --------------------------------------------------------------------------------
 

@@ -2,7 +2,7 @@ import pino, { DestinationStream, Logger } from 'pino';
 
 // Never log credentials: request headers are not logged at all, and these paths are
 // redacted in case an object carrying them is passed to the logger.
-export const REDACT_PATHS = [
+const REDACT_PATHS = [
   'req.headers.authorization',
   'req.headers.cookie',
   'headers.authorization',

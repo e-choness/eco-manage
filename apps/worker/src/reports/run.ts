@@ -12,7 +12,7 @@ import { reportCsv, reportHtml, reportXlsx } from './render';
 // month for a scheduled run. The file goes to the file store, and each recipient is emailed a
 // link that works without signing in for LINK_DAYS (only the token's hash is stored).
 
-export const LINK_DAYS = 30;
+const LINK_DAYS = 30;
 const KEEP_FILES = 24;
 const CONTENT_TYPE = { pdf: 'application/pdf', csv: 'text/csv', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' } as const;
 

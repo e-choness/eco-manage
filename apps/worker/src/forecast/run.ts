@@ -16,7 +16,7 @@ type IntervalRow = { start: Date; grid: number; export: number; pv: number; batt
 const loadKw = (iv: IntervalRow) => Math.max(0, (iv.grid - iv.export + (iv.pv ?? 0) + (iv.batt ?? 0)) * 4);
 
 /** Arrays from Settings → Site; a site without any uses each inverter's rating at the reference geometry. */
-export const arraysOf = (site: SiteDoc, inverters: DeviceDoc[]): ArrayInput[] => {
+const arraysOf = (site: SiteDoc, inverters: DeviceDoc[]): ArrayInput[] => {
   const arrays = (site.pvArrays ?? []).filter((a) => a.inverterId && a.kwp);
   if (arrays.length) return arrays.map((a) => ({ inverterId: a.inverterId!, kwp: a.kwp!, tiltDeg: a.tiltDeg ?? 10, azimuthDeg: a.azimuthDeg ?? 180 }));
   return inverters.filter((d) => d.ratedKw).map((d) => ({ inverterId: String(d._id), kwp: d.ratedKw!, ...REFERENCE_ARRAY }));

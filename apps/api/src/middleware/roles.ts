@@ -3,8 +3,6 @@ import type { Role } from '@ecomanage/shared';
 import { AuthenticatedRequest, requireUser } from './auth';
 import { resolveSiteContext } from '../modules/site/service';
 
-export const ALL_ROLES: readonly Role[] = ['owner', 'manager', 'installer'];
-
 const forbidden = (res: Response, message: string) => res.status(403).json({ error: { code: 403, message } });
 
 /**

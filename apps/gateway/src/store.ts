@@ -7,7 +7,7 @@ import type { TelemetryReading } from '@ecomanage/shared';
 //   reverts  what to undo and when, so a restart still ends a time-limited command
 //   kv       small settings: the battery floor, the certificate once claimed
 
-export const BUFFER_DAYS = 7;
+const BUFFER_DAYS = 7;
 const DAY = 86_400_000;
 
 export interface Buffered {
