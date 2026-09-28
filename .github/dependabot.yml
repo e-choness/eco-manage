@@ -16,7 +16,7 @@ updates:
       # typescript-eslint and the rest of the toolchain support TypeScript below 6.1 for now.
       - dependency-name: typescript
         versions: [">=6.1"]
-      # Node types follow the Node version in the images (24 LTS).
+      # Node types follow the Node version in the images (26).
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
 

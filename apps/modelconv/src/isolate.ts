@@ -31,8 +31,9 @@ export const convertIsolated = (input: Uint8Array, format: InputFormat, opts: { 
     // An uncaught error inside the thread, or running out of memory: the file is the likely cause.
     worker.once('error', (err) =>
       finish(() => {
-        console.error(JSON.stringify({ msg: 'conversion crashed', format, err: err.message }));
-        reject(new Rejected(/heap|memory/i.test(err.message) ? 'The model is too big to process. Reduce detail in your modelling tool, or export it as .glb.' : CRASHED));
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(JSON.stringify({ msg: 'conversion crashed', format, err: message }));
+        reject(new Rejected(/heap|memory/i.test(message) ? 'The model is too big to process. Reduce detail in your modelling tool, or export it as .glb.' : CRASHED));
       })
     );
     worker.once('exit', (code) => finish(() => reject(new Rejected(code ? CRASHED : 'The conversion stopped unexpectedly.'))));

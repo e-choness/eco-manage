@@ -12,8 +12,8 @@ RUN apt-get update \
  && apt-get purge -y curl && apt-get autoremove -y \
  && rm -rf /var/lib/apt/lists/* /tmp/ktx.deb /root/.cache
 
-ENV COREPACK_HOME=/opt/corepack
-RUN corepack enable && corepack prepare pnpm@12.6.0 --activate && chmod -R a+rX /opt/corepack
+# Node 25+ no longer bundles corepack, so pnpm comes from npm (the version in package.json).
+RUN npm install -g pnpm@12.6.0 && npm cache clean --force
 WORKDIR /repo
 
 # Only the converter's dependencies, from the workspace lockfile.

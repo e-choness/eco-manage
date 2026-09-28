@@ -34,8 +34,8 @@ Work follows the phased plan in the design handoff (`IMPLEMENTATION_PLAN.md`).
 ```bash
 # 1. edit the package.json of the app
 # 2. refresh the lockfile without installing on the host
-docker run --rm -v "$PWD":/repo -w /repo node:24-alpine \
-  sh -c "corepack enable && pnpm install --lockfile-only"
+docker run --rm -v "$PWD":/repo -w /repo node:26-alpine \
+  sh -c "npm install -g pnpm@12.6.0 && pnpm install --lockfile-only"
 # 3. rebuild the dev image and recreate containers with fresh node_modules volumes
 docker compose build
 docker compose up -d --force-recreate -V api web

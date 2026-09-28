@@ -94,6 +94,12 @@ pnpm 12 refuses versions published in the last day and only runs install scripts
 version range floor to a release that is a day old, or wait. A new dependency that really needs
 its install script is allowed by name in `allowBuilds`, with a comment saying why.
 
+### An image build fails with `corepack: not found` (exit code 127)
+
+Node 25 and later no longer ship corepack. The Dockerfiles install pnpm with
+`npm install -g pnpm@<version>` instead; do the same in any script or `docker run` that used
+`corepack enable`, with the version from `packageManager` in the root `package.json`.
+
 ### The converter's tests fail with EROFS or "Failed to create Vitest API token"
 
 Its container is read-only: run them with `-e HOME=/tmp` and the config copied to `/tmp` (the

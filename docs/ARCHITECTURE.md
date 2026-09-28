@@ -270,8 +270,8 @@ holds energy per source and consumer, the building remainder and demand.
 
 | Area        | Choice                                                         |
 | ----------- | -------------------------------------------------------------- |
-| Runtime     | Node 24 LTS, TypeScript 6.0 (strict)                           |
-| API         | Express 4, Mongoose 8, zod, pino, helmet, express-rate-limit + rate-limit-redis, ioredis, jsonwebtoken, bcryptjs |
+| Runtime     | Node 26, TypeScript 6.0 (strict)                               |
+| API         | Express 5, Mongoose 9, zod 4, pino, helmet, express-rate-limit + rate-limit-redis, ioredis, jsonwebtoken, bcryptjs |
 | Web         | React 19, Vite 8, Tailwind 4, Radix (via shadcn/ui), three.js, axios, react-router 7 |
 | Data        | MongoDB 8 (Mongoose 9), Redis 8, S3-compatible object storage  |
 | Tests       | Vitest everywhere (supertest for the API; Testing Library + MSW for the web), Playwright + axe |
