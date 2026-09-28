@@ -19,6 +19,13 @@
   --vp-c-brand-3: #2a9d6b;
 }
 
+/* The "EcoManage" wordmark, as in the app and the banners. */
+.VPNavBarTitle .title,
+.VPHero .name {
+  font-family: Audiowide, var(--vp-font-family-base);
+  font-weight: 400;
+}
+
 /* The home page's flow graphic is wide: give it room. */
 @media (min-width: 960px) {
   .VPHero .image-container {

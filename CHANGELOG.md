@@ -22,6 +22,7 @@ Notable changes to EcoManage, newest first. The format follows
 
 ### Changed
 
+- The "EcoManage" wordmark is set in Audiowide in the app, the documentation and the banners.
 - The README has a live-flow banner in the app's font, an animated walkthrough, current
   screenshots and status badges.
 

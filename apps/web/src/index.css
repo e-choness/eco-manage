@@ -7,6 +7,8 @@
 @theme {
   --font-sans: Geist, system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
+  /* The "EcoManage" wordmark only (loaded for those letters). */
+  --font-wordmark: Audiowide, Geist, system-ui, sans-serif;
 
   --background-image-app-gr: var(--gr);
 

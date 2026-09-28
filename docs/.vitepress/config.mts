@@ -32,6 +32,9 @@ export default defineConfig({
   vite: { server: { allowedHosts: ['docs', '.app.github.dev'] } },
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/eco-manage/favicon.svg' }],
+    // The wordmark's face (Audiowide), for the letters of "EcoManage" only.
+    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
+    ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Audiowide&text=EcoManage&display=swap' }],
     ['meta', { name: 'theme-color', content: '#3ecf8e' }],
     ['meta', { property: 'og:image', content: 'https://e-choness.github.io/eco-manage/media/banner-16x9.png' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
