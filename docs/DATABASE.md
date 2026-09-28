@@ -42,7 +42,7 @@ services share them. Plain types live in `packages/shared/src/models.ts`.
 | Collection       | Key fields | Indexes |
 | ---------------- | ---------- | ------- |
 | `gateways`       | serial, claimKey (a hash of the one-time claim code; the code itself is never stored), model, siteId, claimedAt, claimedBy, csr {pem, fw, at} (the latest request with a valid proof), cert {serialNumber, pem, issuedAt, notAfter} (P5-04). Registered by `gateway:register`; the site's gatewayId is the serial | {serial} unique, {siteId} |
-| `sites`          | name, address, tz, lat, lon, currency, billDay (1–28), demandCapKw, gatewayId, pvArrays [{id, name, inverterId, kwp, tiltDeg, azimuthDeg}], batteryFloorPct (≥ 10, enforced by the gateway), gatewayConfigPending | — |
+| `sites`          | name, address, tz, lat, lon, currency, billDay (1–28), demandCapKw, gatewayId, pvArrays [{id, name, inverterId, kwp, tiltDeg, azimuthDeg}], batteryFloorPct (≥ 10, enforced by the gateway), gatewayConfigPending, explanations {provider, baseUrl, model, keyEnc (AES-256-GCM under SECRETS_KEY), keyHint, monthlyTokens, updatedAt, updatedBy} (P5-05) | — |
 | `calendars`      | siteId, terms [{name, start, end}], daysOff [{name, start, end}], open, close (HH:mm), weekends (closed, open), updatedBy | siteId unique |
 | `memberships`    | userId, siteId, role (owner, manager, installer), until | {userId, siteId} unique, siteId |
 | `invites`        | siteId, email, role, until, tokenHash, expiresAt, acceptedAt | tokenHash |

@@ -637,8 +637,15 @@ The six App v2 rules (P3-02) live in `packages/recs/src/rules`, with defaults fr
 
 ### Explanations (P5-05)
 
-Optional: with `ANTHROPIC_API_KEY` set, owners and managers can ask for a recommendation "in plain
-words" in the Inbox (`apps/api/src/modules/recommendations/explain.ts`).
+Optional: owners and managers can ask for a recommendation "in plain words" in the Inbox
+(`apps/api/src/modules/recommendations/explain.ts`), once a language model is plugged in.
+- **Which model** (`llm.ts`): the site's own, if its owner added one in Settings → Rules →
+  Explanations, else the server's default (`LLM_*` or `ANTHROPIC_API_KEY`), else off. Any
+  OpenAI-compatible API works (a `POST {baseUrl}/chat/completions` with a bearer key: OpenAI,
+  OpenRouter, Groq, Mistral, DeepSeek, Together, a local server), as does Anthropic through its
+  SDK. A site's key is sealed with AES-256-GCM under `SECRETS_KEY`, shown only as its last four
+  characters, and never logged or audited. Because the API calls the URL an owner gives, it must
+  be `https://` to a public host unless `LLM_ALLOW_PRIVATE_URLS` is on; redirects aren't followed.
 - **Input:** only the server's own proposal, rebuilt for the model: the rule's fixed title, the
   device *type*, the action, its settings (numbers, true/false and times only), the window and time
   zone, the checks, the calculation and the expected saving. Left out on purpose: the request
@@ -647,13 +654,15 @@ words" in the Inbox (`apps/api/src/modules/recommendations/explain.ts`).
   names and emails, the site's name and address) that appears in a check or calculation is
   replaced ("the EV charger", "a person") before sending. The system prompt tells the model the
   JSON is data, not instructions.
-- **Model:** `LLM_MODEL` (default `claude-opus-5`) through the Anthropic SDK: low effort, at most
-  1,500 output tokens, server-side fallbacks on (a declined request is rerun on a fallback model);
-  a refusal that remains is an error, not an explanation.
+- **The request:** at most 1,500 output tokens, the same system prompt either way. On Anthropic:
+  low effort and server-side fallbacks (a declined request is rerun on a fallback model). On an
+  OpenAI-compatible API: a plain chat completion; `content_filter` counts as declined. A refusal,
+  an empty answer or an error status comes back as a 502 with the reason (key refused, model not
+  found, rate-limited …), never as an explanation.
 - **Cache and budget:** the answer is stored on the recommendation with a SHA-256 of its input, so
   asking again is free until the proposal changes. `llmUsage` counts each site's input and output
-  tokens per month; at `LLM_SITE_MONTHLY_TOKENS` (default 200,000) new explanations stop until the
-  next month, while stored ones are still shown.
+  tokens per month against its budget (the owner's own, or `LLM_SITE_MONTHLY_TOKENS` for the
+  server's default); new explanations stop until the next month, while stored ones are still shown.
 
 
 ### Commands (P3-04)

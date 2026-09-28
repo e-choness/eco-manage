@@ -17,7 +17,8 @@ import {
 } from '@ecomanage/shared';
 import { HttpError } from '../../lib/http';
 import User from '../auth/model';
-import { storedExplanation, type ExplainDeps } from './explain';
+import { storedExplanation } from './explain';
+import { resolveExplainer, type ExplainDeps } from './llm';
 
 // Recommendations API (plan P3-03, Backend Coverage §2): decisions proposed by the rules service or
 // asked for on the Devices page. Checks run again at approval against the site as it is then; any
@@ -162,7 +163,7 @@ export const createManual = async (deps: RecDeps, site: SiteDoc, userId: string,
     ]);
     await recordAudit({ siteId: site._id, userId, action: 'recommendation.request', target: `recommendation:${rec._id}`, after: action });
     await publish(deps.redis, siteId, { type: 'inbox', itemType: 'decide', itemId: String(rec._id) });
-    return recommendationDetail(site, 'owner', String(rec._id), now, !!deps.explain?.explainer);
+    return recommendationDetail(site, 'owner', String(rec._id), now, !!resolveExplainer(deps.explain, site));
   } catch (err) {
     if ((err as { code?: number }).code === 11000) throw fail(409, 'The same request is already waiting for a decision');
     throw err;
@@ -236,7 +237,7 @@ export const approve = async (deps: RecDeps, site: SiteDoc, userId: string, role
   const siteId = String(site._id);
   await publish(deps.redis, siteId, { type: 'inbox', itemType: 'decide', itemId: String(rec._id) });
   await publish(deps.redis, siteId, { type: 'command', commandId: String(command._id), deviceId: rec.deviceId, status: 'created' });
-  return { recommendation: await recommendationDetail(site, role, id, now, !!deps.explain?.explainer), commandId: String(command._id) };
+  return { recommendation: await recommendationDetail(site, role, id, now, !!resolveExplainer(deps.explain, site)), commandId: String(command._id) };
 };
 
 export const decline = async (deps: RecDeps, site: SiteDoc, userId: string, role: Role, id: string, reason: string, now = new Date()) => {
@@ -250,5 +251,5 @@ export const decline = async (deps: RecDeps, site: SiteDoc, userId: string, role
   if (!updated) throw fail(409, 'Someone else decided on it first');
   await recordAudit({ siteId: site._id, userId, action: 'recommendation.decline', target: `recommendation:${rec._id}`, after: { reason } });
   await publish(deps.redis, String(site._id), { type: 'inbox', itemType: 'decide', itemId: String(rec._id) });
-  return recommendationDetail(site, role, id, now, !!deps.explain?.explainer);
+  return recommendationDetail(site, role, id, now, !!resolveExplainer(deps.explain, site));
 };

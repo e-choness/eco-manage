@@ -10,6 +10,9 @@ const csv = z
       .filter(Boolean)
   );
 
+// Compose passes an unset variable as an empty string: treat it as not set.
+const unset = <T extends z.ZodType>(s: T) => z.preprocess((v) => (v === '' ? undefined : v), s.optional());
+
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -30,10 +33,19 @@ const schema = z.object({
   MQTT_CA_KEY: z.string().optional(),
   // Overpass API for building outlines (Settings → Site model, P5-03); empty turns the lookup off.
   OVERPASS_URL: z.string().default('https://overpass-api.de/api/interpreter'),
-  // Plain-language explanations of recommendations (P5-05): on when an Anthropic API key is set.
-  ANTHROPIC_API_KEY: z.string().optional(),
-  LLM_MODEL: z.string().default('claude-opus-5'),
+  // Plain-language explanations of recommendations (P5-05). The server's default model: any
+  // OpenAI-compatible API (LLM_PROVIDER=openai-compatible with LLM_BASE_URL, LLM_API_KEY and
+  // LLM_MODEL), or Anthropic (LLM_PROVIDER=anthropic with LLM_API_KEY, or just ANTHROPIC_API_KEY).
+  // Sites can plug in their own key in Settings when SECRETS_KEY is set.
+  LLM_PROVIDER: unset(z.enum(['openai-compatible', 'anthropic'])),
+  LLM_BASE_URL: unset(z.string().url()),
+  LLM_API_KEY: unset(z.string()),
+  ANTHROPIC_API_KEY: unset(z.string()),
+  LLM_MODEL: unset(z.string()),
   LLM_SITE_MONTHLY_TOKENS: z.coerce.number().int().nonnegative().default(200_000),
+  LLM_ALLOW_PRIVATE_URLS: z.stringbool().default(false),
+  // Seals secrets the API keeps (a site's own model key). Long and random; changing it forgets them.
+  SECRETS_KEY: z.string().min(16).optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

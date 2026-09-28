@@ -63,6 +63,7 @@ const UPLOADS = [
 ]
 const UPLOADED_MODEL = { ...DEFAULT_SITE_MODEL, version: 3, source: 'upload', upload: { uploadId: 'up1', glbUrl: '/cdn/models/a/model.glb', thumbUrl: null, originalName: 'School.glb', tris: 180_000, bytes: 812_000, bbox: { min: [-20, 0, -12], max: [20, 9, 12] }, scale: 0.01 } }
 
+const LLM_VIEW = { source: 'server', provider: 'anthropic', baseUrl: null, model: 'claude-opus-5', keyHint: null, monthlyTokens: 200_000, usedTokens: 1_250, canStoreKeys: true, updatedAt: null }
 const GATEWAY = { id: 'gw-maple-01', online: true, fw: '1.4.2', buffered: 0, bufferDays: 7, batteryFloorPct: 10, configPending: false, claim: null }
 const L_MODEL ={ ...DEFAULT_SITE_MODEL, version: 2, source: 'generated', generated: { ...DEFAULT_SITE_MODEL.generated, footprint: [[-12, -7], [12, -7], [12, 0], [2, 0], [2, 6], [-12, 6]] } }
 const OSM = { footprint: [[-15, -8], [15, -8], [15, 8], [-5, 8], [-5, 2], [-15, 2]], storeys: 2, wayId: 42, name: 'Maple Grove School', at: { lat: 43.7, lon: -79.4 }, attribution: '© OpenStreetMap contributors' }
@@ -99,6 +100,16 @@ const setup = (role: Role, tab = 'site', over: { tariff422?: boolean; uploadedMo
     http.get(`${BASE}/api/site/model`, () => HttpResponse.json(over.uploadedModel ? UPLOADED_MODEL : over.lShaped ? L_MODEL : DEFAULT_SITE_MODEL)),
     http.get(`${BASE}/api/site/model/uploads`, () => HttpResponse.json({ items: UPLOADS })),
     http.get(`${BASE}/api/site/model/osm-footprint`, () => HttpResponse.json(OSM)),
+    http.get(`${BASE}/api/site/explanations`, () => HttpResponse.json(LLM_VIEW)),
+    http.put(`${BASE}/api/site/explanations`, async ({ request }) => {
+      const body = (await request.json()) as { model: string; baseUrl: string }
+      record('explanations', body)
+      return HttpResponse.json({ ...LLM_VIEW, source: 'site', provider: 'openai-compatible', baseUrl: body.baseUrl, model: body.model, keyHint: '…WXYZ', monthlyTokens: 50_000, updatedAt: '2026-09-28T10:00:00Z' })
+    }),
+    http.post(`${BASE}/api/site/explanations/test`, async ({ request }) => {
+      record('llmTest', await request.json())
+      return HttpResponse.json({ ok: true, model: 'some/model', latencyMs: 1240, error: null })
+    }),
     http.post(`${BASE}/api/site/model/uploads/:id/use`, ({ params }) => (record('use', params.id), HttpResponse.json(UPLOADED_MODEL))),
     http.post(`${BASE}/api/site/model/uploads`, () => (record('upload', true), HttpResponse.json(UPLOADS[0], { status: 202 }))),
     http.put(`${BASE}/api/site/model`, async ({ request }) => (record('model', await request.json()), HttpResponse.json(DEFAULT_SITE_MODEL))),
@@ -229,6 +240,33 @@ describe('people', () => {
     expect(calls.remove).toEqual(['m3'])
     expect(calls.revoke).toEqual(['i1'])
     expect(screen.queryByRole('region', { name: 'Unsaved changes' })).toBeNull()
+  })
+})
+
+describe('explanations: your own language model (P5-05)', () => {
+  it('lets the owner plug in an OpenAI-compatible key, try it and save it', async () => {
+    setup('owner', 'rules')
+    expect(await screen.findByTestId('explanations-status')).toHaveTextContent('On: the server’s default model (claude-opus-5). Add your own key to use another. 1,250 of 200,000 tokens used this month.')
+    const form = screen.getByRole('form', { name: 'Your language model' })
+    await userEvent.selectOptions(within(form).getByLabelText('Provider'), 'OpenRouter')
+    expect(within(form).getByLabelText('Base URL')).toHaveValue('https://openrouter.ai/api/v1')
+    await userEvent.type(within(form).getByLabelText('Model'), 'some/model')
+    await userEvent.type(within(form).getByLabelText('API key'), 'sk-or-1234567890WXYZ')
+    await userEvent.clear(within(form).getByLabelText('Monthly budget'))
+    await userEvent.type(within(form).getByLabelText('Monthly budget'), '50000')
+    await userEvent.click(within(form).getByRole('button', { name: 'Test' }))
+    expect(await within(form).findByRole('status')).toHaveTextContent('Works: some/model answered in 1.2 s')
+    await userEvent.click(within(form).getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(calls.explanations).toEqual([{ provider: 'openai-compatible', baseUrl: 'https://openrouter.ai/api/v1', model: 'some/model', apiKey: 'sk-or-1234567890WXYZ', monthlyTokens: 50_000 }]))
+    expect(await screen.findByTestId('explanations-status')).toHaveTextContent('this site’s own OpenAI-compatible model some/model (key …WXYZ)')
+    // The key field is empty again, and saving without it keeps the saved one.
+    expect(screen.getByLabelText('API key')).toHaveValue('')
+  })
+
+  it('isn’t shown to a manager', async () => {
+    setup('manager', 'rules')
+    expect(await screen.findByText('Approval')).toBeInTheDocument()
+    expect(screen.queryByTestId('explanations-status')).toBeNull()
   })
 })
 

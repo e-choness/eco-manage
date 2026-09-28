@@ -3,6 +3,9 @@ import type {
   BatteryPatch,
   CalendarInput,
   CalendarView,
+  ExplanationSettingsInput,
+  ExplanationSettingsView,
+  ExplanationTestResult,
   GatewayClaimInput,
   GatewayView,
   InviteView,
@@ -41,6 +44,11 @@ export const patchSite = (patch: SitePatch): Promise<SiteSettings> => call(api.p
 export const putPvArrays = (arrays: PvArraysInput): Promise<SiteSettings> => call(api.put('/api/site/pv-arrays', arrays));
 export const patchBattery = (patch: BatteryPatch): Promise<SiteSettings> => call(api.patch('/api/site/battery', patch));
 export const getGateway = (): Promise<GatewayView> => call(api.get('/api/site/gateway'));
+// Endpoints: /api/site/explanations (owner, P5-05): the site's own language model
+export const getExplanationSettings = (): Promise<ExplanationSettingsView> => call(api.get('/api/site/explanations'));
+export const saveExplanationSettings = (input: ExplanationSettingsInput): Promise<ExplanationSettingsView> => call(api.put('/api/site/explanations', input));
+export const removeExplanationSettings = (): Promise<ExplanationSettingsView> => call(api.delete('/api/site/explanations'));
+export const testExplanationSettings = (input: ExplanationSettingsInput): Promise<ExplanationTestResult> => call(api.post('/api/site/explanations/test', input));
 // Endpoint: POST /api/site/gateway/claim (P5-04)
 export const claimGateway = (input: GatewayClaimInput): Promise<GatewayView> => call(api.post('/api/site/gateway/claim', input));
 export const putSiteModel = (model: SiteModelInput): Promise<SiteModel> => call(api.put('/api/site/model', model));

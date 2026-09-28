@@ -32,9 +32,13 @@ of any invalid fields.
 | `AUTH_RATE_LIMIT_MAX`  | no       | `10`          | Per IP per window on login, register, refresh  |
 | `LOG_LEVEL`            | no       | `info`        | pino level; `silent` in tests                  |
 | `OVERPASS_URL`         | no       | `https://overpass-api.de/api/interpreter` | Building outlines from OpenStreetMap for the generated site model; empty turns the lookup off. Heavy use of the public server needs your own instance |
-| `ANTHROPIC_API_KEY`    | no       | —             | Turns on plain-language explanations of recommendations (P5-05). Without it the Inbox offers none |
-| `LLM_MODEL`            | no       | `claude-opus-5` | The model that writes them                   |
-| `LLM_SITE_MONTHLY_TOKENS` | no    | `200000`      | Tokens each site may use per month (input + output); stored explanations stay visible after |
+| `SECRETS_KEY`          | no       | —             | Seals secrets the API keeps: a site's own language-model key (P5-05). Long and random; changing it forgets saved keys. Without it owners can't plug in a key |
+| `LLM_PROVIDER`         | no       | from the keys | Server default for explanations: `openai-compatible` or `anthropic` |
+| `LLM_BASE_URL`         | no       | —             | The default's API, e.g. `https://api.openai.com/v1`, `https://openrouter.ai/api/v1` (required for OpenAI-compatible) |
+| `LLM_API_KEY`          | no       | —             | The default's key (for Anthropic, `ANTHROPIC_API_KEY` also works) |
+| `LLM_MODEL`            | no       | `claude-opus-5` for Anthropic | The default's model (required for OpenAI-compatible) |
+| `LLM_SITE_MONTHLY_TOKENS` | no    | `200000`      | Tokens a site may use per month on the server's default; owners set their own budget for their own key |
+| `LLM_ALLOW_PRIVATE_URLS` | no     | `false`       | Let owners point at http or private addresses (a model on the local network). Leave off where sites aren't trusted |
 | `MQTT_URL`             | no       | —             | The broker (TLS). Without it, gateway config is queued and gateways can't be claimed |
 | `MQTT_CERT_DIR`        | no       | `/repo/infra/mosquitto/certs` | `ca.crt`, `svc-api.crt` and `svc-api.key` |
 | `MQTT_CA_KEY`          | no       | `MQTT_CERT_DIR/ca.key` | The CA key (PKCS#8) that signs claimed gateways' certificates (P5-04). Without it, a claim waits. Keep it off every other machine |

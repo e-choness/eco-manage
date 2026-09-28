@@ -31,6 +31,7 @@ import { SECTION_TAB, changed, same, type Drafts, type Section } from "./setting
 import { SiteTab } from "./settings/SiteTab"
 import { TariffTab } from "./settings/TariffTab"
 import { RulesTab } from "./settings/RulesTab"
+import { ExplanationsPanel } from "./settings/ExplanationsPanel"
 import { CalendarTab } from "./settings/CalendarTab"
 import { ModelTab } from "./settings/ModelTab"
 import { PeopleTab } from "./settings/PeopleTab"
@@ -232,6 +233,7 @@ export function Settings() {
           <TariffTab tariff={value("tariff")} setTariff={setter("tariff")} version={tariffs.data?.current ?? null} canEdit={role === "owner"} canView={money} serverIssues={tariffIssues} />
         ) : null}
         {tab === "rules" ? <RulesTab draft={value("rules")} set={setter("rules")} rules={rules.data?.rules ?? []} canEdit={money} /> : null}
+        {tab === "rules" && role === "owner" ? <ExplanationsPanel /> : null}
         {tab === "calendar" ? <CalendarTab cal={value("calendar")} set={setter("calendar")} canEdit={money} today={today} /> : null}
         {tab === "model" ? <ModelTab draft={value("model")} set={setter("model")} saved={model.data} snap={snap} canEdit={role === "owner" || role === "installer"} /> : null}
         {tab === "people" ? <PeopleTab canEdit={role === "owner"} today={today} /> : null}

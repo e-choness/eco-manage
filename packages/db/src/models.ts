@@ -39,6 +39,14 @@ const siteSchema = new Schema(
     batteryFloorPct: { type: Number, default: 10 },
     // Set when the gateway config could not be published; resent when the API reconnects.
     gatewayConfigPending: { type: Boolean, default: false },
+    // The owner's own language model for explanations (P5-05); the key is encrypted (AES-GCM).
+    explanations: {
+      type: new Schema(
+        { provider: String, baseUrl: String, model: String, keyEnc: String, keyHint: String, monthlyTokens: Number, updatedAt: Date, updatedBy: { type: ObjectId, ref: 'User' } },
+        { _id: false }
+      ),
+      default: null,
+    },
   },
   { timestamps: true }
 );
