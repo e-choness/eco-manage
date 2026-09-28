@@ -63,7 +63,10 @@ const UPLOADS = [
 ]
 const UPLOADED_MODEL = { ...DEFAULT_SITE_MODEL, version: 3, source: 'upload', upload: { uploadId: 'up1', glbUrl: '/cdn/models/a/model.glb', thumbUrl: null, originalName: 'School.glb', tris: 180_000, bytes: 812_000, bbox: { min: [-20, 0, -12], max: [20, 9, 12] }, scale: 0.01 } }
 
-const setup = (role: Role, tab = 'site', over: { tariff422?: boolean; uploadedModel?: boolean } = {}) => {
+const L_MODEL = { ...DEFAULT_SITE_MODEL, version: 2, source: 'generated', generated: { ...DEFAULT_SITE_MODEL.generated, footprint: [[-12, -7], [12, -7], [12, 0], [2, 0], [2, 6], [-12, 6]] } }
+const OSM = { footprint: [[-15, -8], [15, -8], [15, 8], [-5, 8], [-5, 2], [-15, 2]], storeys: 2, wayId: 42, name: 'Maple Grove School', at: { lat: 43.7, lon: -79.4 }, attribution: '© OpenStreetMap contributors' }
+
+const setup = (role: Role, tab = 'site', over: { tariff422?: boolean; uploadedModel?: boolean; lShaped?: boolean } = {}) => {
   for (const k of Object.keys(calls)) delete calls[k]
   server.use(
     http.get(`${BASE}/api/auth/me`, () => HttpResponse.json({ _id: 'u1', email: 'priya@example.com', memberships: [{ siteId: 's1', siteName: 'Maple Grove School', role, until: null }] })),
@@ -86,8 +89,9 @@ const setup = (role: Role, tab = 'site', over: { tariff422?: boolean; uploadedMo
     http.patch(`${BASE}/api/rules/:id`, async ({ request, params }) => (record(`rule:${params.id}`, await request.json()), HttpResponse.json(rules))),
     http.get(`${BASE}/api/calendar`, () => HttpResponse.json({ terms: [{ name: 'Fall term', start: '2026-09-02', end: '2026-12-18' }], daysOff: [], open: '07:30', close: '17:30', weekends: 'closed', updatedAt: null })),
     http.put(`${BASE}/api/calendar`, async ({ request }) => (record('calendar', await request.json()), HttpResponse.json({}))),
-    http.get(`${BASE}/api/site/model`, () => HttpResponse.json(over.uploadedModel ? UPLOADED_MODEL : DEFAULT_SITE_MODEL)),
+    http.get(`${BASE}/api/site/model`, () => HttpResponse.json(over.uploadedModel ? UPLOADED_MODEL : over.lShaped ? L_MODEL : DEFAULT_SITE_MODEL)),
     http.get(`${BASE}/api/site/model/uploads`, () => HttpResponse.json({ items: UPLOADS })),
+    http.get(`${BASE}/api/site/model/osm-footprint`, () => HttpResponse.json(OSM)),
     http.post(`${BASE}/api/site/model/uploads/:id/use`, ({ params }) => (record('use', params.id), HttpResponse.json(UPLOADED_MODEL))),
     http.post(`${BASE}/api/site/model/uploads`, () => (record('upload', true), HttpResponse.json(UPLOADS[0], { status: 202 }))),
     http.put(`${BASE}/api/site/model`, async ({ request }) => (record('model', await request.json()), HttpResponse.json(DEFAULT_SITE_MODEL))),
@@ -276,6 +280,78 @@ describe('site model and notifications', () => {
     await userEvent.type(x, '2.5{Enter}')
     expect(await bar()).toHaveTextContent('Unsaved changes: Site model')
     expect(screen.getByText('2.5, 0.9, 1.9')).toBeInTheDocument()
+  })
+
+  it('generates the building from width × depth and places the devices around it (P5-03)', async () => {
+    setup('installer', 'model')
+    const building = await screen.findByRole('region', { name: 'Building' })
+    // The default is the demo building.
+    expect(within(building).getByLabelText('Width (east–west)')).toHaveValue(7)
+    expect(within(building).getByRole('img', { name: 'Top-down plan: 7 × 4 m, 1 storey, 18 panels' })).toBeInTheDocument()
+    expect(within(building).getByRole('button', { name: 'Apply to the model' })).toBeDisabled()
+
+    await userEvent.clear(within(building).getByLabelText('Width (east–west)'))
+    await userEvent.type(within(building).getByLabelText('Width (east–west)'), '20')
+    await userEvent.clear(within(building).getByLabelText('Depth (north–south)'))
+    await userEvent.type(within(building).getByLabelText('Depth (north–south)'), '10')
+    await userEvent.clear(within(building).getByLabelText('Storeys'))
+    await userEvent.type(within(building).getByLabelText('Storeys'), '2')
+    expect(within(building).getByRole('img', { name: 'Top-down plan: 20 × 10 m, 2 storeys, 51 panels' })).toBeInTheDocument()
+    await userEvent.click(within(building).getByRole('button', { name: 'Apply to the model' }))
+
+    expect(await bar()).toHaveTextContent('Unsaved changes: Site model')
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(calls.model).toHaveLength(1))
+    const saved = calls.model[0] as { generated: { footprint: number[][]; storeys: number }; hub: number[]; anchors: { key: string; at: number[] }[] }
+    expect(saved.generated).toMatchObject({ footprint: [[-10, -6.5], [10, -6.5], [10, 3.5], [-10, 3.5]], storeys: 2, osm: null })
+    expect(saved.hub).toEqual([0, 0.95, 4])
+    expect(saved.anchors.find((a) => a.key === 'grid')?.at).toEqual([-13.7, 1.05, -1.5])
+  })
+
+  it('pulls the outline from OpenStreetMap with its storeys and credits it', async () => {
+    setup('owner', 'model')
+    const building = await screen.findByRole('region', { name: 'Building' })
+    await userEvent.click(within(within(building).getByRole('radiogroup', { name: 'Outline' })).getByRole('radio', { name: 'From OpenStreetMap' }))
+    expect(within(building).getByRole('link', { name: 'OpenStreetMap contributors' })).toHaveAttribute('href', 'https://www.openstreetmap.org/copyright')
+    await userEvent.click(within(building).getByRole('button', { name: 'Pull from OpenStreetMap' }))
+    expect(await within(building).findByTestId('osm-outline')).toHaveTextContent('Maple Grove School · 30 × 16 m, 6 corners')
+    expect(within(building).getByLabelText('Storeys')).toHaveValue(2)
+    // Keep the devices where they are this time.
+    await userEvent.click(within(building).getByRole('checkbox', { name: 'Place the devices around the building' }))
+    await userEvent.click(within(building).getByRole('button', { name: 'Apply to the model' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(calls.model).toHaveLength(1))
+    expect(calls.model[0]).toMatchObject({ generated: { footprint: OSM.footprint, storeys: 2, osm: { wayId: 42, name: 'Maple Grove School' } }, hub: DEFAULT_SITE_MODEL.hub })
+  })
+
+  it('shows why OpenStreetMap found nothing', async () => {
+    setup('owner', 'model')
+    server.use(http.get(`${BASE}/api/site/model/osm-footprint`, () => HttpResponse.json({ error: { code: 404, message: 'OpenStreetMap has no building outline within 60 m of this point.' } }, { status: 404 })))
+    const building = await screen.findByRole('region', { name: 'Building' })
+    await userEvent.click(within(building).getByRole('radio', { name: 'From OpenStreetMap' }))
+    expect(within(building).getByText('Pull the outline from OpenStreetMap first.')).toBeInTheDocument()
+    await userEvent.click(within(building).getByRole('button', { name: 'Pull from OpenStreetMap' }))
+    expect(await within(building).findByRole('alert')).toHaveTextContent('OpenStreetMap has no building outline within 60 m of this point.')
+  })
+
+  it('keeps an outline that isn’t a plain rectangle while other settings change', async () => {
+    setup('owner', 'model', { lShaped: true })
+    const building = await screen.findByRole('region', { name: 'Building' })
+    expect(within(building).getByRole('radio', { name: 'Current outline' })).toHaveAttribute('aria-checked', 'true')
+    expect(within(building).getByText('24 × 13 m, 6 corners, kept as it is.')).toBeInTheDocument()
+    await userEvent.clear(within(building).getByLabelText('Roof array rows'))
+    await userEvent.type(within(building).getByLabelText('Roof array rows'), '4')
+    await userEvent.click(within(building).getByRole('button', { name: 'Apply to the model' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(calls.model).toHaveLength(1))
+    expect(calls.model[0]).toMatchObject({ generated: { footprint: L_MODEL.generated.footprint, roofRows: 4 } })
+  })
+
+  it('shows the building read-only to a manager', async () => {
+    setup('manager', 'model')
+    const building = await screen.findByRole('region', { name: 'Building' })
+    expect(within(building).getByLabelText('Width (east–west)')).toBeDisabled()
+    expect(within(building).queryByRole('button', { name: 'Apply to the model' })).toBeNull()
   })
 })
 

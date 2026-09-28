@@ -87,6 +87,7 @@ const ROUTES: Record<string, Access> = {
   'get /api/site/gateway': ALL,
   'get /api/site/model': ALL,
   'put /api/site/model': HARDWARE,
+  'get /api/site/model/osm-footprint': HARDWARE,
   'get /api/site/model/uploads/': ALL,
   'post /api/site/model/uploads/': HARDWARE,
   'get /api/site/model/uploads/:id': ALL,

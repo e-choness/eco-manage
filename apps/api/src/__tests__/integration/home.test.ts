@@ -5,11 +5,12 @@ import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import { AuditEvent, Bill, Membership, Site, SiteModel, Tariff } from '@ecomanage/db';
-import { DEFAULT_SITE_MODEL, TARIFF_TEMPLATES, siteDate, siteDateStart, type SiteToday } from '@ecomanage/shared';
+import { DEFAULT_BUILDING, DEFAULT_SITE_MODEL, FLOW_KEYS, TARIFF_TEMPLATES, layoutAround, rectFootprint, type OsmWay, siteDate, siteDateStart, type SiteToday } from '@ecomanage/shared';
 import { connectTestDb, disconnectTestDb } from './db';
 import { createApp } from '../../app';
 import User from '../../modules/auth/model';
 import { generatePasswordHash } from '../../utils/password';
+import { overpassLookup } from '../../modules/site/osm';
 
 const TZ = 'America/Toronto';
 const siteId = new mongoose.Types.ObjectId();
@@ -52,6 +53,7 @@ describe('GET /api/site/model', () => {
       version: 2,
       source: 'generated',
       upload: null,
+      generated: DEFAULT_BUILDING, // saved before P5-03: the demo building
       hub: [2, 1, 2],
       anchors: [{ key: 'pv', at: [0, 3, 0], label: [0, 4, 0] }],
       buildingLabel: [0, 3, 1],
@@ -118,5 +120,79 @@ describe('PUT /api/site/model', () => {
     expect(await AuditEvent.countDocuments({ action: 'siteModel.update' })).toBe(2);
     expect((await as('manager', request(app).put('/api/site/model')).send(body)).status).toBe(403);
     expect((await as('owner', request(app).put('/api/site/model')).send({ ...body, hub: [0, 0] })).status).toBe(400);
+  });
+
+  it('saves a generated building with its layout, and keeps it through edits that leave it out (P5-03)', async () => {
+    const building = { ...DEFAULT_BUILDING, footprint: rectFootprint(30, 12), storeys: 2, storeyHeightM: 3.5, roofRows: 5 };
+    const layout = layoutAround(building, FLOW_KEYS);
+    const res = await as('installer', request(app).put('/api/site/model')).send({ ...layout, camera: { view: 'fit' }, generated: building });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ version: 1, source: 'generated', generated: building, hub: layout.hub });
+    expect(await AuditEvent.findOne({ action: 'siteModel.update' }).sort({ ts: -1, _id: -1 }).lean()).toMatchObject({ after: { generated: building } });
+
+    // Moving the hub alone keeps the building.
+    const moved = await as('owner', request(app).put('/api/site/model')).send({ ...layout, hub: [1, 0.95, 5], camera: { view: 'fit' } });
+    expect(moved.body).toMatchObject({ version: 2, hub: [1, 0.95, 5], generated: building });
+    expect((await as('manager', request(app).get('/api/site/model'))).body.generated).toEqual(building);
+  });
+
+  it('refuses an outline that crosses itself or has too few corners', async () => {
+    const body = { hub: [0, 1, 0], anchors: [], buildingLabel: [0, 3, 0], camera: { view: 'fit' } };
+    const crossed = await as('owner', request(app).put('/api/site/model')).send({ ...body, generated: { ...DEFAULT_BUILDING, footprint: [[0, 0], [8, 8], [8, 0], [0, 8]] } });
+    expect(crossed.status).toBe(400);
+    expect(JSON.stringify(crossed.body)).toContain('The outline crosses itself');
+    expect((await as('owner', request(app).put('/api/site/model')).send({ ...body, generated: { ...DEFAULT_BUILDING, footprint: [[0, 0], [8, 8]] } })).status).toBe(400);
+    expect(await SiteModel.countDocuments()).toBe(0);
+  });
+});
+
+describe('GET /api/site/model/osm-footprint', () => {
+  const at = { lat: 43.65, lon: -79.38 };
+  const mLon = 111_320 * Math.cos((at.lat * Math.PI) / 180);
+  const ll = (x: number, z: number) => ({ lat: at.lat - z / 110_574, lon: at.lon + x / mLon });
+  const school: OsmWay = { type: 'way', id: 42, tags: { building: 'school', name: 'Maple Grove School', 'building:levels': '2' }, geometry: [ll(-20, -8), ll(20, -8), ll(20, 8), ll(-20, 8), ll(-20, -8)] };
+  const withOsm = (lookup: (p: { lat: number; lon: number }) => Promise<OsmWay[]>) =>
+    createApp({ env: { CORS_ORIGINS: [], RATE_LIMIT_WINDOW_MS: 60_000, RATE_LIMIT_MAX: 1e6, AUTH_RATE_LIMIT_MAX: 1e6 }, osm: lookup });
+
+  afterEach(async () => {
+    await Site.updateOne({ _id: siteId }, { $set: { lat: null, lon: null } });
+  });
+
+  it("finds the building at the site's location, with credit to OpenStreetMap", async () => {
+    await Site.updateOne({ _id: siteId }, { $set: at });
+    const asked: { lat: number; lon: number }[] = [];
+    const res = await as('installer', request(withOsm(async (p) => (asked.push(p), [school]))).get('/api/site/model/osm-footprint'));
+    expect(res.status).toBe(200);
+    expect(asked).toEqual([at]);
+    expect(res.body).toMatchObject({ wayId: 42, name: 'Maple Grove School', storeys: 2, at, attribution: '© OpenStreetMap contributors' });
+    expect(res.body.footprint).toHaveLength(4);
+  });
+
+  it('searches a given point, and explains why it found nothing', async () => {
+    const found = withOsm(async () => [school]);
+    expect((await as('owner', request(found).get('/api/site/model/osm-footprint').query(at))).body.wayId).toBe(42);
+    // No location on the site and none given.
+    expect((await as('owner', request(found).get('/api/site/model/osm-footprint'))).status).toBe(422);
+    expect((await as('owner', request(found).get('/api/site/model/osm-footprint').query({ lat: 43 }))).status).toBe(400);
+    expect((await as('owner', request(withOsm(async () => [])).get('/api/site/model/osm-footprint').query(at))).status).toBe(404);
+    const down = await as('owner', request(withOsm(async () => Promise.reject(new Error('timeout')))).get('/api/site/model/osm-footprint').query(at));
+    expect(down.status).toBe(502);
+    expect(down.body.error.message).toMatch(/didn’t answer/);
+    // Turned off on this server.
+    expect((await as('owner', request(app).get('/api/site/model/osm-footprint').query(at))).status).toBe(503);
+    expect((await as('manager', request(found).get('/api/site/model/osm-footprint').query(at))).status).toBe(403);
+  });
+
+  it('asks Overpass for the building ways around the point, and nothing else', async () => {
+    const calls: { url: string; init: RequestInit }[] = [];
+    const lookup = overpassLookup('https://overpass.example/api/interpreter', async (url, init) => {
+      calls.push({ url, init });
+      return { ok: true, status: 200, json: async () => ({ elements: [school] }) };
+    });
+    expect(await lookup(at)).toEqual([school]);
+    expect(calls[0].url).toBe('https://overpass.example/api/interpreter');
+    expect(String(calls[0].init.body)).toBe(new URLSearchParams({ data: `[out:json][timeout:10];way(around:60,${at.lat},${at.lon})["building"];out tags geom;` }).toString());
+    const failing = overpassLookup('https://overpass.example/api/interpreter', async () => ({ ok: false, status: 429, json: async () => ({}) }));
+    await expect(failing(at)).rejects.toThrow('Overpass answered 429');
   });
 });

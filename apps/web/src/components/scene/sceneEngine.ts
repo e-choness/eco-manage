@@ -1,5 +1,5 @@
 import type * as Three from "three"
-import type { FlowKey, SceneFlow, SceneFlows, SceneView, SiteModel, Vec3 } from "@ecomanage/shared"
+import { buildingPlan, type FlowKey, type Point2, type SceneFlow, type SceneFlows, type SceneView, type SiteModel, type Vec3 } from "@ecomanage/shared"
 import { FLOW_COLOURS } from "./flowColours"
 
 // Port of the App v2 prototype's site-scene.js (P4-03). The static site (ground, building, roof
@@ -12,6 +12,9 @@ const PAL = {
   light: { ground: 0xe4e7ec, pad: 0xeff1f4, grid: 0xd3d8e0, body: 0xfbfbfc, edge: 0xb4bcc9, panel: 0x2d5093, win: 0xc3cedf, winE: 0x000000, device: 0xe6e9ef, car: 0xcbd2dc, dim: 0xcfd5de, sky: 0xffffff, gl: 0xc9cfd8, fog: 0xeef1f5, hemi: 1.05, sun: 1.5, pathOp: 0.4, text: "#172031", sub: "#566174", lbg: "rgba(255,255,255,.88)", lbd: "rgba(20,30,50,.12)" },
 } as const
 
+
+const DEMO_PAD: Point2 = [19, 10.5] // the paved area under an uploaded model
+const MAX_PANEL_BOXES = 300 // more panels than this are drawn as one instanced mesh
 
 const VIEWS: Record<SceneView, { r: number; el: number; th: number; ty: number; fit?: number }> = {
   iso: { r: 31, el: 32, th: 38, ty: 0.4 },
@@ -120,11 +123,6 @@ export async function createScene(host: HTMLElement, opts: SceneOptions, initial
   ground.rotation.x = -Math.PI / 2
   ground.receiveShadow = true
   scene.add(ground)
-  const pad = new T.Mesh(new T.PlaneGeometry(19, 10.5), new T.MeshStandardMaterial({ color: P.pad, roughness: 1 }))
-  pad.rotation.x = -Math.PI / 2
-  pad.position.y = 0.002
-  pad.receiveShadow = true
-  scene.add(pad)
   const grid = new T.GridHelper(120, 120, P.grid, P.grid)
   grid.position.y = 0.004
   const gridMat = grid.material as Three.Material
@@ -146,8 +144,9 @@ export async function createScene(host: HTMLElement, opts: SceneOptions, initial
     return m
   }
 
-  // The building: an uploaded model when the site has one (P5-02), else the generated one with
-  // its roof array. Everything else (devices, flows, labels) comes from the anchors either way.
+  // The building: an uploaded model when the site has one (P5-02), else the generated one (P5-03)
+  // with its roof array. Everything else (devices, flows, labels) comes from the anchors either way.
+  const plan = buildingPlan(opts.model.generated)
   const upload = opts.model.source === "upload" ? opts.model.upload : null
   let uploaded = false
   if (upload) {
@@ -163,22 +162,45 @@ export async function createScene(host: HTMLElement, opts: SceneOptions, initial
     }
   }
   if (!uploaded) {
-    box(7, 2.2, 4, P.body, 0, 1.1, -0.6)
-    box(6.2, 0.5, 0.02, P.win, 0, 1.35, 1.41, { e: P.winE, edge: false, cast: false })
-    if (anchorOf("pv"))
-      for (let i = 0; i < 6; i++)
-        for (let j = 0; j < 3; j++) box(0.98, 0.06, 1.02, P.panel, -2.75 + i * 1.1, 2.3, -1.9 + j * 1.15, { r: 0.35, e: opts.theme === "dark" ? 0x0c1a38 : 0 }).rotation.x = -0.1
+    // Its outline raised to its height (the shape is drawn in x, −z, then stood up), a band of
+    // windows per storey on the walls facing south, and the roof array when the site has solar.
+    const outline = new T.Shape(plan.footprint.map(([x, z]) => new T.Vector2(x, -z)))
+    const body = new T.Mesh(new T.ExtrudeGeometry(outline, { depth: plan.height, bevelEnabled: false }), new T.MeshStandardMaterial({ color: P.body, roughness: 0.75, metalness: 0.05 }))
+    body.rotation.x = -Math.PI / 2
+    body.castShadow = body.receiveShadow = true
+    body.add(new T.LineSegments(new T.EdgesGeometry(body.geometry), new T.LineBasicMaterial({ color: P.edge, transparent: true, opacity: 0.55 })))
+    scene.add(body)
+    for (const win of plan.windows) box(win.length, 0.5, 0.02, P.win, ...win.at, { e: P.winE, edge: false, cast: false }).rotation.y = win.heading
+    if (anchorOf("pv")) {
+      const panelOpts = { r: 0.35, e: opts.theme === "dark" ? 0x0c1a38 : 0 }
+      if (plan.panels.length <= MAX_PANEL_BOXES) for (const [x, y, z] of plan.panels) box(0.98, 0.06, 1.02, P.panel, x, y, z, panelOpts).rotation.x = -plan.tiltRad
+      else {
+        // A big roof: one instanced mesh, without the outlines.
+        const mesh = new T.InstancedMesh(new T.BoxGeometry(0.98, 0.06, 1.02), new T.MeshStandardMaterial({ color: P.panel, roughness: 0.35, metalness: 0.05, emissive: panelOpts.e }), plan.panels.length)
+        const tilt = new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), -plan.tiltRad)
+        plan.panels.forEach(([x, y, z], i) => mesh.setMatrixAt(i, new T.Matrix4().compose(new T.Vector3(x, y, z), tilt, new T.Vector3(1, 1, 1))))
+        mesh.castShadow = mesh.receiveShadow = true
+        scene.add(mesh)
+      }
+    }
   }
-  // Camera, shadows and fog are set for the ~20 m demo site; a bigger uploaded model scales them.
+  const [padW, padD] = uploaded ? DEMO_PAD : plan.pad.size
+  const pad = new T.Mesh(new T.PlaneGeometry(padW, padD), new T.MeshStandardMaterial({ color: P.pad, roughness: 1 }))
+  pad.rotation.x = -Math.PI / 2
+  if (!uploaded) pad.position.set(plan.pad.center[0], 0.002, plan.pad.center[1])
+  else pad.position.y = 0.002
+  pad.receiveShadow = true
+  scene.add(pad)
+  // Camera, shadows and fog are set for the ~20 m demo site; a bigger building scales them.
   const bb = uploaded && upload ? upload.bbox : null
-  const k = bb ? Math.max(1, Math.max(bb.max[0] - bb.min[0], bb.max[2] - bb.min[2], (bb.max[1] - bb.min[1]) * 2) / 20) : 1
+  const k = bb ? Math.max(1, Math.max(bb.max[0] - bb.min[0], bb.max[2] - bb.min[2], (bb.max[1] - bb.min[1]) * 2) / 20) : uploaded ? 1 : plan.scale
   if (k > 1) {
     Object.assign(sun.shadow.camera, { left: -14 * k, right: 14 * k, top: 14 * k, bottom: -14 * k, far: 500 * k })
     sun.position.multiplyScalar(k)
     scene.fog = new T.Fog(P.fog, 45 * k, 110 * k)
     camera.far = 200 * k
     ground.scale.setScalar(Math.max(1, k / 2))
-    pad.visible = false
+    if (uploaded) pad.visible = false
   }
   const [hx0, , hz0] = opts.model.hub
   box(0.7, 1.1, 0.35, P.device, hx0, 0.55, hz0 - 0.28)

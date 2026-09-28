@@ -1,5 +1,5 @@
 import { Bill, SiteModel, Tariff, assetUrl, recordAudit, type BillDoc, type SiteDoc, type SiteModelDoc, type TariffDoc } from '@ecomanage/db';
-import { DEFAULT_SITE_MODEL, dayPrices, siteDate, tariffFromDoc, tariffOn, type Role, type SiteModel as SiteModelView, type SiteModelInput, type SiteToday, type Vec3 } from '@ecomanage/shared';
+import { DEFAULT_BUILDING, DEFAULT_SITE_MODEL, dayPrices, siteDate, tariffFromDoc, tariffOn, type Role, type SiteModel as SiteModelView, type SiteModelInput, type SiteToday, type Vec3, type BuildingSpec } from '@ecomanage/shared';
 import { projectedCents } from '../bills/service';
 
 // Home (P4-03): the site's scene model and today's price strip and bill line.
@@ -41,6 +41,8 @@ export const siteModel = async (site: SiteDoc): Promise<SiteModelView> => {
     version: m.version,
     source: upload ? 'upload' : (m.source as SiteModelView['source']),
     upload,
+    // Versions saved before P5-03 have no building: they drew the demo one.
+    generated: (m.generated as BuildingSpec | null) ?? DEFAULT_BUILDING,
     hub: m.hub as SiteModelView['hub'],
     anchors: m.anchors.map((a) => ({ key: a.key as SiteModelView['anchors'][number]['key'], at: a.at as SiteModelView['hub'], label: a.label as SiteModelView['hub'] })),
     buildingLabel: m.buildingLabel as SiteModelView['hub'],
@@ -79,7 +81,10 @@ export const saveSiteModel = async (site: SiteDoc, userId: string, input: SiteMo
   return saveSiteModelVersion(site, userId, rest, keepUpload ? { source: 'upload', upload: keepUpload } : { source: 'generated', upload: null });
 };
 
-/** Writes the next version (two saves at once take the next number) and audits it. */
+/**
+ * Writes the next version (two saves at once take the next number) and audits it. The generated
+ * building carries over from the latest version unless the input has one (P5-03).
+ */
 export const saveSiteModelVersion = async (
   site: SiteDoc,
   userId: string,
@@ -87,10 +92,11 @@ export const saveSiteModelVersion = async (
   model: { source: 'generated' | 'upload'; upload: StoredUpload | null }
 ): Promise<SiteModelView> => {
   for (let attempt = 0; attempt < 3; attempt++) {
-    const latest = await SiteModel.findOne({ siteId: site._id }).sort({ version: -1 }).select('version').lean<{ version: number }>();
+    const latest = await SiteModel.findOne({ siteId: site._id }).sort({ version: -1 }).select('version generated').lean<{ version: number; generated?: unknown }>();
     const version = (latest?.version ?? 0) + 1;
+    const generated = input.generated ?? latest?.generated ?? null;
     try {
-      await SiteModel.create({ siteId: site._id, version, ...model, ...input });
+      await SiteModel.create({ siteId: site._id, version, ...model, ...input, generated });
       await recordAudit({ siteId: site._id, userId, action: 'siteModel.update', target: `siteModel:v${version}`, after: { ...input, source: model.source, uploadId: model.upload?.uploadId ?? null } });
       return siteModel(site);
     } catch (err) {

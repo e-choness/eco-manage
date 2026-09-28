@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react"
-import { DEFAULT_SITE_MODEL, FLOW_KEYS, sceneFlows, type FlowKey, type SiteModel, type SiteModelInput, type SiteSnapshot, type Vec3 } from "@ecomanage/shared"
+import { DEFAULT_BUILDING, DEFAULT_SITE_MODEL, FLOW_KEYS, layoutAround, sceneFlows, type FlowKey, type SiteModel, type SiteModelInput, type SiteSnapshot, type Vec3 } from "@ecomanage/shared"
 import { SiteScene } from "@/components/scene/SiteScene"
 import { hasWebGL } from "@/components/scene/sceneEngine"
 import { useTheme } from "@/components/ui/theme-provider"
 import { cn } from "@/lib/utils"
 import { ReadOnly } from "./ui"
 import { ModelUploads } from "./ModelUploads"
+import { BuildingEditor, OsmCredit } from "./BuildingEditor"
 
 const NAME: Record<FlowKey | "hub", string> = { hub: "Switchboard (hub)", pv: "Solar", battery: "Battery", grid: "Grid connection", ev: "EV chargers", heatpump: "Heat pump" }
 const LABEL_LIFT = 1.2 // labels float this far above their anchor
@@ -54,6 +55,7 @@ export function ModelTab({ draft, set, saved, snap, canEdit }: Props) {
   // Switching back to the generated scene is a draft (saved from the bar); an upload is used from
   // its list straight away.
   const shown = draft.source === "generated" ? "generated" : saved?.source === "upload" || wantUpload ? "upload" : "generated"
+  const building = draft.generated ?? saved?.generated ?? DEFAULT_BUILDING
   const pickSource = (to: "generated" | "upload") => {
     setWantUpload(to === "upload")
     if (to === "generated" && saved?.source === "upload") set({ ...draft, source: "generated" })
@@ -71,6 +73,7 @@ export function ModelTab({ draft, set, saved, snap, canEdit }: Props) {
         <div className="absolute left-3 top-3 rounded-md bg-app-pn px-2 py-1 text-xs text-app-sb" data-testid="model-badge">
           {saved && saved.version > 0 ? `Version ${saved.version} · ${saved.source === "upload" && saved.upload ? saved.upload.originalName : saved.source}` : "Default model (App v2 demo scene)"}
         </div>
+        {shown === "generated" && building.osm ? <OsmCredit className="absolute bottom-2 right-3 rounded bg-app-pn px-1.5 py-0.5" /> : null}
         {moving ? (
           <div role="status" className="absolute inset-x-3 bottom-3 rounded-lg bg-app-pn px-3 py-2 text-[13px] text-app-tx">
             Click the model where the {NAME[moving].toLowerCase()} is.{" "}
@@ -104,6 +107,15 @@ export function ModelTab({ draft, set, saved, snap, canEdit }: Props) {
           </div>
           {shown === "upload" ? <ModelUploads canEdit={canEdit} /> : null}
         </section>
+        {shown === "generated" ? (
+          <BuildingEditor
+            key={JSON.stringify(building)}
+            spec={building}
+            anchorKeys={draft.anchors.map((a) => a.key)}
+            canEdit={canEdit}
+            apply={(spec, placeDevices) => set({ ...draft, generated: spec, ...(placeDevices ? layoutAround(spec, draft.anchors.map((a) => a.key)) : {}) })}
+          />
+        ) : null}
         <section aria-label="Device anchors" className="flex flex-col gap-2 rounded-[14px] border border-app-l2 bg-app-ps p-4">
           <div className="flex items-baseline justify-between">
             <h2 className="m-0 text-sm font-semibold">Device anchors</h2>
@@ -131,7 +143,7 @@ export function ModelTab({ draft, set, saved, snap, canEdit }: Props) {
             ))}
           </ul>
           {canEdit ? (
-            <button type="button" onClick={() => set({ hub: DEFAULT_SITE_MODEL.hub, anchors: DEFAULT_SITE_MODEL.anchors, buildingLabel: DEFAULT_SITE_MODEL.buildingLabel, camera: DEFAULT_SITE_MODEL.camera })} className="self-start p-0 text-xs text-app-sb">
+            <button type="button" onClick={() => set({ ...(draft.source ? { source: draft.source } : {}), hub: DEFAULT_SITE_MODEL.hub, anchors: DEFAULT_SITE_MODEL.anchors, buildingLabel: DEFAULT_SITE_MODEL.buildingLabel, camera: DEFAULT_SITE_MODEL.camera, generated: DEFAULT_BUILDING })} className="self-start p-0 text-xs text-app-sb">
               Reset to the default model
             </button>
           ) : null}

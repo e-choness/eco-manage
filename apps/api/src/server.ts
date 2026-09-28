@@ -4,6 +4,7 @@ import { connectDB } from './config/database';
 import { loadEnv } from './config/env';
 import { logger } from './config/logger';
 import { createApp } from './app';
+import { overpassLookup } from './modules/site/osm';
 import { SiteEventHub } from './lib/siteEvents';
 import { createJobClient } from './lib/jobs';
 import { createObjectStore, objectStoreConfigFromEnv } from '@ecomanage/db';
@@ -49,7 +50,10 @@ gateway?.onConnect(() => {
 const storeConfig = objectStoreConfigFromEnv();
 const objects = storeConfig ? createObjectStore(storeConfig) : undefined;
 
-const app = createApp({ env, redis, hub, jobs, objects, gateway });
+// Building outlines for the generated site model (P5-03).
+const osm = env.OVERPASS_URL ? overpassLookup(env.OVERPASS_URL) : undefined;
+
+const app = createApp({ env, redis, hub, jobs, objects, gateway, osm });
 
 const server = app.listen(env.PORT, () => {
   logger.info(`Server running at http://localhost:${env.PORT}`);

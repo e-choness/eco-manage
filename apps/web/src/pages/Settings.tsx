@@ -101,7 +101,7 @@ export function Settings() {
         : {}),
       ...(rules.data ? { rules: { approval: rules.data.approval, rules: Object.fromEntries(rules.data.rules.map((r) => [r.id, { on: r.on, params: r.params }])) } } : {}),
       ...(calendar.data ? { calendar: { terms: calendar.data.terms, daysOff: calendar.data.daysOff, open: calendar.data.open, close: calendar.data.close, weekends: calendar.data.weekends } } : {}),
-      ...(model.data ? { model: { hub: model.data.hub, anchors: model.data.anchors, buildingLabel: model.data.buildingLabel, camera: model.data.camera } } : {}),
+      ...(model.data ? { model: { hub: model.data.hub, anchors: model.data.anchors, buildingLabel: model.data.buildingLabel, camera: model.data.camera, generated: model.data.generated } } : {}),
       ...(notifications.data ? { notifications: notifications.data } : {}),
     }
   }, [settings.data, tariffs.data, rules.data, calendar.data, model.data, notifications.data])
