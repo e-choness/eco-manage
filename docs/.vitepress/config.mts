@@ -33,7 +33,9 @@ export default defineConfig({
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/eco-manage/favicon.svg' }],
     ['meta', { name: 'theme-color', content: '#3ecf8e' }],
-    ['meta', { property: 'og:image', content: `${repo.replace('github.com', 'raw.githubusercontent.com')}/main/docs/public/screenshots/home.png` }],
+    ['meta', { property: 'og:image', content: 'https://e-choness.github.io/eco-manage/media/banner-16x9.png' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['link', { rel: 'apple-touch-icon', href: '/eco-manage/apple-touch-icon.png' }],
   ],
   themeConfig: {
     logo: '/favicon.svg',

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>EcoManage</title>
+  <!-- The favicon, animated for large sizes: solar and grid flow into the switchboard, the EV
+       chargers and heat pump draw from it, and the switchboard pulses. -->
+  <style>@media (prefers-reduced-motion: reduce) { .moving { display: none } }</style>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16243f"/>
+      <stop offset="1" stop-color="#0b1120"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6ff0b4"/>
+      <stop offset="1" stop-color="#2fb87a"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#3ecf8e" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#3ecf8e" stop-opacity="0"/>
+    </radialGradient>
+    <path id="pv" d="M24 24 46 46"/>
+    <path id="gd" d="M104 24 82 46"/>
+    <path id="ev" d="M82 82 104 104"/>
+    <path id="hp" d="M46 82 24 104"/>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="url(#bg)"/>
+  <circle class="moving" cx="64" cy="64" r="44" fill="url(#glow)">
+    <animate attributeName="r" values="34;46;34" dur="2.4s" repeatCount="indefinite"/>
+  </circle>
+
+  <g stroke-width="5" stroke-linecap="round" opacity=".35">
+    <use href="#pv" stroke="#f2b33d"/>
+    <use href="#gd" stroke="#5b9dff"/>
+    <use href="#ev" stroke="#b48cff"/>
+    <use href="#hp" stroke="#ff7a59"/>
+  </g>
+  <circle cx="22" cy="22" r="7" fill="#f2b33d"/>
+  <circle cx="106" cy="22" r="7" fill="#5b9dff"/>
+  <circle cx="106" cy="106" r="7" fill="#b48cff"/>
+  <circle cx="22" cy="106" r="7" fill="#ff7a59"/>
+
+  <g class="moving">
+    <circle r="3.5" fill="#f2b33d"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#pv"/></animateMotion></circle>
+    <circle r="3.5" fill="#f2b33d"><animateMotion dur="1.6s" begin="-.8s" repeatCount="indefinite"><mpath href="#pv"/></animateMotion></circle>
+    <circle r="3.5" fill="#5b9dff"><animateMotion dur="1.8s" repeatCount="indefinite"><mpath href="#gd"/></animateMotion></circle>
+    <circle r="3.5" fill="#5b9dff"><animateMotion dur="1.8s" begin="-.9s" repeatCount="indefinite"><mpath href="#gd"/></animateMotion></circle>
+    <circle r="3.5" fill="#b48cff"><animateMotion dur="1.7s" repeatCount="indefinite"><mpath href="#ev"/></animateMotion></circle>
+    <circle r="3.5" fill="#b48cff"><animateMotion dur="1.7s" begin="-.85s" repeatCount="indefinite"><mpath href="#ev"/></animateMotion></circle>
+    <circle r="3.5" fill="#ff7a59"><animateMotion dur="1.9s" repeatCount="indefinite"><mpath href="#hp"/></animateMotion></circle>
+    <circle r="3.5" fill="#ff7a59"><animateMotion dur="1.9s" begin="-.95s" repeatCount="indefinite"><mpath href="#hp"/></animateMotion></circle>
+  </g>
+
+  <circle cx="64" cy="64" r="27" fill="#0b1120" stroke="#3ecf8e" stroke-width="5"/>
+  <path d="M69 42 49 69h14l-4 17 20-27H65z" fill="url(#bolt)">
+    <animate attributeName="opacity" values="1;.8;1" dur="2.4s" repeatCount="indefinite"/>
+  </path>
+</svg>

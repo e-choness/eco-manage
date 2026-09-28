@@ -12,10 +12,15 @@ Notable changes to EcoManage, newest first. The format follows
   published to GitHub Pages.
 - **Open in GitHub Codespaces:** the full stack, seeded with the demo site, in the browser.
 - A guide to hosting a demo for free.
+- A new app icon: the switchboard with the site's flows, animated at large sizes (the sign-in
+  page), with icons for phones and a web app manifest.
+- A media kit: a 16:9 banner (animated SVG and PNG, light and dark) beside the wide banner, and an
+  animated walkthrough of the app.
 
 ### Changed
 
-- The README has a live-flow banner, current screenshots and status badges.
+- The README has a live-flow banner in the app's font, an animated walkthrough, current
+  screenshots and status badges.
 
 ### Removed
 

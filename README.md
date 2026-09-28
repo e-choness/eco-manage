@@ -32,13 +32,11 @@ view, bills from the site's own tariff, and changes that only reach a device onc
 [What it does](https://e-choness.github.io/eco-manage/guide/features) ·
 [Changelog](./CHANGELOG.md)
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/e-choness/eco-manage?quickstart=1)
-
 </div>
 
 <picture>
-  <source media="(prefers-color-scheme: light)" srcset="docs/public/screenshots/home-light.png">
-  <img alt="Home: the live site, with demand against the cap, the bill so far, the battery and a decision waiting" src="docs/public/screenshots/home.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/public/media/walkthrough-light.webp">
+  <img alt="A walkthrough: signing in, the live site on Home, a decision in the Inbox, Devices, History, Bills and the 3D site model" src="docs/public/media/walkthrough-dark.webp">
 </picture>
 
 ## ✨ What it does
@@ -62,17 +60,34 @@ view, bills from the site's own tariff, and changes that only reach a device onc
 | ![Inbox](docs/public/screenshots/inbox.png) | ![Bills](docs/public/screenshots/bills.png) |
 | **Devices** | **History** |
 | ![Devices](docs/public/screenshots/devices.png) | ![History](docs/public/screenshots/history.png) |
-| **Settings: the site model** | **Home in the light theme** |
-| ![Site model](docs/public/screenshots/site-model.png) | ![Home, light](docs/public/screenshots/home-light.png) |
+| **Settings: the site model** | |
+| ![Site model](docs/public/screenshots/site-model.png) | |
+
+</details>
+
+<details>
+<summary><b>Media kit</b></summary>
+
+A 16:9 banner for slides, videos and link previews, in the same style as the banner above, and the
+app icon. The SVGs are animated and follow light or dark mode; the PNGs are still frames.
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/public/media/banner-16x9-light.png">
+  <img alt="EcoManage 16:9 banner" src="docs/public/media/banner-16x9.png">
+</picture>
+
+| Asset | Files |
+| --- | --- |
+| Banner, 16:9 (1920×1080) | [SVG, animated](docs/public/media/banner-16x9.svg) · [PNG, dark](docs/public/media/banner-16x9.png) · [PNG, light](docs/public/media/banner-16x9-light.png) |
+| Banner, wide (1200×380) | [SVG, animated](docs/public/hero.svg) |
+| Icon | [SVG](apps/web/public/favicon.svg) · [SVG, animated](apps/web/public/logo.svg) · [PNG 512](apps/web/public/icon-512.png) · [PNG 180](apps/web/public/apple-touch-icon.png) |
+| Walkthrough | [dark](docs/public/media/walkthrough-dark.webp) · [light](docs/public/media/walkthrough-light.webp) (animated WebP) |
 
 </details>
 
 ## 🚀 Try it
 
-**In the browser:** open it in [GitHub Codespaces](https://codespaces.new/e-choness/eco-manage?quickstart=1);
-it builds, seeds the demo site and opens the app (a few minutes the first time).
-
-**On your machine** (only Docker needed):
+Only Docker is needed:
 
 ```bash
 git clone https://github.com/e-choness/eco-manage.git && cd eco-manage

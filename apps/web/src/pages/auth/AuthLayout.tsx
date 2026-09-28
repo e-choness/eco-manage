@@ -9,7 +9,7 @@ export function AuthLayout({ children, footer }: { children: ReactNode; footer: 
     <div className="grid min-h-screen grid-cols-1 bg-app-gr text-app-tx lg:grid-cols-[520px_1fr]">
       <div className="z-1 flex flex-col justify-between gap-10 border-r border-app-l2 bg-app-ps px-6 py-10 sm:px-14">
         <div className="flex items-center gap-2.5">
-          <img src="/favicon.svg" alt="" className="h-7 w-7" />
+          <img src="/logo.svg" alt="" className="h-9 w-9" />
           <span className="text-lg font-semibold">EcoManage</span>
         </div>
         <main className="flex flex-col gap-7">{children}</main>

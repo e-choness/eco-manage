@@ -10,7 +10,7 @@ server enforces it on every request.
 
 ## Home
 
-![Home: the live site](/screenshots/home.png){.shot}
+![A walkthrough: signing in, the live site on Home, the Inbox, Devices, History, Bills and the site model](/media/walkthrough-dark.webp){.shot}
 
 The site as a 3D model with power flowing between solar, the battery, the grid, EV chargers, the
 heat pump and the building, updated about every 5 seconds. Beside it: demand in the current
