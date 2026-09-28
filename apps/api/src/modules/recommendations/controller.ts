@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { adjustRecommendationBody, declineRecommendationBody, manualRecommendationBody, type Role } from '@ecomanage/shared';
-import { HttpError, handle, parseBody, userIdOf, paramOf } from '../../lib/http';
+import { handle, parseBody, userIdOf, paramOf } from '../../lib/http';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import * as recs from './service';
 import { explainRecommendation } from './explain';
+import { resolveExplainer } from './llm';
 
 const FALLBACK = { status: 500, body: { error: { code: 500, message: 'Recommendation request failed' } } };
 const siteOf = (req: AuthenticatedRequest) => req.site!;
@@ -23,7 +24,7 @@ export const recommendationsController = (deps: recs.RecDeps) => ({
     res.json(await recs.listRecommendations(siteOf(req), parseBody(listQuery, req.query)));
   }),
   detail: handle(FALLBACK, async (req, res) => {
-    res.json(await recs.recommendationDetail(siteOf(req), roleOf(req), idOf(req), new Date(), !!deps.explain?.explainer));
+    res.json(await recs.recommendationDetail(siteOf(req), roleOf(req), idOf(req), new Date(), !!resolveExplainer(deps.explain, siteOf(req))));
   }),
   create: handle(FALLBACK, async (req, res) => {
     res.status(201).json(await recs.createManual(deps, siteOf(req), userIdOf(req), parseBody(manualRecommendationBody, req.body)));
@@ -37,7 +38,6 @@ export const recommendationsController = (deps: recs.RecDeps) => ({
   }),
   // P5-05: only the recommendation's id comes from the request; nothing else is read.
   explain: handle(FALLBACK, async (req, res) => {
-    if (!deps.explain) throw new HttpError(503, { error: { code: 503, message: 'Explanations are turned off on this server.' } });
     res.json(await explainRecommendation(deps.explain, siteOf(req), userIdOf(req), idOf(req)));
   }),
   decline: handle(FALLBACK, async (req, res) => {

@@ -23,6 +23,7 @@ export * from './weather';
 export * from './api/forecast';
 export * from './recommendations';
 export * from './api/recommendations';
+export * from './api/explanations';
 export * from './api/inbox';
 export * from './api/audit';
 export * from './api/invites';

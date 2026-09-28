@@ -31,7 +31,7 @@ import type { ObjectStore } from '@ecomanage/db';
 import type { SiteEventHub } from './lib/siteEvents';
 import type { OsmLookup } from './modules/site/osm';
 import type { CertSigner } from './modules/gateway/signer';
-import type { ExplainDeps } from './modules/recommendations/explain';
+import type { ExplainDeps } from './modules/recommendations/llm';
 
 export interface AppDeps {
   env: Pick<Env, 'CORS_ORIGINS' | 'RATE_LIMIT_WINDOW_MS' | 'RATE_LIMIT_MAX' | 'AUTH_RATE_LIMIT_MAX'>;
@@ -83,7 +83,7 @@ export const createApp = ({ env, redis, hub, jobs, objects, gateway, osm, signer
   app.use('/api/site/model/uploads', modelUploadRoutes({ jobs, objects }));
   app.use('/api/site/members', peopleRoutes);
   app.use('/api/invites', inviteRoutes());
-  app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs, gateway, jobs, osm, signer }));
+  app.use('/api/site', siteRoutes({ redis, hub, heartbeatMs: sseHeartbeatMs, gateway, jobs, osm, signer, explain }));
   app.use('/api/tariffs', tariffRoutes);
   app.use('/api/bills', billsRoutes(jobs));
   app.use('/api/calendar', calendarRoutes(jobs));

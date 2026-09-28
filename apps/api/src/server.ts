@@ -7,8 +7,7 @@ import { createApp } from './app';
 import { overpassLookup } from './modules/site/osm';
 import { receiveCsr } from './modules/gateway/claim';
 import { signerFromFiles } from './modules/gateway/signer';
-import Anthropic from '@anthropic-ai/sdk';
-import { claudeExplainer } from './modules/recommendations/explain';
+import { explainDepsFromEnv } from './modules/recommendations/serverLlm';
 import { SiteEventHub } from './lib/siteEvents';
 import { createJobClient } from './lib/jobs';
 import { createObjectStore, objectStoreConfigFromEnv } from '@ecomanage/db';
@@ -65,10 +64,10 @@ gateway?.onClaimRequest?.((serial, payload) => {
   receiveCsr({ gateway, signer, logger }, serial, payload).catch((err: Error) => logger.error({ err: err.message, serial }, 'certificate request failed'));
 });
 
-// Explanations of recommendations (P5-05) when an Anthropic API key is set.
-const explain = env.ANTHROPIC_API_KEY
-  ? { explainer: claudeExplainer(new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }), env.LLM_MODEL), monthlyTokens: env.LLM_SITE_MONTHLY_TOKENS }
-  : undefined;
+// Explanations of recommendations (P5-05): the server's default model, and sites' own keys.
+const { deps: explain, problem: llmProblem } = explainDepsFromEnv(env);
+if (llmProblem) logger.warn(`Explanations: no server default model (${llmProblem})`);
+if (!explain.secrets) logger.warn('SECRETS_KEY not set: sites can’t plug in their own language model');
 
 const app = createApp({ env, redis, hub, jobs, objects, gateway, osm, signer, explain });
 

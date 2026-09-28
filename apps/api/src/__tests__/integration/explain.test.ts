@@ -12,7 +12,8 @@ import { dedupeKeyOf } from '@ecomanage/shared';
 import { connectTestDb, disconnectTestDb } from './db';
 import { createApp } from '../../app';
 import User from '../../modules/auth/model';
-import { SYSTEM_PROMPT, claudeExplainer, safeSettings, type ExplainInput } from '../../modules/recommendations/explain';
+import { safeSettings, type ExplainInput } from '../../modules/recommendations/explain';
+import { SYSTEM_PROMPT, anthropicExplainer } from '../../modules/recommendations/llm';
 import { generatePasswordHash } from '../../utils/password';
 
 const siteId = new mongoose.Types.ObjectId();
@@ -36,8 +37,8 @@ const TYPED = {
 
 // The stand-in model: records its inputs, answers with a fixed text and 300 + 120 tokens.
 const sent: ExplainInput[] = [];
-const explainer = async (input: ExplainInput) => {
-  sent.push(input);
+const explainer = async (input: object) => {
+  sent.push(input as ExplainInput);
   return { text: 'Charging moves to the cheap hours, so the energy costs less.', model: 'claude-opus-5', inputTokens: 300, outputTokens: 120 };
 };
 
@@ -77,7 +78,7 @@ const proposal = async (over: object = {}) => {
 beforeAll(async () => {
   await connectTestDb('explain');
   process.env.JWT_SECRET = 'explain-jwt';
-  app = createApp({ env, explain: { explainer, monthlyTokens: 1000 } });
+  app = createApp({ env, explain: { server: { config: { provider: 'anthropic', baseUrl: null, model: 'claude-opus-5', apiKey: 'server-key' }, monthlyTokens: 1000 }, explainerFor: () => explainer } });
   off = createApp({ env });
   await Site.create({ _id: siteId, name: TYPED.site, address: TYPED.address, tz: 'America/Toronto', currency: 'CAD' });
   await Device.create({ _id: ev, siteId, type: 'ev', name: TYPED.device, profileId: 'ocpp16-generic@1', status: 'live' });
@@ -185,15 +186,15 @@ describe('the Claude request', () => {
       content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: ' The battery charges later. ' }],
       usage: { input_tokens: 400, cache_creation_input_tokens: 0, cache_read_input_tokens: 50, output_tokens: 90 },
     });
-    expect(await claudeExplainer(client, 'claude-opus-5')(input)).toEqual({ text: 'The battery charges later.', model: 'claude-opus-5', inputTokens: 450, outputTokens: 90 });
+    expect(await anthropicExplainer(client, 'claude-opus-5')(input)).toEqual({ text: 'The battery charges later.', model: 'claude-opus-5', inputTokens: 450, outputTokens: 90 });
     expect(calls[0]).toMatchObject({ model: 'claude-opus-5', max_tokens: 1500, output_config: { effort: 'low' }, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default', system: SYSTEM_PROMPT });
     expect((calls[0].messages as { content: string }[])[0].content).toBe(`Recommendation:\n${JSON.stringify(input, null, 2)}`);
   });
 
   it('turns a refusal or an empty answer into an error', async () => {
     const says = (text: string) => ({ status: 502, body: { error: { message: expect.stringContaining(text) } } });
-    await expect(claudeExplainer(fake({ model: 'm', stop_reason: 'refusal', content: [], usage: { input_tokens: 1, output_tokens: 0 } }).client, 'm')(input)).rejects.toMatchObject(says('couldn’t be written'));
-    await expect(claudeExplainer(fake({ model: 'm', stop_reason: 'end_turn', content: [], usage: { input_tokens: 1, output_tokens: 0 } }).client, 'm')(input)).rejects.toMatchObject(says('came back empty'));
+    await expect(anthropicExplainer(fake({ model: 'm', stop_reason: 'refusal', content: [], usage: { input_tokens: 1, output_tokens: 0 } }).client, 'm')(input)).rejects.toMatchObject(says('couldn’t be written'));
+    await expect(anthropicExplainer(fake({ model: 'm', stop_reason: 'end_turn', content: [], usage: { input_tokens: 1, output_tokens: 0 } }).client, 'm')(input)).rejects.toMatchObject(says('came back empty'));
   });
 
   it('keeps only numbers, booleans and times in the settings', () => {
