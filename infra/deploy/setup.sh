@@ -1,5 +1,5 @@
 #!/bin/sh
-# Sets up the hosted demo on a fresh Ubuntu server (docs/guide/oracle.md): Docker, the repository
+# Sets up the hosted demo on a fresh Ubuntu server (docs/deploy/oracle.md): Docker, the repository
 # in /opt/ecomanage, infra/deploy/.env with new secrets, the stack, the demo data, and a nightly
 # reset of the demo. Safe to run again: it keeps the .env and the data, and updates the rest.
 #

@@ -1,4 +1,4 @@
-# A hosted demo on one server (docs/guide/oracle.md): production images, the simulated Maple
+# A hosted demo on one server (docs/deploy/oracle.md): production images, the simulated Maple
 # Grove School, and a Cloudflare Tunnel for HTTPS without open ports. Nothing listens on the
 # server's public address unless MQTT_PORT opens the broker to real gateways.
 #

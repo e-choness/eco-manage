@@ -1,6 +1,46 @@
 # Troubleshooting
 
-Problems seen while running the Docker Compose dev stack, with their fixes.
+Problems seen while running EcoManage, with their fixes: first on a server, then in the development stack.
+
+## On a server
+
+### Everyone is signed out on every reload
+
+The refresh cookie is `Secure` in production, so the browser only keeps it over HTTPS. Open the
+site through its HTTPS address (the tunnel or your proxy), not `http://…:8080`, and check that
+`PUBLIC_URL` is that address.
+
+### Home shows no live values, or they arrive in bursts
+
+Something in front of the web service is buffering the live stream (`/api/site/stream`, server-sent
+events). Turn response buffering off for that path in your proxy; the bundled nginx and Cloudflare
+Tunnel already pass it through.
+
+### Everyone hits "Too many requests" at once
+
+The API sees one address for every visitor, so they share one rate limit. The bundled nginx takes
+the visitor's address from `CF-Connecting-IP`; with another proxy in front, have it set that header,
+or change `real_ip_header` in `infra/deploy/nginx.conf` to the header it sets.
+
+### `setup.sh` builds the images instead of pulling them
+
+The registry refused the pull: new GHCR packages are private. Make them public, or
+`sudo docker login ghcr.io` on the server, then run it again. Building on the server also works,
+just slowly.
+
+### Bills is empty on a new installation
+
+A site has no bill until its first intervals are priced and its bill computed (every minute, and
+nightly). The deploy stack's seed computes the demo's current bill straight away; for a new site,
+wait a few minutes after its first readings arrive.
+
+### A gateway can't reach the broker from outside
+
+Check, in order: `MQTT_PORT=8883` in `.env` (the broker is local-only by default), the firewall or
+cloud security list allows TCP 8883, and the name in the gateway's `mqttUrl` is on the broker's
+certificate (`MQTT_SERVER_SAN`; see [Real gateways](./oracle.md#real-gateways-optional) for renewing it).
+
+## In the development stack
 
 ### `Cannot find package 'x'` after adding a dependency
 
@@ -19,7 +59,7 @@ while the long-running `api` container still fails.
 
 A required variable is missing or malformed. Compose loads `apps/api/.env.example` and then
 `apps/api/.env`, so check any overrides in `.env`. See the table in
-[DEPLOYMENT.md](./DEPLOYMENT.md#api-configuration).
+[Configuration](./configuration.md#api).
 
 ### Integration tests fail with `Server selection timed out`
 
@@ -29,7 +69,7 @@ network.
 
 ### `429 Too many requests` while developing
 
-Login, register and refresh allow 10 requests per minute per IP. Wait a minute, or clear the
+Sign-in, refresh and invite links allow 10 requests a minute per visitor. Wait a minute, or clear the
 counters:
 
 ```bash
@@ -64,7 +104,7 @@ back to power readings and are marked estimated.
 ### A web test hangs until the timeout
 
 A page effect that lists `toast` as a dependency loops forever when a test's `useToast` mock
-returns a new function on each render. Hoist a single `vi.fn()` (see TESTING.md).
+returns a new function on each render. Hoist a single `vi.fn()` (see [Testing](../develop/testing.md)).
 
 ### Git warns "LF will be replaced by CRLF"
 
@@ -113,4 +153,4 @@ Node 25 and later no longer ship corepack. The Dockerfiles install pnpm with
 ### The converter's tests fail with EROFS or "Failed to create Vitest API token"
 
 Its container is read-only: run them with `-e HOME=/tmp` and the config copied to `/tmp` (the
-command is in TESTING.md). On Git Bash, prefix `MSYS_NO_PATHCONV=1` so `/tmp` isn't rewritten.
+command is in [Testing](../develop/testing.md)). On Git Bash, prefix `MSYS_NO_PATHCONV=1` so `/tmp` isn't rewritten.

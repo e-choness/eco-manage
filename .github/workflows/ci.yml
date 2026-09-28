@@ -1,4 +1,4 @@
-# Every gate runs in the same Docker images as local development (docs/TESTING.md): nothing is
+# Every gate runs in the same Docker images as local development (docs/develop/testing.md): nothing is
 # installed on the runner itself.
 name: CI
 

@@ -1,4 +1,4 @@
-# Production images for a hosted demo (infra/deploy, docs/guide/oracle.md), for amd64 and arm64:
+# Production images for a hosted demo (infra/deploy, docs/deploy/oracle.md), for amd64 and arm64:
 #   --target web   the built web app, served by nginx, which also proxies /api and /cdn
 #   --target app   every Node service (api, ingest, rules, worker, simulator); compose picks the
 #                  service with working_dir and command

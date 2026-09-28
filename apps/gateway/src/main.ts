@@ -9,7 +9,7 @@ import { Store } from './store';
 import { Uplink } from './uplink';
 
 // The gateway agent (P5-04). `GATEWAY_CONFIG=/etc/ecomanage/gateway.json node … src/main.ts`;
-// on a Raspberry Pi it runs as a systemd service that restarts it (see docs/GATEWAY.md).
+// on a Raspberry Pi it runs as a systemd service that restarts it (see docs/deploy/gateway.md).
 
 const log = pino({ level: process.env.LOG_LEVEL ?? 'info', base: { svc: 'gateway' } });
 
