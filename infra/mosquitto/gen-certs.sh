@@ -7,6 +7,8 @@
 #   svc-ingest, svc-api, svc-rules,   cloud services
 #   svc-health
 #   <siteId>                          one gateway per site (the simulator uses the demo site)
+#   bootstrap                         shared by gateways not yet claimed (P5-04): may only use
+#                                     claim/<client id>/…; claiming issues the site certificate
 set -eu
 
 OUT=/certs
@@ -15,7 +17,7 @@ GATEWAY_SITES="${GATEWAY_SITES:-}"
 
 have() { [ -f "$OUT/$1.crt" ] && [ -f "$OUT/$1.key" ]; }
 
-if [ -f "$OUT/ca.crt" ] && have server && have svc-ingest && have svc-api && have svc-rules && have svc-health; then
+if [ -f "$OUT/ca.crt" ] && have server && have svc-ingest && have svc-api && have svc-rules && have svc-health && have bootstrap; then
   missing=""
   for s in $GATEWAY_SITES; do have "gw-$s" || missing="$missing $s"; done
   [ -z "$missing" ] && { echo "certificates present"; exit 0; }
@@ -50,6 +52,7 @@ issue svc-ingest svc-ingest
 issue svc-api svc-api
 issue svc-rules svc-rules
 issue svc-health svc-health
+issue bootstrap bootstrap
 for s in $GATEWAY_SITES; do issue "gw-$s" "$s"; done
 
 # Development only: the broker runs as a non-root user and must read its key.

@@ -1,0 +1,12 @@
+{
+  "mqttUrl": "mqtts://mosquitto:8883",
+  "dataDir": "/var/lib/ecomanage-gateway",
+  "bootstrap": {
+    "cert": "/repo/infra/mosquitto/certs/bootstrap.crt",
+    "key": "/repo/infra/mosquitto/certs/bootstrap.key",
+    "ca": "/repo/infra/mosquitto/certs/ca.crt"
+  },
+  "scan": { "tcp": ["gateway-devices"], "tcpPort": 502, "rtu": [] },
+  "ocpp": { "port": 8887 },
+  "devices": []
+}

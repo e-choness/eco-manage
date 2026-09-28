@@ -63,10 +63,11 @@ const UPLOADS = [
 ]
 const UPLOADED_MODEL = { ...DEFAULT_SITE_MODEL, version: 3, source: 'upload', upload: { uploadId: 'up1', glbUrl: '/cdn/models/a/model.glb', thumbUrl: null, originalName: 'School.glb', tris: 180_000, bytes: 812_000, bbox: { min: [-20, 0, -12], max: [20, 9, 12] }, scale: 0.01 } }
 
-const L_MODEL = { ...DEFAULT_SITE_MODEL, version: 2, source: 'generated', generated: { ...DEFAULT_SITE_MODEL.generated, footprint: [[-12, -7], [12, -7], [12, 0], [2, 0], [2, 6], [-12, 6]] } }
+const GATEWAY = { id: 'gw-maple-01', online: true, fw: '1.4.2', buffered: 0, bufferDays: 7, batteryFloorPct: 10, configPending: false, claim: null }
+const L_MODEL ={ ...DEFAULT_SITE_MODEL, version: 2, source: 'generated', generated: { ...DEFAULT_SITE_MODEL.generated, footprint: [[-12, -7], [12, -7], [12, 0], [2, 0], [2, 6], [-12, 6]] } }
 const OSM = { footprint: [[-15, -8], [15, -8], [15, 8], [-5, 8], [-5, 2], [-15, 2]], storeys: 2, wayId: 42, name: 'Maple Grove School', at: { lat: 43.7, lon: -79.4 }, attribution: '© OpenStreetMap contributors' }
 
-const setup = (role: Role, tab = 'site', over: { tariff422?: boolean; uploadedModel?: boolean; lShaped?: boolean } = {}) => {
+const setup = (role: Role, tab = 'site', over: { tariff422?: boolean; uploadedModel?: boolean; lShaped?: boolean; noGateway?: boolean } = {}) => {
   for (const k of Object.keys(calls)) delete calls[k]
   server.use(
     http.get(`${BASE}/api/auth/me`, () => HttpResponse.json({ _id: 'u1', email: 'priya@example.com', memberships: [{ siteId: 's1', siteName: 'Maple Grove School', role, until: null }] })),
@@ -75,7 +76,13 @@ const setup = (role: Role, tab = 'site', over: { tariff422?: boolean; uploadedMo
     http.get(`${BASE}/api/site`, () => HttpResponse.json(site)),
     http.patch(`${BASE}/api/site`, async ({ request }) => (record('site', await request.json()), HttpResponse.json(site))),
     http.put(`${BASE}/api/site/pv-arrays`, async ({ request }) => (record('arrays', await request.json()), HttpResponse.json(site))),
-    http.get(`${BASE}/api/site/gateway`, () => HttpResponse.json({ id: 'gw-maple-01', online: true, fw: '1.4.2', buffered: 0, bufferDays: 7, batteryFloorPct: 10, configPending: false })),
+    http.get(`${BASE}/api/site/gateway`, () => HttpResponse.json({ ...GATEWAY, ...(over.noGateway ? { id: null, online: false, fw: null } : {}) })),
+    http.post(`${BASE}/api/site/gateway/claim`, async ({ request }) => {
+      const body = (await request.json()) as { code?: string }
+      record('claim', body)
+      if (body.code === 'WRONG') return HttpResponse.json({ error: { code: 404, message: 'No gateway has that serial number and claim code. Check both on the label.' } }, { status: 404 })
+      return HttpResponse.json({ ...GATEWAY, id: 'EM-GW-000123', online: false, fw: null, claim: { serial: 'EM-GW-000123', state: 'waiting', claimedAt: '2026-09-28T09:00:00.000Z' } })
+    }),
     http.get(`${BASE}/api/devices`, () => HttpResponse.json({ items: [{ id: 'invA', type: 'pv', name: 'Inverter A' }, { id: 'invB', type: 'pv', name: 'Inverter B' }] })),
     http.get(`${BASE}/api/tariffs`, () => HttpResponse.json({ items: [tou], current: 2 })),
     http.get(`${BASE}/api/tariffs/templates`, () => HttpResponse.json({ items: TARIFF_TEMPLATES })),
@@ -222,6 +229,38 @@ describe('people', () => {
     expect(calls.remove).toEqual(['m3'])
     expect(calls.revoke).toEqual(['i1'])
     expect(screen.queryByRole('region', { name: 'Unsaved changes' })).toBeNull()
+  })
+})
+
+describe('claiming a gateway (P5-04)', () => {
+  it('takes what the QR code says and then waits for the gateway', async () => {
+    setup('installer', 'site', { noGateway: true })
+    const form = await screen.findByRole('form', { name: 'Claim a gateway' })
+    await userEvent.type(within(form).getByLabelText('Serial number or QR code'), 'ecomanage-gw:1:EM-GW-000123:K7Q2M9XH4TWR8ZB5N3CD')
+    // The code comes from the QR text, so there's nothing more to type.
+    expect(within(form).queryByLabelText('Claim code')).toBeNull()
+    expect(within(form).getByText('EM-GW-000123 · K7Q2-M9XH-4TWR-8ZB5-N3CD')).toBeInTheDocument()
+    await userEvent.click(within(form).getByRole('button', { name: 'Claim' }))
+    await waitFor(() => expect(calls.claim).toEqual([{ qr: 'ecomanage-gw:1:EM-GW-000123:K7Q2M9XH4TWR8ZB5N3CD' }]))
+    expect(await screen.findByRole('status')).toHaveTextContent('Claimed EM-GW-000123. Waiting for it to connect')
+    expect(screen.getByText('Waiting to connect')).toBeInTheDocument()
+  })
+
+  it('shows why a typed serial and code didn’t work', async () => {
+    setup('owner', 'site')
+    await userEvent.click(await screen.findByRole('button', { name: 'Claim a replacement gateway' }))
+    const form = screen.getByRole('form', { name: 'Claim a gateway' })
+    await userEvent.type(within(form).getByLabelText('Serial number or QR code'), 'EM-GW-000123')
+    await userEvent.type(within(form).getByLabelText('Claim code'), 'WRONG')
+    await userEvent.click(within(form).getByRole('button', { name: 'Claim' }))
+    expect(await within(form).findByRole('alert')).toHaveTextContent('No gateway has that serial number and claim code.')
+    expect(calls.claim).toEqual([{ serial: 'EM-GW-000123', code: 'WRONG' }])
+  })
+
+  it('isn’t offered to a manager', async () => {
+    setup('manager', 'site')
+    expect(await screen.findByText('gw-maple-01')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Claim/ })).toBeNull()
   })
 })
 

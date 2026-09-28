@@ -258,7 +258,8 @@ Each v1 route answers unexpected failures with its own `500` body, for example
 | PATCH | `/` | owner | Any of name, address, tz (IANA), lat, lon, currency (CAD, USD, EUR, GBP, AUD), billDay (1–28), demandCapKw → `SiteSettings` |
 | PUT | `/pv-arrays` | owner, installer | The whole table `[{ id?, name, inverterId, kwp, tiltDeg (0–90), azimuthDeg (0–360, 180 = south) }]` → `SiteSettings`. New arrays get an id; `422` with `details.issues` if an `inverterId` isn't one of the site's inverters |
 | PATCH | `/battery` | owner, installer | Any of usableKwh, maxKw, floorPct (≥ 10) → `SiteSettings` + `gatewaySync: sent \| pending \| unchanged` |
-| GET | `/gateway` | all | `{ id, online (reported in the last 90 s), fw, uptimeS, buffered, oldestBufferedTs, clockOffsetMs, lastSeenAt, bufferDays: 7, batteryFloorPct, configPending }` |
+| GET | `/gateway` | all | `{ id, online (reported in the last 90 s), fw, uptimeS, buffered, oldestBufferedTs, clockOffsetMs, lastSeenAt, bufferDays: 7, batteryFloorPct, configPending, claim }`. `claim`: `{ serial, state: waiting \| certified, claimedAt }` for a gateway claimed with its QR code, `null` otherwise |
+| POST | `/gateway/claim` | owner, installer | `{ qr }` (the text of the gateway's QR code) or `{ serial, code }` → the `/gateway` view (P5-04). The gateway becomes the site's; if it has already asked for its certificate, it is signed (CN = site id) and sent at once, else when it asks. `400` not a gateway QR code or serial, `404` no gateway with that serial and code (one answer for both), `409` it belongs to another site or is already set up. Audited as `gateway.claim`; the certificate as `gateway.certificate` (no user) |
 
 - Validation errors answer `400 { error: { code, message, details: { issues: [{ path, message }] } } }`.
 - Usable capacity and maximum power are stored on the battery device. The floor is stored on the

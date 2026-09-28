@@ -39,6 +39,7 @@ const WRITES: Record<string, string[] | string> = {
   'patch /api/site/': ['site.update'],
   'put /api/site/pv-arrays': ['site.pv-arrays'],
   'patch /api/site/battery': ['site.battery'],
+  'post /api/site/gateway/claim': ['gateway.claim'],
   'post /api/tariffs/': ['tariff.create'],
   'post /api/bills/:period/utility-bill': ['bill.utility.upload', 'bill.utility.enter'],
   'put /api/calendar/': ['calendar.update'],

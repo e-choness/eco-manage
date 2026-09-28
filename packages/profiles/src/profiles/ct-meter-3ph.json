@@ -6,13 +6,13 @@
   "deviceTypes": ["meter", "submeter"],
   "fields": ["p_kw", "e_in_kwh", "e_out_kwh", "v", "a", "pf", "hz"],
   "read": [
-    { "field": "p_kw", "reg": 52, "type": "float32", "mult": 0.001 },
-    { "field": "e_in_kwh", "reg": 72, "type": "float32" },
-    { "field": "e_out_kwh", "reg": 74, "type": "float32" },
-    { "field": "v", "reg": 0, "type": "float32" },
-    { "field": "a", "reg": 6, "type": "float32" },
-    { "field": "pf", "reg": 62, "type": "float32" },
-    { "field": "hz", "reg": 70, "type": "float32" }
+    { "field": "p_kw", "reg": 52, "type": "float32", "mult": 0.001, "table": "input" },
+    { "field": "e_in_kwh", "reg": 72, "type": "float32", "table": "input" },
+    { "field": "e_out_kwh", "reg": 74, "type": "float32", "table": "input" },
+    { "field": "v", "reg": 0, "type": "float32", "table": "input" },
+    { "field": "a", "reg": 6, "type": "float32", "table": "input" },
+    { "field": "pf", "reg": 62, "type": "float32", "table": "input" },
+    { "field": "hz", "reg": 70, "type": "float32", "table": "input" }
   ],
   "write": {},
   "states": {},

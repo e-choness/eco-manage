@@ -4,6 +4,7 @@ import { Device, Site, recordAudit, type DeviceDoc, type SiteDoc } from '@ecoman
 import type { BatteryPatch, GatewayView, PvArraysInput, SitePatch, SiteSettings } from '@ecomanage/shared';
 import { HttpError } from '../../lib/http';
 import type { GatewayLink } from '../../lib/gatewayLink';
+import { claimState } from '../gateway/claim';
 
 // Settings → Site (plan P2-06): site details, solar arrays, battery and the gateway card.
 
@@ -125,5 +126,6 @@ export const gatewayStatus = async (site: SiteDoc, redis?: Redis, now = new Date
     bufferDays: GATEWAY_BUFFER_DAYS,
     batteryFloorPct: site.batteryFloorPct ?? null,
     configPending: !!site.gatewayConfigPending,
+    claim: await claimState(site),
   };
 };

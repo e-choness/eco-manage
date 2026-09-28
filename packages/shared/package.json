@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Types, zod schemas, MQTT topics, units, sign rules and site-time helpers shared by every app",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./claim-proof": "./src/claimProof.ts"
   },
   "types": "./src/index.ts",
   "scripts": {

@@ -66,6 +66,8 @@ export interface GatewayView {
   bufferDays: number; // how long the gateway can hold readings while offline
   batteryFloorPct: number | null; // the floor the gateway enforces
   configPending: boolean; // the floor could not be sent yet; it is resent on reconnect
+  /** A gateway claimed with its QR code (P5-04): waiting for it to connect, or certified. */
+  claim: { serial: string; state: 'waiting' | 'certified'; claimedAt: string | null } | null;
 }
 
 /** PATCH /api/site (owner). */

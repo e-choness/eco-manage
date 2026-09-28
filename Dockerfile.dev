@@ -18,6 +18,7 @@ COPY apps/ingest/package.json apps/ingest/
 COPY apps/worker/package.json apps/worker/
 COPY apps/rules/package.json apps/rules/
 COPY apps/modelconv/package.json apps/modelconv/
+COPY apps/gateway/package.json apps/gateway/
 RUN pnpm install --frozen-lockfile=false
 
 COPY . .

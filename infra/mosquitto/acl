@@ -13,6 +13,9 @@ topic write site/+/config
 topic read site/+/cmd/+/ack
 topic read site/+/job/+/result
 topic read site/+/gw/status
+# Claiming gateways (P5-04): certificate requests in, certificates out.
+topic read claim/+/csr
+topic write claim/+/cert
 
 # The rules service sends approved commands (P3-04); acks come back through ingest.
 user svc-rules
@@ -23,3 +26,10 @@ topic read $SYS/#
 
 # Gateways: the certificate CN is the site id, so a gateway can only reach its own site.
 pattern readwrite site/%u/#
+
+# A gateway not yet claimed connects with the shared bootstrap certificate and its serial as the
+# client id: it can only ask for its certificate and hear the answer (P5-04). The request carries
+# a proof of the claim code, so another box can't ask in its name; the answer is useless without
+# the key that stays on the gateway.
+pattern write claim/%c/csr
+pattern read claim/%c/cert

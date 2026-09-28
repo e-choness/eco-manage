@@ -62,7 +62,8 @@ export function Settings() {
   const money = role === "owner" || role === "manager"
 
   const settings = useQuery({ queryKey: ["site", "settings"], queryFn: getSiteSettings })
-  const gateway = useQuery({ queryKey: ["site", "gateway"], queryFn: getGateway, enabled: tab === "site" })
+  // Every 5 s while a claimed gateway is on its way (P5-04).
+  const gateway = useQuery({ queryKey: ["site", "gateway"], queryFn: getGateway, enabled: tab === "site", refetchInterval: (q) => (q.state.data?.claim?.state === "waiting" ? 5000 : false) })
   const devices = useQuery({ queryKey: ["devices"], queryFn: getDevices, enabled: tab === "site" })
   const tariffs = useQuery({ queryKey: ["tariffs"], queryFn: getTariffs, enabled: money })
   const rules = useQuery({ queryKey: ["rules"], queryFn: getRules })

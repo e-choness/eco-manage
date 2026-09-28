@@ -1,6 +1,7 @@
 export * from './units';
 export * from './signs';
 export * from './mqtt';
+export * from './claim';
 export * from './time';
 export * from './reportSchedule';
 export * from './models';

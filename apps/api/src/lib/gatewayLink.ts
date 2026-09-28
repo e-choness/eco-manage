@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import mqtt, { type MqttClient } from 'mqtt';
-import { jobResultMessage, topics, type CommandMessage, type GatewayConfigMessage, type JobMessage, type JobResultMessage } from '@ecomanage/shared';
+import { CLAIM_CSR_FILTER, claimTopics, jobResultMessage, topics, type ClaimCertMessage, type CommandMessage, type GatewayConfigMessage, type JobMessage, type JobResultMessage } from '@ecomanage/shared';
 
 // The API's MQTT side (svc-api certificate): the retained gateway config, remote fixes from
 // alerts (P2-08), and gateway jobs such as scan and commission (P4-04). Approved commands go
@@ -18,6 +18,10 @@ export interface GatewayLink {
   runJob(siteId: string, jobId: string, job: JobMessage, timeoutMs: number): Promise<JobResultMessage | null>;
   /** Runs on every (re)connect, so config that couldn't be sent is sent then. */
   onConnect(listener: () => void): void;
+  /** Certificate requests from gateways being claimed (P5-04): claim/{serial}/csr. */
+  onClaimRequest?(listener: (serial: string, payload: unknown) => void): void;
+  /** Sends a claimed gateway its certificate (QoS 1). Resolves false if the broker is unreachable. */
+  sendClaimCert?(serial: string, message: ClaimCertMessage): Promise<boolean>;
   close(): Promise<void>;
 }
 
@@ -87,6 +91,25 @@ export const createGatewayLink = (url: string, certDir: string): GatewayLink => 
     },
     onConnect(listener) {
       client.on('connect', listener);
+    },
+    onClaimRequest(listener) {
+      const subscribe = () => client.subscribe(CLAIM_CSR_FILTER, { qos: 1 });
+      if (client.connected) subscribe();
+      client.on('connect', subscribe);
+      client.on('message', (topic, payload) => {
+        const m = /^claim\/([^/]+)\/csr$/.exec(topic);
+        if (!m) return;
+        let body: unknown;
+        try {
+          body = JSON.parse(payload.toString());
+        } catch {
+          return;
+        }
+        listener(m[1], body);
+      });
+    },
+    sendClaimCert(serial, message) {
+      return publish(claimTopics.cert(serial), message, false);
     },
     async close() {
       await client.endAsync();
