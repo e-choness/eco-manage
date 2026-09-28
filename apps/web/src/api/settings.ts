@@ -7,6 +7,7 @@ import type {
   InviteView,
   MemberView,
   ModelUploadView,
+  OsmFootprintView,
   NotificationPrefs,
   NotificationPrefsPatch,
   PeopleResponse,
@@ -40,6 +41,8 @@ export const putPvArrays = (arrays: PvArraysInput): Promise<SiteSettings> => cal
 export const patchBattery = (patch: BatteryPatch): Promise<SiteSettings> => call(api.patch('/api/site/battery', patch));
 export const getGateway = (): Promise<GatewayView> => call(api.get('/api/site/gateway'));
 export const putSiteModel = (model: SiteModelInput): Promise<SiteModel> => call(api.put('/api/site/model', model));
+// Endpoint: GET /api/site/model/osm-footprint (P5-03): the building outline at the site's location.
+export const getOsmFootprint = (): Promise<OsmFootprintView> => call(api.get('/api/site/model/osm-footprint'));
 
 // ---- tariff -------------------------------------------------------------------------------------
 

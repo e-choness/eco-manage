@@ -228,7 +228,7 @@ often and why it was declined in 30 days), Calendar, Site model, People and Noti
 - **Site model:** the scene in the iso view with live labels. "Move" then a click on the model
   places a source, a load or the hub there (the engine raycasts a click that isn't a drag; the
   label floats 1.2 m above). Saving creates the next model version, which Home then draws. The model
-  source is generated or an uploaded 3D file (P5-02, below).
+  source is generated (P5-03, below) or an uploaded 3D file (P5-02, below).
 - **Access until** is a local date for invites and memberships: access lasts to the end of that
   day in the site's time zone.
 - The password change from the v1 Settings page is now in Profile (avatar menu).
@@ -473,6 +473,29 @@ The `models` queue (P5-02) processes uploaded 3D site models (Data and Device Au
   place of the generated building; camera, shadows and fog scale to the model's size. If it fails
   to load, the generated building is drawn. In development `/cdn` is proxied to the object store;
   in production `ASSET_PUBLIC_URL` points at the CDN.
+
+The generated model (P5-03) needs no file: Settings → Site model → Building describes it and the
+scene is built from simple shapes, as in the App v2 demo.
+- **The building** (`generated` on the site model, `@ecomanage/shared` `siteBuilding.ts`): an
+  outline (`footprint`, corners in scene metres, x east and z south), storeys and their height,
+  roof array rows and panel tilt. `buildingPlan()` turns it into what the scene draws: the outline
+  raised to its height, a band of windows per storey on each wall facing south, panels on a
+  1.1 × 1.15 m grid centred across the roof (rows from the north edge; a panel is kept only where
+  it fits inside the outline), the paved area around it, and a scale (≥ 1) for the camera,
+  shadows and fog. The same function draws the top-down plan in Settings, so they agree. With the
+  default spec (7 × 4 m, one 2.2 m storey, three rows, 5.73°) it is the demo building exactly.
+- **The outline** comes from width × depth (set back so the hub and devices in front stay in
+  view) or from OpenStreetMap: the API asks the Overpass API (`OVERPASS_URL`) for `building` ways
+  within 60 m of the site's location, takes the one containing it (else the nearest), projects it
+  to metres centred on the building, drops redundant corners (at most 64) and reads storeys from
+  `building:levels`. Only the point is sent. An outline from OpenStreetMap is credited
+  "© OpenStreetMap contributors" wherever it is shown (ODbL). An outline that is neither is kept
+  as it is while the other settings change.
+- **Devices:** "Place the devices around the building" (on by default) sets the hub, each placed
+  anchor and the labels from the building's bounds with `layoutAround()`: the switchboard in front,
+  battery and grid connection to the west, EV chargers and heat pump to the east, solar on the
+  roof. For the default building that is the demo layout. The installer then moves them as before.
+- Big roofs (over 300 panels) are drawn as one instanced mesh.
 
 The `forecast` queue (P2-10) issues each site's PV and load forecasts for the next 48 h in 15-minute steps. It runs every hour, and once at start-up. A single site is redone when its calendar or its solar arrays change.
 - **Weather** comes from `WEATHER_PROVIDER`:

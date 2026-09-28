@@ -8,11 +8,12 @@ import { handle, parseBody, userIdOf } from '../../lib/http';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import { siteModelInput, type Role } from '@ecomanage/shared';
 import { saveSiteModel, siteModel, siteToday } from './home';
+import { findOsmFootprint, osmQuery, type OsmLookup } from './osm';
 
 const ALL = ['owner', 'manager', 'installer'] as const;
 
 // Settings → Site roles (App v2): details owner; arrays and battery owner or installer.
-export const siteRoutes = (deps: SiteControllerDeps & { gateway?: GatewayLink; jobs?: JobClient }): Router => {
+export const siteRoutes = (deps: SiteControllerDeps & { gateway?: GatewayLink; jobs?: JobClient; osm?: OsmLookup }): Router => {
   const router: Router = Router();
   const site = siteController(deps);
   const settings = settingsController(deps);
@@ -30,6 +31,12 @@ export const siteRoutes = (deps: SiteControllerDeps & { gateway?: GatewayLink; j
     '/model',
     ...requireRole('owner', 'installer'),
     handle(HOME_FALLBACK, async (req: AuthenticatedRequest, res) => void res.json(await saveSiteModel(req.site!, userIdOf(req), parseBody(siteModelInput, req.body))))
+  );
+  // The generated model's outline from OpenStreetMap (P5-03).
+  router.get(
+    '/model/osm-footprint',
+    ...requireRole('owner', 'installer'),
+    handle(HOME_FALLBACK, async (req: AuthenticatedRequest, res) => void res.json(await findOsmFootprint(deps.osm, req.site!, parseBody(osmQuery, req.query))))
   );
   router.get(
     '/today',

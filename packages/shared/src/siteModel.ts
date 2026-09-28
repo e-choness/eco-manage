@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import type { SiteSnapshot } from './api/site';
+import { DEFAULT_BUILDING, buildingSpecInput, type BuildingSpec } from './siteBuilding';
 
 // The 3D site model (plan §2 `siteModels`, P4-03). Home draws the site from it: where the
 // building's hub is, where each energy source or load sits (its anchor, where its flow starts) and
 // where its label floats. Until a site has a generated or uploaded model (P4-08, P5-02/03), it
-// uses the App v2 demo scene below. Units are scene metres; y is up.
+// uses the App v2 demo scene below. A generated model draws its building from `generated` (P5-03). Units are scene metres; y is up.
 
 export const FLOW_KEYS = ['pv', 'battery', 'grid', 'ev', 'heatpump'] as const;
 export type FlowKey = (typeof FLOW_KEYS)[number];
@@ -34,6 +35,7 @@ export interface SiteModel {
   version: number; // 0: the default model, nothing saved yet
   source: 'default' | 'generated' | 'upload';
   upload: SiteModelUpload | null; // source 'upload': the processed GLB (P5-02)
+  generated: BuildingSpec; // the generated building (P5-03); kept while an upload is shown
   hub: Vec3; // where every flow meets (the main switchboard)
   anchors: SiteModelAnchor[];
   buildingLabel: Vec3;
@@ -45,6 +47,7 @@ export const DEFAULT_SITE_MODEL: SiteModel = {
   version: 0,
   source: 'default',
   upload: null,
+  generated: DEFAULT_BUILDING,
   hub: [0, 0.95, 1.9],
   anchors: [
     { key: 'pv', at: [0, 2.45, -0.4], label: [2.6, 3.2, -1.6] },
@@ -110,7 +113,7 @@ export const sceneFlows = (s: Pick<SiteSnapshot, 'flows' | 'battery' | 'devices'
 const vec3 = z.tuple([z.number().finite().min(-500).max(500), z.number().finite().min(-50).max(200), z.number().finite().min(-500).max(500)]);
 
 /** PUT /api/site/model (owner, installer): the edited model, saved as a new version (P4-08). It keeps an
- * uploaded model unless `source: 'generated'` switches back to the generated scene (P5-02). */
+ * uploaded model (and the building, when `generated` is omitted) unless `source: 'generated'` switches back to the generated scene (P5-02). */
 export const siteModelInput = z
   .object({
     hub: vec3,
@@ -121,6 +124,7 @@ export const siteModelInput = z
     buildingLabel: vec3,
     camera: z.object({ view: z.enum(SCENE_VIEWS) }).strict(),
     source: z.literal('generated').optional(),
+    generated: buildingSpecInput.optional(), // omitted: the building stays as it is
   })
   .strict();
 export type SiteModelInput = z.infer<typeof siteModelInput>;

@@ -31,6 +31,7 @@ of any invalid fields.
 | `RATE_LIMIT_MAX`       | no       | `300`         | Per IP per window on `/api`                    |
 | `AUTH_RATE_LIMIT_MAX`  | no       | `10`          | Per IP per window on login, register, refresh  |
 | `LOG_LEVEL`            | no       | `info`        | pino level; `silent` in tests                  |
+| `OVERPASS_URL`         | no       | `https://overpass-api.de/api/interpreter` | Building outlines from OpenStreetMap for the generated site model; empty turns the lookup off. Heavy use of the public server needs your own instance |
 
 The placeholder secrets in `apps/api/.env.example` are for local development only.
 

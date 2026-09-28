@@ -225,7 +225,7 @@ time zone, both ends included. Money fields are `null` for installers.
 | DELETE | `/api/site/members/:id` | owner | `204`. Same last-owner rule. Audited as `membership.delete` |
 | GET | `/api/rules` | all | `{ approval { who, expireMin, email }, rules: RuleView[] }`: each rule `{ id, title, device, on, params, defaults, declines30d { count, reasons [{ reason, count }] } }` |
 | PATCH | `/api/rules/:ruleId` | owner, manager | `{ on?, params? }` for a rule: params must be the rule's own settings, of the same kind (number or on/off), not negative (except `belowCents`). `approval`: `{ params: { who?, expireMin?, email? } }`. → the new `RulesResponse`. `404` unknown rule. Audited as `rule.update`. The rules service reads the saved values on its next run |
-| PUT | `/api/site/model` | owner, installer | `{ hub, anchors [{ key, at, label }], buildingLabel, camera { view } }` (positions in scene metres, one anchor per source or load) → the model as `GET /api/site/model` returns it, saved as the next version. An uploaded model stays in use; `source: "generated"` in the body switches back to the generated scene. Audited as `siteModel.update` |
+| PUT | `/api/site/model` | owner, installer | `{ hub, anchors [{ key, at, label }], buildingLabel, camera { view }, generated? }` (positions in scene metres, one anchor per source or load) → the model as `GET /api/site/model` returns it, saved as the next version. `generated` is the building (P5-03): 3–64 corners within ±250 m that don't cross, at least 4 m², storeys 1–30 of 2–6 m, roof rows 0–60, tilt 0–45°; without it the building carries over. An uploaded model stays in use; `source: "generated"` in the body switches back to the generated scene. Audited as `siteModel.update` |
 
 ## Site model uploads (v2, P5-02)
 
@@ -272,7 +272,8 @@ Each v1 route answers unexpected failures with its own `500` body, for example
 
 | Method | Path | Roles | Result |
 | ------ | ---- | ----- | ------ |
-| GET | `/model` | all | `SiteModel { version, source, hub, anchors [{ key, at, label }], buildingLabel, camera { view } }`: the latest saved model, or the App v2 demo scene (`version: 0`, `source: "default"`) |
+| GET | `/model` | all | `SiteModel { version, source, upload, generated, hub, anchors [{ key, at, label }], buildingLabel, camera { view } }`: the latest saved model, or the App v2 demo scene (`version: 0`, `source: "default"`). `generated` is the building (P5-03): `{ footprint [[x, z]…], storeys, storeyHeightM, roofRows, arrayTiltDeg, osm { wayId, name } \| null }`; versions saved before P5-03 give the demo building (7 × 4 m, one 2.2 m storey, three rows) |
+| GET | `/model/osm-footprint` | owner, installer | `?lat&lon` (both or neither; default the site's location) → `OsmFootprintView { footprint, storeys, wayId, name, at { lat, lon }, attribution }`: the OpenStreetMap building containing the point, else the nearest within 60 m, as an outline in scene metres centred on the building (at most 64 corners; storeys from `building:levels`). Only the point is sent to the Overpass API. `404` no building there, `422` no location, `502` Overpass didn't answer, `503` lookups turned off (`OVERPASS_URL` empty) |
 | GET | `/today` | all | `SiteToday { date, currency, prices, bill }`. `prices`: today's tariff periods in order `[{ name, rateCents, level (off, mid, peak), start, end }]` covering the whole local day (23 or 25 h on DST days), or `null` without a tariff or with a gap today. `bill`: the open period `{ period, totalCents, projectedCents, savedCents }` for owners and managers; `null` for installers or before the first bill |
 
 ### `GET /snapshot`
