@@ -4,17 +4,20 @@ Notable changes to EcoManage, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [Unreleased][Unreleased]
 
 ### Added
 
-- A documentation site (VitePress) covering every feature, setup, the API and operations,
-  published to GitHub Pages.
-- **Open in GitHub Codespaces:** the full stack, seeded with the demo site, in the browser.
-- A guide to hosting a demo for free.
+- **Provisioning:** set up sites and who has access to them from the command line, or from a plan
+  exported by a directory or CRM. Applying a plan again changes only what differs, and can remove
+  access the plan no longer lists; new people get an invite and choose their own password.
 - **Hosting on Oracle Cloud:** production images for amd64 and arm64, published to GitHub
   Container Registry, and a one-command setup that runs the demo on an Always Free Arm server
   behind a Cloudflare Tunnel, reset every night.
+- **Documentation site** (VitePress), published to GitHub Pages: a user guide for every page of
+  the app, deploying and running EcoManage, how it works for developers, and a reference for the
+  REST API, MQTT, the database and device profiles.
+- A comparison of free ways to host a demo.
 - A new app icon: the switchboard with the site's flows, animated at large sizes (the sign-in
   page), with icons for phones and a web app manifest.
 - A media kit: a 16:9 banner (animated SVG and PNG, light and dark) beside the wide banner, and an
@@ -22,22 +25,13 @@ Notable changes to EcoManage, newest first. The format follows
 
 ### Changed
 
-- The documentation is organised by reader: a user guide for every page of the app, deploying
-  and running it, how it works for developers, and a reference for the REST API, MQTT, the
-  database and device profiles.
 - The "EcoManage" wordmark is set in Audiowide in the app, the documentation and the banners.
-- The README has a live-flow banner in the app's font, an animated walkthrough, current
-  screenshots and status badges.
+- A demo installation shows the demo account on the sign-in page.
+- The 3D model converter also runs on Arm servers, so site model uploads work there too.
+- The README has a live-flow banner, an animated walkthrough, current screenshots and status
+  badges.
 
-### Removed
-
-- Unused code, files and dependencies found by an audit; knip now keeps them out in CI.
-
-### Fixed
-
-- `docs/GATEWAY.md` was missing from the repository, so links to it were broken.
-
-## [2.0.0] - 2026-09-28
+## [2.0.0][2.0.0] - 2026-09-28
 
 A rebuild of EcoManage around real devices: live site data, bills from tariffs, safe automated
 control with approvals, and an edge gateway.
@@ -97,7 +91,7 @@ control with approvals, and an edge gateway.
 - Device connections use TLS with a client certificate per gateway, limited to its own site.
 - Rate limits on the API and sign-in; secrets are no longer in the repository.
 
-## [1.1.0] - 2026-05-08
+## [1.1.0][1.1.0] - 2026-05-08
 
 ### Added
 
@@ -112,7 +106,7 @@ control with approvals, and an edge gateway.
 - Changing a password, and the settings page's information button.
 - Deprecated server packages updated; legacy code removed.
 
-## [1.0.0] - 2025-07-28
+## [1.0.0][1.0.0] - 2025-07-28
 
 ### Added
 

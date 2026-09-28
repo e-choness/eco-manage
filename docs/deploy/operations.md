@@ -48,30 +48,91 @@ events and job queues, which rebuild themselves.
 
 A demo reset every night needs no backup: `dc run --rm seed` recreates it.
 
-## The first site and owner
+## Sites and people: provisioning
 
-The app is invite-only, and inviting needs an owner. On a new installation (without the demo),
-create the first account in MongoDB, then run the migration, which gives every account without a
-site its own site, with that account as its owner:
+The app is invite-only, and inviting needs an owner. The `provision` script sets up sites and who
+has access to them, from the command line or from a plan file, so the first owner of a new
+installation (and any number of sites after it) needs no database work:
 
 ```bash
-# a bcrypt hash of the first owner's password
-dc run --rm seed sh -c "cd api && node -e \"require('bcryptjs').hash(process.argv[1], 10).then(console.log)\" 'the password'"
-dc exec mongodb mongosh ecomanage --quiet --eval '
-  db.users.insertOne({ email: "owner@example.com", name: "Sam Owner", password: "<the hash>",
-                       isActive: true, createdAt: new Date() })'
-dc run --rm seed sh -c "cd api && node --import tsx src/scripts/migrate.ts"
+dc run --rm seed sh -c "cd api && node --import tsx src/scripts/provision.ts   --site 'Maple Grove School' --tz America/Toronto --owner owner@example.com"
 ```
 
-The owner then signs in, sets the site's details, time zone, location and tariff in Settings,
-claims the gateway and invites everyone else. There is no single command for this yet.
+In development: `docker compose exec api pnpm --filter @ecomanage/api provision --site … --owner …`.
+
+It creates the site (if it doesn't exist) and gives the owner access: someone who already has an
+account gets it straight away; anyone else gets an **invite**, emailed through the worker, and
+chooses their own password when they accept it. No password ever goes through the script.
+
+| Option | Does |
+| ------ | ---- |
+| `--site <name>`, `--owner <email>` | One site and its owner |
+| `--tz <Area/City>` | The site's time zone (UTC otherwise; the owner can change it in Settings) |
+| `--external-id <id>` | The site's id in the system the plan comes from (below) |
+| `--file <plan.json>` | A whole plan instead; `--file -` reads it from standard input |
+| `--dry-run` | Show the changes, make none |
+| `--print-links` | Show each invite's link instead of emailing it, for installations without email yet. A link works once, for 7 days |
+| `--prune` | Also remove access that provisioning gave and the plan no longer lists |
+
+The owner then signs in, fills in the site's details, location and tariff in Settings, claims the
+gateway and invites everyone else from Settings → People.
+
+### From a directory or CRM
+
+A plan lists sites and the people with access to each, which is the shape a directory group or a
+CRM account export already has:
+
+```json
+{
+  "sites": [
+    {
+      "externalId": "crm-4711",
+      "name": "Maple Grove School",
+      "tz": "America/Toronto",
+      "currency": "CAD",
+      "billDay": 1,
+      "demandCapKw": 120,
+      "members": [
+        { "email": "priya.shah@maplegrove.example", "role": "owner" },
+        { "email": "jamie.reyes@maplegrove.example", "role": "manager" },
+        { "email": "ops@northsidesolar.example", "role": "installer", "until": "2026-12-31" }
+      ]
+    }
+  ]
+}
+```
+
+- **Sites** are found by `externalId` (the account's or group's id where the plan comes from), or by
+  name when there is none. A site made in the app with the same name is adopted: it gets the
+  external id instead of a second site being made. Any site detail Settings has can be set: `name`,
+  `address`, `tz`, `lat`, `lon`, `currency`, `billDay`, `demandCapKw`.
+- **Members** are matched by email address. `role` is `owner`, `manager` or `installer`; `until`
+  is the last day of access (in the site's time zone), or left out for lasting access.
+- **Applying a plan again changes only what differs,** so a scheduled export (nightly, or on every
+  change in the directory) keeps EcoManage in step. With `--prune`, people removed from the group
+  lose access too.
+- **Provisioning owns what it grants.** Access it gave is marked as provisioned; if someone changes
+  it in Settings → People, the next run puts it back as the plan says. Access given in the app is
+  never removed by provisioning, though a plan that lists the same person takes it over.
+- **Safe to run:** the whole plan is checked first, and nothing changes if any site in it has a
+  problem: a site left without an owner with lasting access, access that would already have
+  ended, an unknown role or time zone, a person or site listed twice. Every change is in the
+  audit log as a system change.
+
+Signing in is still EcoManage's own (email and password). Because access is keyed on the email
+address and the plan carries no passwords, the same plans keep working if sign-in later moves to a
+directory's single sign-on.
 
 ## Migrating from EcoManage 1
 
-`src/scripts/migrate.ts` (above) also brings a version 1 database up to date, and is safe to run
-repeatedly: old per-user data moves aside, the current collections and indexes are created, and
-every user gets a site as its owner (recorded in the audit log; the site's time zone is UTC until
-the owner sets it). `-- --drop-legacy` also deletes the retired collections.
+```bash
+dc run --rm seed sh -c "cd api && node --import tsx src/scripts/migrate.ts"
+```
+
+brings a version 1 database up to date, and is safe to run repeatedly: old per-user data moves
+aside, the current collections and indexes are created, and every user gets a site as its owner
+(recorded in the audit log; the site's time zone is UTC until the owner sets it). Add
+`--drop-legacy` to delete the retired collections.
 
 ## Resetting the demo
 

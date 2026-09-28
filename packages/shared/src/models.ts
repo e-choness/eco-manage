@@ -6,12 +6,21 @@ import type { Quality } from './mqtt';
 export const ROLES = ['owner', 'manager', 'installer'] as const;
 export type Role = (typeof ROLES)[number];
 
+/**
+ * Who manages a person's access: `app` (invited and changed in Settings → People) or
+ * `provisioning` (a provisioning plan, e.g. exported from a directory or CRM; applying the plan
+ * again may change or, with --prune, remove it).
+ */
+export const ACCESS_SOURCES = ['app', 'provisioning'] as const;
+export type AccessSource = (typeof ACCESS_SOURCES)[number];
+
 export const DEVICE_STATUSES = ['pending', 'live', 'stale', 'offline'] as const;
 export type DeviceStatus = (typeof DEVICE_STATUSES)[number];
 
 export interface Site {
   id: string;
   name: string;
+  externalId: string | null;
   address: string;
   tz: string;
   lat: number;
@@ -28,6 +37,7 @@ export interface Membership {
   siteId: string;
   role: Role;
   until: string | null;
+  source: AccessSource;
 }
 
 export interface Device {

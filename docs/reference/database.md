@@ -27,10 +27,10 @@ dates (`YYYY-MM-DD`) and times (`HH:mm`) are in the site's time zone. Money is w
 | Collection       | Key fields | Indexes |
 | ---------------- | ---------- | ------- |
 | `gateways`       | serial, claimKey (a hash of the one-time claim code; the code itself is never stored), model, siteId, claimedAt, claimedBy, csr {pem, fw, at} (the latest request with a valid proof), cert {serialNumber, pem, issuedAt, notAfter}. Registered by `gateway:register`; the site's gatewayId is the serial | {serial} unique, {siteId} |
-| `sites`          | name, address, tz, lat, lon, currency, billDay (1–28), demandCapKw, gatewayId, pvArrays [{id, name, inverterId, kwp, tiltDeg, azimuthDeg}], batteryFloorPct (≥ 10, enforced by the gateway), gatewayConfigPending, explanations {provider, baseUrl, model, keyEnc (AES-256-GCM under SECRETS_KEY), keyHint, monthlyTokens, updatedAt, updatedBy} | — |
+| `sites`          | name, externalId (the provisioning source's id, unique when set), address, tz, lat, lon, currency, billDay (1–28), demandCapKw, gatewayId, pvArrays [{id, name, inverterId, kwp, tiltDeg, azimuthDeg}], batteryFloorPct (≥ 10, enforced by the gateway), gatewayConfigPending, explanations {provider, baseUrl, model, keyEnc (AES-256-GCM under SECRETS_KEY), keyHint, monthlyTokens, updatedAt, updatedBy} | {externalId} unique when set |
 | `calendars`      | siteId, terms [{name, start, end}], daysOff [{name, start, end}], open, close (HH:mm), weekends (closed, open), updatedBy | siteId unique |
-| `memberships`    | userId, siteId, role (owner, manager, installer), until | {userId, siteId} unique, siteId |
-| `invites`        | siteId, email, role, until, tokenHash, expiresAt, acceptedAt | tokenHash |
+| `memberships`    | userId, siteId, role (owner, manager, installer), until, source (app, provisioning) | {userId, siteId} unique, siteId |
+| `invites`        | siteId, email, role, until, invitedBy (null from provisioning), tokenHash, expiresAt, acceptedAt, source (app, provisioning) | tokenHash |
 | `devices`        | siteId, type (pv, battery, meter, submeter, ev, heatpump, gateway), name, profileId, address, role, status (pending, live, stale, offline), ratedKw, capacityKwh, lastSeenAt, commissionedAt/By | siteId |
 | `deviceProfiles` | id ("vendor-model@version"), vendor, model, protocol, deviceType, read[], write, states, faults, fixes, pollMs, reviewed | id unique |
 | `telemetry`      | **time series**: ts, meta {siteId, deviceId}, p_kw and the standard fields, q (ok, stale, estimated, backfilled). Expires after 13 months | meta.deviceId+ts, meta.siteId+ts |

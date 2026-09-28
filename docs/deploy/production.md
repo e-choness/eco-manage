@@ -81,8 +81,9 @@ The deploy stack runs the demo. For real sites:
 
 1. **Drop the demo:** stop the simulator (`docker compose -f compose.yml stop simulator`, and
    remove it from `compose.yml`), don't run the seed, and remove `/etc/cron.d/ecomanage-demo` if
-   `setup.sh` made it. Create the first owner account and site with the
-   [migration script](./operations.md#the-first-site-and-owner).
+   `setup.sh` made it. Create the first site and its owner with the
+   [provision script](./operations.md#sites-and-people-provisioning), or provision every site
+   from a directory or CRM export.
 2. **Send real email:** set `SMTP_URL` and `MAIL_FROM`.
 3. **Open the broker to gateways:** set `MQTT_PORT=8883` and `MQTT_SERVER_SAN` to the name
    gateways use, open TCP 8883 in the firewall, and follow

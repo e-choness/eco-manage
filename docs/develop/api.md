@@ -163,3 +163,18 @@ config, and read acks, job results, gateway status and claim requests.
 | `pnpm --filter @ecomanage/api seed` | Resets the demo accounts and site |
 | `pnpm --filter @ecomanage/api migrate [-- --drop-legacy]` | Brings a database up to date; see [Operations](../deploy/operations.md#migrating-from-ecomanage-1) |
 | `pnpm --filter @ecomanage/api gateway:register <serial> [--out factory.json]` | Registers a gateway |
+| `pnpm --filter @ecomanage/api provision …` | Sites and access from a plan; see [Operations](../deploy/operations.md#sites-and-people-provisioning) |
+
+## Provisioning
+
+`modules/provisioning/` applies a plan (`plan.ts`, zod) of sites and members. `applyPlan()` works
+out each site's changes first (a dry run of the whole plan, so one bad site changes nothing), then
+makes them: sites by `externalId` or name, memberships for people with an account, invites
+(`issueInvite()`, shared with Settings → People) for the rest. What it grants carries
+`source: "provisioning"` on the membership or invite (an accepted invite passes it on), which is
+what `prune` may remove and what a re-run may change; access with `source: "app"` is only ever
+taken over when the plan lists that person. Every write is audited with `userId: null`.
+
+It's a function rather than an endpoint on purpose: a directory or CRM connector (a scheduled
+export, a SCIM bridge, a webhook) calls it with a plan, and sign-in stays independent of it, since
+access is keyed on the email address and no password is involved.

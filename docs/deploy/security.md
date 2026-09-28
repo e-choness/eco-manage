@@ -19,6 +19,8 @@ look after when you run it.
   refresh and invite links. Counters live in Redis, so they hold across API instances.
 - **Headers:** helmet's defaults on the API; `nosniff` and a strict referrer policy on the web app.
   CORS allows credentials only for the origins in `CORS_ORIGINS`.
+- **Provisioning** from the command line or a directory export never handles passwords: new people
+  get an invite and choose their own. Its changes are audited as system changes.
 - **Audit log:** every change to a site records who, when, and the values before and after. Tests
   fail if a new write endpoint isn't audited.
 - **Logs** never contain passwords, tokens, cookies or request bodies.

@@ -70,18 +70,21 @@ export interface GatewayView {
   claim: { serial: string; state: 'waiting' | 'certified'; claimedAt: string | null } | null;
 }
 
+/** A site's details, as Settings edits them and a provisioning plan sets them. */
+export const siteFields = {
+  name: z.string().trim().min(1).max(120),
+  address: z.string().trim().max(200),
+  tz: z.string().refine(isTimeZone, 'unknown time zone'),
+  lat: z.number().min(-90).max(90).nullable(),
+  lon: z.number().min(-180).max(180).nullable(),
+  currency: z.enum(CURRENCIES),
+  billDay: z.number().int().min(1).max(28),
+  demandCapKw: z.number().positive().max(100_000).nullable(),
+};
+
 /** PATCH /api/site (owner). */
 export const sitePatch = z
-  .object({
-    name: z.string().trim().min(1).max(120),
-    address: z.string().trim().max(200),
-    tz: z.string().refine(isTimeZone, 'unknown time zone'),
-    lat: z.number().min(-90).max(90).nullable(),
-    lon: z.number().min(-180).max(180).nullable(),
-    currency: z.enum(CURRENCIES),
-    billDay: z.number().int().min(1).max(28),
-    demandCapKw: z.number().positive().max(100_000).nullable(),
-  })
+  .object(siteFields)
   .partial()
   .strict()
   .refine((b) => Object.keys(b).length > 0, 'Nothing to change');

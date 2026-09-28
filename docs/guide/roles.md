@@ -58,6 +58,14 @@ an EcoManage account with that email, enter its password to add this site to it.
 - The site always keeps at least one owner with lasting access: the last one can't be removed or
   demoted.
 
+## Access managed elsewhere
+
+An organisation can manage who has access from its own directory or CRM, which EcoManage applies
+through [provisioning](../deploy/operations.md#sites-and-people-provisioning). Access given that way
+follows the directory: a change made in Settings → People to a provisioned person is put back the
+next time the directory is applied, and people removed there can lose access here. Change it in the
+directory instead. People invited in the app aren't affected.
+
 ## One site per person, for now
 
 A person can belong to several sites, but the app shows the first one they joined. Switching

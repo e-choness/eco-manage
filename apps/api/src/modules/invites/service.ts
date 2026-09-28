@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Invite, Membership, Site, recordAudit, type InviteDoc, type SiteDoc } from '@ecomanage/db';
-import { INVITE_DAYS, MIN_PASSWORD, endOfLocalDate, lastLocalDate, type InviteAccept, type InviteCreate, type InvitePreview, type InviteView } from '@ecomanage/shared';
+import { INVITE_DAYS, MIN_PASSWORD, endOfLocalDate, lastLocalDate, type AccessSource, type InviteAccept, type InviteCreate, type InvitePreview, type InviteView, type Role } from '@ecomanage/shared';
 import { HttpError } from '../../lib/http';
 import type { JobClient } from '../../lib/jobs';
 import User, { type IUser } from '../auth/model';
@@ -8,7 +8,7 @@ import UserService from '../auth/userService';
 import { startSession, type Session } from '../auth/service';
 import { activeFilter } from '../site/service';
 
-// Invites (P4-02). EcoManage is invite-only: accounts are created by accepting an invite. The link
+// Invites. EcoManage is invite-only: accounts are created by accepting an invite. The link
 // holds a random token; only its SHA-256 is stored, and the plain token exists only in the email.
 
 const fail = (status: number, message: string) => new HttpError(status, { error: { code: status, message } });
@@ -29,6 +29,31 @@ export const inviteView = async (i: InviteDoc, tz: string): Promise<InviteView> 
   invitedBy: await nameOf(i.invitedBy),
 });
 
+/**
+ * A new invite link for an address (not yet sent): it replaces any unused one for the same address.
+ * Returns the plain token, which exists only until it is emailed or shown.
+ */
+export const issueInvite = async (
+  site: SiteDoc,
+  invitedBy: string | null,
+  input: { email: string; role: Role; until: Date | null; source?: AccessSource },
+  now = new Date()
+): Promise<{ invite: InviteDoc; token: string }> => {
+  const token = randomBytes(32).toString('base64url');
+  await Invite.deleteMany({ siteId: site._id, email: input.email, acceptedAt: null });
+  const invite = await Invite.create({
+    siteId: site._id,
+    email: input.email,
+    role: input.role,
+    until: input.until,
+    invitedBy,
+    tokenHash: hashToken(token),
+    expiresAt: new Date(now.getTime() + INVITE_DAYS * 86_400_000),
+    source: input.source ?? 'app',
+  });
+  return { invite: invite.toObject() as InviteDoc, token };
+};
+
 /** Owner invites someone: a new link replaces any unused one for the same address. */
 export const createInvite = async (jobs: JobClient | undefined, site: SiteDoc, userId: string, input: InviteCreate, now = new Date()): Promise<InviteView> => {
   if (!jobs) throw fail(503, "Invites can't be emailed right now (no Redis)");
@@ -38,17 +63,7 @@ export const createInvite = async (jobs: JobClient | undefined, site: SiteDoc, u
   if (existing && (await Membership.exists({ siteId: site._id, userId: existing._id, ...activeFilter(now) })))
     throw fail(409, 'This person already has access to the site');
 
-  const token = randomBytes(32).toString('base64url');
-  await Invite.deleteMany({ siteId: site._id, email: input.email, acceptedAt: null });
-  const invite = await Invite.create({
-    siteId: site._id,
-    email: input.email,
-    role: input.role,
-    until,
-    invitedBy: userId,
-    tokenHash: hashToken(token),
-    expiresAt: new Date(now.getTime() + INVITE_DAYS * 86_400_000),
-  });
+  const { invite, token } = await issueInvite(site, userId, { email: input.email, role: input.role, until }, now);
   try {
     await jobs.sendInvite({ inviteId: String(invite._id), token });
   } catch {
@@ -56,7 +71,7 @@ export const createInvite = async (jobs: JobClient | undefined, site: SiteDoc, u
     throw fail(503, "The invite email couldn't be queued. Try again in a minute.");
   }
   await recordAudit({ siteId: site._id, userId, action: 'invite.create', target: `invite:${invite._id}`, after: { email: input.email, role: input.role, until } });
-  return inviteView(invite.toObject() as InviteDoc, site.tz);
+  return inviteView(invite, site.tz);
 };
 
 /** The invite behind a link, if it can still be used. */
@@ -110,7 +125,7 @@ export const acceptInvite = async (token: string, body: InviteAccept, now = new 
   if (!claimed) throw fail(410, 'This invite has already been used. Sign in instead.');
   await Membership.findOneAndUpdate(
     { siteId: invite.siteId, userId: user._id },
-    { $set: { role: invite.role, until: invite.until } },
+    { $set: { role: invite.role, until: invite.until, source: invite.source ?? 'app' } },
     { upsert: true }
   );
   await recordAudit({

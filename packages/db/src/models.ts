@@ -1,5 +1,5 @@
 import mongoose, { InferSchemaType, Schema, Types } from 'mongoose';
-import { RECOMMENDATION_STATUSES, ALERT_RULE_IDS, ALERT_SEVERITIES, ALERT_STATES, DEVICE_STATUSES, DEVICE_TYPES, FLOW_KEYS, MODEL_FORMATS, MODEL_UPLOAD_STATUSES, QUALITY, REPORT_FORMATS, REPORT_SCHEDULES, REPORT_SECTIONS, ROLES, SCENE_VIEWS } from '@ecomanage/shared';
+import { RECOMMENDATION_STATUSES, ALERT_RULE_IDS, ALERT_SEVERITIES, ACCESS_SOURCES, ALERT_STATES, DEVICE_STATUSES, DEVICE_TYPES, FLOW_KEYS, MODEL_FORMATS, MODEL_UPLOAD_STATUSES, QUALITY, REPORT_FORMATS, REPORT_SCHEDULES, REPORT_SECTIONS, ROLES, SCENE_VIEWS } from '@ecomanage/shared';
 
 // v2 data model (plan §2). Models are registered on the default mongoose connection; the app that
 // imports them owns connecting. Collection names are given explicitly so they match the plan.
@@ -17,6 +17,9 @@ mongoose.set('autoIndex', false);
 const siteSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
+    // The site's id in the system that provisions it (a CRM account, a directory group), so a
+    // provisioning plan can be applied again and find the same site. Null for sites made in the app.
+    externalId: { type: String, default: null },
     address: { type: String, default: '' },
     tz: { type: String, required: true, default: 'UTC' },
     lat: { type: Number, default: null },
@@ -50,6 +53,8 @@ const siteSchema = new Schema(
   },
   { timestamps: true }
 );
+// One site per external id; sites made in the app have none.
+siteSchema.index({ externalId: 1 }, { unique: true, partialFilterExpression: { externalId: { $type: 'string' } } });
 export type SiteDoc = InferSchemaType<typeof siteSchema> & { _id: Types.ObjectId };
 export const Site = mongoose.model('Site', siteSchema, 'sites');
 
@@ -86,6 +91,7 @@ const membershipSchema = new Schema(
     siteId: { type: ObjectId, ref: 'Site', required: true },
     role: { type: String, enum: ROLES, required: true },
     until: { type: Date, default: null },
+    source: { type: String, enum: ACCESS_SOURCES, default: 'app' },
   },
   { timestamps: true }
 );
@@ -104,6 +110,8 @@ const inviteSchema = new Schema(
     tokenHash: { type: String, required: true },
     expiresAt: { type: Date, required: true },
     acceptedAt: { type: Date, default: null },
+    // Carried to the membership when accepted.
+    source: { type: String, enum: ACCESS_SOURCES, default: 'app' },
   },
   { timestamps: true }
 );
