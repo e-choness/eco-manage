@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { DateTime } from 'luxon';
+import { siteZone } from './time';
 
 // History (plan P4-05, Backend Coverage: GET /api/history/series and /totals). Any range of
 // local dates the site has data for, at a resolution that keeps the chart under 400 bars, built
@@ -100,9 +101,9 @@ const truncate = (t: DateTime, res: HistoryRes): DateTime =>
 
 /** Every bucket start (UTC ISO) from the start of `from` to the end of `to`, in the site's zone. */
 export const bucketStarts = (from: string, to: string, res: HistoryRes, tz: string): string[] => {
-  const end = DateTime.fromISO(to, { zone: tz }).startOf('day').plus({ days: 1 });
+  const end = DateTime.fromISO(to, { zone: siteZone(tz) }).startOf('day').plus({ days: 1 });
   const out: string[] = [];
-  for (let t = truncate(DateTime.fromISO(from, { zone: tz }).startOf('day'), res); t < end; t = t.plus(UNIT[res])) out.push(t.toUTC().toISO() as string);
+  for (let t = truncate(DateTime.fromISO(from, { zone: siteZone(tz) }).startOf('day'), res); t < end; t = t.plus(UNIT[res])) out.push(t.toUTC().toISO() as string);
   return out;
 };
 

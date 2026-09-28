@@ -3,12 +3,25 @@ import { DateTime, IANAZone } from 'luxon';
 // Timestamps are stored in UTC. Anything tied to a tariff, calendar or bill is worked out in the
 // site's time zone (plan §0.5). Never use the server's local time.
 
-export const isValidZone = (tz: string): boolean => IANAZone.isValidZone(tz);
+const zones = new Map<string, IANAZone>();
 
-const inZone = (at: Date, tz: string): DateTime => {
-  if (!isValidZone(tz)) throw new RangeError(`Unknown time zone: ${tz}`);
-  return DateTime.fromJSDate(at, { zone: tz });
+export const isValidZone = (tz: string): boolean => zones.has(tz) || IANAZone.isValidZone(tz);
+
+/**
+ * The zone for an IANA name, checked once and then reused. Luxon checks a zone given by name on
+ * every call by building an Intl formatter, which dominated the simulator's and the worker's time.
+ */
+export const siteZone = (tz: string): IANAZone => {
+  let zone = zones.get(tz);
+  if (!zone) {
+    if (!IANAZone.isValidZone(tz)) throw new RangeError(`Unknown time zone: ${tz}`);
+    zone = IANAZone.create(tz);
+    zones.set(tz, zone);
+  }
+  return zone;
 };
+
+const inZone = (at: Date, tz: string): DateTime => DateTime.fromJSDate(at, { zone: siteZone(tz) });
 
 /** Calendar date in the site's zone, e.g. "2026-09-24". */
 export const siteDate = (at: Date, tz: string): string => inZone(at, tz).toISODate() as string;
@@ -32,8 +45,8 @@ export const endOfSiteDay = (at: Date, tz: string): Date => inZone(at, tz).start
 
 /** Local midnight of a "YYYY-MM-DD" date in the site's zone. */
 export const siteDateStart = (date: string, tz: string): Date => {
-  const d = DateTime.fromISO(date, { zone: tz });
-  if (!d.isValid || !isValidZone(tz)) throw new RangeError(`Invalid date or zone: ${date} ${tz}`);
+  const d = isValidZone(tz) ? DateTime.fromISO(date, { zone: siteZone(tz) }) : null;
+  if (!d?.isValid) throw new RangeError(`Invalid date or zone: ${date} ${tz}`);
   return d.startOf('day').toJSDate();
 };
 

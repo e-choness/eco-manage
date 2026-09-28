@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { DateTime } from 'luxon';
+import { siteZone } from './time';
 
 // Tariffs (plan §2, P2-01/P2-02). Periods are written in site-local wall-clock time. A period
 // applies to a season (a month range, possibly wrapping the year end) or all year, and to
@@ -159,14 +160,14 @@ export const validateTariff = (t: Pick<TariffInput, 'seasons' | 'periods'>): Tar
 
 /** Weekday or weekend in the site's zone; holidays follow the tariff's rule. */
 export const dayTypeAt = (at: Date, tz: string, holidays: TariffInput['holidays']): DayType => {
-  const local = DateTime.fromJSDate(at, { zone: tz });
+  const local = DateTime.fromJSDate(at, { zone: siteZone(tz) });
   if (holidays.dates.includes(local.toISODate() as string)) return holidays.treatAs;
   return local.weekday >= 6 ? 'weekend' : 'weekday';
 };
 
 /** The period in force at an instant. Throws if the tariff has a gap there (validate first). */
 export const periodAt = (t: Pick<TariffInput, 'seasons' | 'periods' | 'holidays'>, at: Date, tz: string): Period => {
-  const local = DateTime.fromJSDate(at, { zone: tz });
+  const local = DateTime.fromJSDate(at, { zone: siteZone(tz) });
   const minute = local.hour * 60 + local.minute;
   const dayType = dayTypeAt(at, tz, t.holidays);
   const p = t.periods.find((x) => {
@@ -311,7 +312,7 @@ export interface PriceSegment {
 
 /** The periods of one local day in order, for Home's price strip. Minute-exact, gaps throw. */
 export const dayPrices = (t: Pick<TariffInput, 'seasons' | 'periods' | 'holidays'>, date: string, tz: string): PriceSegment[] => {
-  const start = DateTime.fromISO(date, { zone: tz }).startOf('day');
+  const start = DateTime.fromISO(date, { zone: siteZone(tz) }).startOf('day');
   const end = start.plus({ days: 1 });
   const segments: Omit<PriceSegment, 'level'>[] = [];
   for (let at = start; at < end; at = at.plus({ minutes: 1 })) {

@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { isValidZone } from './time';
+import { siteZone } from './time';
 
 // Report schedules (P5-01). A weekly report runs on Monday and a monthly one on the 1st, both at
 // 07:00 in the site's time zone, and each run covers the previous full week (Monday to Sunday)
@@ -15,10 +15,7 @@ export const reportCron = (schedule: RepeatingSchedule): string => (schedule ===
 /** BullMQ job scheduler id for a report: one scheduler per report. */
 export const reportSchedulerId = (reportId: string): string => `report:${reportId}`;
 
-const local = (at: Date, tz: string): DateTime => {
-  if (!isValidZone(tz)) throw new RangeError(`Unknown time zone: ${tz}`);
-  return DateTime.fromJSDate(at, { zone: tz });
-};
+const local = (at: Date, tz: string): DateTime => DateTime.fromJSDate(at, { zone: siteZone(tz) });
 
 /** The next run strictly after `now`: the 1st (monthly) or Monday (weekly) at 07:00 site time. */
 export const nextReportRun = (schedule: RepeatingSchedule, tz: string, now: Date): Date => {
