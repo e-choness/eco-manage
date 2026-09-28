@@ -11,7 +11,7 @@ as of September 2026.
 | Option | What people get | Always on | Cost to you | Effort |
 | ------ | --------------- | --------- | ----------- | ------ |
 | **GitHub Codespaces** (set up) | The real stack, seeded, in their own browser tab | While they use it | Nothing (their free hours) | Done: `.devcontainer/` |
-| **Oracle Cloud Always Free VM + Cloudflare Tunnel** | The real stack at a public HTTPS address | Yes | Nothing (a card is needed to sign up) | A day: server, tunnel, updates |
+| **Oracle Cloud Always Free VM + Cloudflare Tunnel** | The real stack at a public HTTPS address | Yes | Nothing (a card is needed to sign up) | Ready: [the guide](./oracle.md) and `infra/deploy/` |
 | **Static demo on GitHub Pages** | The web app with an in-browser simulated site | Yes | Nothing | Several days: a browser-side stand-in for the API |
 | Render, Cloud Run, Koyeb, Fly.io, Hugging Face Spaces | — | — | — | Not a fit (below) |
 
@@ -27,24 +27,25 @@ needs. The first start builds the images and takes a few minutes; later starts r
 Good for reviewers and anyone who wants to try every feature, including the gateway profile. Not
 a link you can paste into a slide: each visitor gets their own copy.
 
-## Oracle Cloud Always Free + Cloudflare Tunnel
+## Oracle Cloud Always Free + Cloudflare Tunnel (ready)
 
-One always-free ARM VM runs the same compose stack (production images rather than the dev ones),
-and a Cloudflare Tunnel gives it an HTTPS address without opening ports.
+One Always Free Arm instance runs the whole stack from production images (`infra/deploy/`), and a
+Cloudflare Tunnel gives it an HTTPS address without opening ports. **[Hosting the demo on Oracle
+Cloud](./oracle.md)** walks through it; a setup script does the server side.
 
 - **Oracle Cloud Always Free:** Ampere A1 capacity was halved in June 2026 to **2 OCPUs and
-  12 GB** in total, enforced from 18 August 2026. That still fits the demo (MongoDB, Redis,
-  Mosquitto, the Node services and the static web build use about 3–4 GB at rest). Sign-up needs
-  a card; popular regions often report "out of capacity" when creating A1 instances.
+  12 GB** in total, enforced from 18 August 2026. The stack uses about 0.9 GB at rest, so it fits
+  easily, and every feature works on Arm, 3D model conversion included. Sign-up needs a card;
+  popular regions often report "out of host capacity" when creating A1 instances.
+- **Idle reclamation:** Oracle may reclaim an Always Free instance whose CPU, network and memory
+  all stay under 20% for a week, which a quiet demo on the full 12 GB would. Upgrade the tenancy
+  to Pay As You Go (Always Free resources stay free) or use a smaller instance; the guide has the
+  numbers.
 - **Cloudflare Tunnel** is free with unmetered bandwidth. A named tunnel on a domain you have on
-  Cloudflare gives a stable address; a quick tunnel (`cloudflared tunnel --url …`) gives a random
-  `trycloudflare.com` address that changes on restart and is meant for testing (200 concurrent
-  requests).
-- **ARM:** the model converter installs KhronosGroup's KTX tools, which ship for x86-64 only, so
-  on ARM leave the converter out (3D uploads off) or build KTX from source; check the other images
-  for arm64 builds when pinning versions.
-- **Upkeep:** you run a server: security updates, backups of the demo database (or a nightly
-  reseed), and the demo's email (keep Mailpit so nothing leaves the box).
+  Cloudflare gives a stable address; a quick tunnel gives a random `trycloudflare.com` address
+  that changes on restart and is meant for testing (200 concurrent requests).
+- **Upkeep:** Ubuntu's security updates install themselves, the demo data resets every night, and
+  email stays in Mailpit on the server.
 
 ## A static demo on GitHub Pages
 

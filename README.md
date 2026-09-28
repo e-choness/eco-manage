@@ -212,6 +212,7 @@ CI runs the same commands in the same images on every pull request. See
 | [Gateway agent](https://e-choness.github.io/eco-manage/GATEWAY) | Claiming, setup on a Pi, bench checks |
 | [Deployment](https://e-choness.github.io/eco-manage/DEPLOYMENT) | Configuration and what production needs |
 | [Hosting a demo](https://e-choness.github.io/eco-manage/guide/demo-hosting) | Free options compared |
+| [On Oracle Cloud](https://e-choness.github.io/eco-manage/guide/oracle) | The demo on an Always Free Arm server, behind a Cloudflare Tunnel |
 | [Changelog](./CHANGELOG.md) | What changed, release by release |
 
 The same pages are in [`docs/`](./docs) in this repository.

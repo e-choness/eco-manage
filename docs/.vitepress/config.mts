@@ -52,6 +52,7 @@ export default defineConfig({
           { text: 'What it does', link: '/guide/features' },
           { text: 'Explanations', link: '/guide/explanations' },
           { text: 'Hosting a demo', link: '/guide/demo-hosting' },
+          { text: 'On Oracle Cloud', link: '/guide/oracle' },
         ],
       },
       {

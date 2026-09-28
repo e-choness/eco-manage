@@ -10,7 +10,8 @@ test('the manager sees live values from the simulated site', async ({ page }) =>
   await page.getByLabel('Password').fill('Demo1234!')
   await page.getByRole('button', { name: 'Sign in' }).click()
 
-  await expect(page).toHaveURL(/:\d+\/$/)
+  // Home, on any host and port (the dev server's, or a deployment's default one).
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/)
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible()
   await expect(page.getByTestId('site-name')).toHaveText('Maple Grove School')
   await expect(page.getByTestId('live-status')).toHaveText('live')

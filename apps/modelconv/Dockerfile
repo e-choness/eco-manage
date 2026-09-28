@@ -1,12 +1,15 @@
 # The sandboxed 3D model converter (P5-02). Debian rather than Alpine: assimp, IfcOpenShell and
-# KTX-Software ship glibc builds. Run by compose read-only, as a non-root user, with no
-# capabilities and only an internal network.
+# KTX-Software ship glibc builds, for x86-64 and arm64. Run by compose read-only, as a non-root
+# user, with no capabilities and only an internal network.
 FROM node:26-bookworm-slim
 
 ARG KTX_VERSION=4.4.2
+# Set by BuildKit for the platform being built: amd64 or arm64.
+ARG TARGETARCH
 RUN apt-get update \
  && apt-get install -y --no-install-recommends assimp-utils python3 python3-pip ca-certificates curl \
- && curl -fsSL -o /tmp/ktx.deb "https://github.com/KhronosGroup/KTX-Software/releases/download/v${KTX_VERSION}/KTX-Software-${KTX_VERSION}-Linux-x86_64.deb" \
+ && ktx_arch=$([ "$TARGETARCH" = arm64 ] && echo arm64 || echo x86_64) \
+ && curl -fsSL -o /tmp/ktx.deb "https://github.com/KhronosGroup/KTX-Software/releases/download/v${KTX_VERSION}/KTX-Software-${KTX_VERSION}-Linux-${ktx_arch}.deb" \
  && apt-get install -y --no-install-recommends /tmp/ktx.deb \
  && pip3 install --no-cache-dir --break-system-packages "ifcopenshell>=0.8,<0.9" \
  && apt-get purge -y curl && apt-get autoremove -y \

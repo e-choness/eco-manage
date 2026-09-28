@@ -6,3 +6,5 @@
 docs
 !docs/package.json
 e2e
+# Development certificates; a deployment makes its own.
+infra/mosquitto/certs
