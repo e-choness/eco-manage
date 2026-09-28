@@ -157,7 +157,7 @@ Without the registry, setup.sh builds the images on the server (`docker compose 
 
 ## Real gateways (optional)
 
-The demo runs on the simulator, but a real [gateway](../GATEWAY.md) can connect too. It needs the
+The demo runs on the simulator, but a real [gateway](./gateway.md) can connect too. It needs the
 broker on the internet:
 
 1. In `.env`: `MQTT_PORT=8883` and `MQTT_SERVER_SAN=DNS:<the name gateways use>` (or
@@ -172,7 +172,7 @@ broker on the internet:
    sudo docker compose -f compose.yml up -d && sudo docker compose -f compose.yml restart mosquitto
    ```
 
-4. Register and claim the gateway as in [Gateway agent](../GATEWAY.md). The CA the server made is
+4. Register and claim the gateway as in [Installing a gateway](./gateway.md). The CA the server made is
    in the `mqtt_certs` volume.
 
 ## Upkeep

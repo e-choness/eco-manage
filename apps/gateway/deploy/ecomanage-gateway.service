@@ -1,4 +1,4 @@
-# The EcoManage gateway agent on a Raspberry Pi (docs/GATEWAY.md).
+# The EcoManage gateway agent on a Raspberry Pi (docs/deploy/gateway.md).
 [Unit]
 Description=EcoManage gateway agent
 After=network-online.target

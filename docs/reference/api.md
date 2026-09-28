@@ -1,27 +1,28 @@
-# API reference
+# REST API
 
-Base URL: `http://localhost:3000` (the web dev server proxies `/api` there).
+Every endpoint the web app uses; nothing is private to it. How the API is built is in
+[API](../develop/api.md).
 
-- JSON in, JSON out.
-- 🔒 marks endpoints that need `Authorization: Bearer <accessToken>`. Without a token they
-  return `401 {"message":"Unauthorized"}`; with a bad or expired one, `401 {"error":"Invalid or expired token"}`.
-- **Roles (P1-04).** Every site route checks the caller's membership on the server
-  (`requireRole`). The site is the one named in the `X-Site-Id` header, or else the caller's
-  oldest active membership. Expired memberships (`until` in the past) count as none. No access
-  or the wrong role: `403 {"error":{"code":403,"message":"…"}}`.
+## Conventions
 
-  | Endpoints | Roles |
-  | --------- | ----- |
-  | alerts, device reads, site, `GET /optimization/recommendations` | owner, manager, installer |
-  | `POST /optimization/accept`, `POST /optimization/dismiss` | owner, manager |
-  | `POST/PATCH/DELETE /devices` | installer |
-  | `/auth/me`, `/auth/password`, `/auth/profile` | any signed-in user |
-
-  v1 data is still stored per user; the role only decides access.
-- Rate limits per client IP per minute: 300 on `/api/*`, and 10 on login, refresh and the invite link (`/api/invites`).
-  Over the limit: `429 {"error":{"code":429,"message":"Too many requests, try again later."}}`.
-- Unknown routes: `404 {"error":{"code":404,"message":"Not found"}}`.
-- Power is in kW and energy in kWh. Timestamps are UTC ISO strings.
+- **Base URL:** the app's own origin, under `/api` (in development `http://localhost:3000`, which
+  the web dev server proxies). JSON in, JSON out.
+- **Authentication:** 🔒 marks endpoints that need `Authorization: Bearer <accessToken>` from
+  [sign-in](#auth-api-auth). Without a token they answer `401 {"message":"Unauthorized"}`; with a
+  bad or expired one, `401 {"error":"Invalid or expired token"}`.
+- **The site:** every site endpoint acts on the site named in the `X-Site-Id` header, or else the
+  caller's oldest active membership. Expired memberships (`until` in the past) count as none.
+- **Roles:** each section lists who may call each endpoint (`all` = owner, manager and installer).
+  No access, or the wrong role: `403 {"error":{"code":403,"message":"…"}}`. The same rules in plain
+  words: [Roles and access](../guide/roles.md).
+- **Errors:** `{ "error": { "code", "message", "details"? } }`. Invalid input is `400` with
+  `details.issues [{ path, message }]`. The auth endpoints answer `{ "message": "…" }` instead.
+- **Rate limits** per visitor per minute: 300 on `/api/*`, and 10 on sign-in, refresh and invite
+  links. Over the limit: `429 {"error":{"code":429,"message":"Too many requests, try again later."}}`.
+- **Unknown routes:** `404 {"error":{"code":404,"message":"Not found"}}`.
+- **Units:** power in kW, energy in kWh, money in whole cents (rates may have fractions).
+  Timestamps are UTC ISO strings; local dates (`YYYY-MM-DD`) and times (`HH:mm`) are in the site's
+  time zone. Shared types (named in the tables) are in `packages/shared/src/api/`.
 
 ## Health
 
@@ -42,7 +43,7 @@ Body `{ email, password }`.
 - `400 {"message":"Email and password are required"}`
 - `400 {"message":"Email or password is incorrect"}`
 
-There is no `POST /register` (removed in P4-02): EcoManage is invite-only, and accounts are created
+There is no `POST /register`: EcoManage is invite-only, and accounts are created
 by accepting an invite (`/api/invites`, below).
 
 ### `POST /refresh`
@@ -65,12 +66,12 @@ Body `{ currentPassword, newPassword }`.
 - `400 {"message":"Current password is incorrect"}`
 
 ### 🔒 `PUT /profile`
-Body `{ name?, theme? }`. `name` is trimmed and must not be blank if present; `theme` is `"dark"`, `"light"` or `null` (follow the system), saved per user by the App v2 theme toggle (P4-01).
+Body `{ name?, theme? }`. `name` is trimmed and must not be blank if present; `theme` is `"dark"`, `"light"` or `null` (follow the system), saved per user by the theme toggle.
 - `200` user fields
 - `400 {"message":"Name must be a non-empty string"}`
 - `400 {"message":"Theme must be dark, light or null"}`
 
-## Devices `/api/devices` 🔒 (v2, P1-09)
+## Devices `/api/devices` 🔒
 
 Scoped to the caller's site. Errors are `{ "error": { "code", "message" } }`. Writes are
 installer-only and each one writes an audit event with before and after.
@@ -83,9 +84,9 @@ installer-only and each one writes an audit event with before and after.
 | POST | `/` | installer | `201` new device, `status: "pending"` (after a scan). Body: type, name, profileId?, address?, role?, ratedKw?, capacityKwh? |
 | PATCH | `/:id` | installer | rename / re-role / re-address / replace profile or ratings (name, profileId, address, role, ratedKw, capacityKwh only) |
 | DELETE | `/:id` | installer | `204`. Telemetry is kept until it expires (13 months) |
-| POST | `/scan` | installer | Runs a `scan` job on the site's gateway and waits up to 20 s. `{ found: [{ address, modelCode, profileId, type, name }] }`: only devices the site doesn't have yet. Writes nothing. `503` without a broker, `504` when the gateway doesn't answer, `502` when the scan fails on it (P4-04) |
-| POST | `/:id/commission` | installer | Runs a `commission` job (the gateway starts reading the device and checks live read, sign and energy balance; up to 30 s). `CommissionResult { ok, checks [{ name, pass }], error, device }`. On success the device goes `live` and records `commissionedAt`/`commissionedBy`; audited as `device.commission`. A failed check leaves it pending (P4-04) |
-| POST | `/:id/maintenance` | installer | `{ text }` (3–500 characters) → `201 { at, source: "visit", text }` on the device's maintenance log; audited as `maintenance.create` (P4-04) |
+| POST | `/scan` | installer | Runs a `scan` job on the site's gateway and waits up to 20 s. `{ found: [{ address, modelCode, profileId, type, name }] }`: only devices the site doesn't have yet. Writes nothing. `503` without a broker, `504` when the gateway doesn't answer, `502` when the scan fails on it |
+| POST | `/:id/commission` | installer | Runs a `commission` job (the gateway starts reading the device and checks live read, sign and energy balance; up to 30 s). `CommissionResult { ok, checks [{ name, pass }], error, device }`. On success the device goes `live` and records `commissionedAt`/`commissionedBy`; audited as `device.commission`. A failed check leaves it pending |
+| POST | `/:id/maintenance` | installer | `{ text }` (3–500 characters) → `201 { at, source: "visit", text }` on the device's maintenance log; audited as `maintenance.create` |
 
 - A `profileId` must exist and support the device type, or the request gets `400`. Unknown or
   malformed ids, and devices of another site, get `404`.
@@ -95,10 +96,10 @@ installer-only and each one writes an audit event with before and after.
   400 points, the next coarser one is used and `capped` is `true`. Over 400 hourly points
   (16 days) gets `400`.
 
-## Alerts `/api/alerts` 🔒 all roles (v2, P2-08)
+## Alerts `/api/alerts` 🔒 all roles
 
-The rules service opens alerts and closes the ones whose condition clears (ARCHITECTURE, Rules).
-These endpoints follow Backend Coverage §3. They record who is handling an alert, pause its
+The rules service opens alerts and closes the ones whose condition clears
+([Rules](../develop/rules.md#alerts)). These endpoints record who is handling an alert, pause its
 emails, send a remote fix, or close it with a cause. They can't hide a problem that is still
 happening.
 
@@ -126,9 +127,9 @@ happening.
 - Every action is audited (`alert.ack`, `alert.snooze`, `alert.resolve`, `alert.false-alarm`,
   `alert.fix`) and published on the live stream (`alert`, and `command` for a fix).
 
-## Recommendations `/api/recommendations` 🔒 (v2, P3-03)
+## Recommendations `/api/recommendations` 🔒
 
-Decisions proposed by the rules service (ARCHITECTURE, Recommendations) or requested on the
+Decisions proposed by the rules service ([Rules](../develop/rules.md#recommendations)) or requested on the
 Devices page. Nothing reaches a device until someone approves.
 
 | Method | Path | Roles | Body → result |
@@ -139,7 +140,7 @@ Devices page. Nothing reaches a device until someone approves.
 | POST | `/:id/check` | owner, manager | `{ params? }` → `{ checks, expectedSavingCents, calc, allPass }` for the action as adjusted (e.g. the kW slider). Writes nothing |
 | POST | `/:id/approve` | owner, manager, per Settings → Rules → Who can approve | `{ params? }` → `{ recommendation, commandId }` |
 | POST | `/:id/decline` | owner, manager | `{ reason }` (3–500 characters) → the declined recommendation |
-| POST | `/:id/explain` | owner, manager | No body (anything sent is ignored) → `RecommendationExplanation { text, model, createdAt, cached, budget { usedTokens, monthlyTokens } }` (P5-05): a plain-language explanation written by a language model from the server's own proposal only. Stored with a hash of its input; asking again returns it (`cached: true`, no tokens) until the proposal changes. `429` once the site's monthly token budget is used, `503` when no model is configured, `502` if the model declines or answers empty. Audited as `recommendation.explain` when a new one is written. The detail (`GET /:id`) carries `explanation { text, model, createdAt } \| null` and `explainable` |
+| POST | `/:id/explain` | owner, manager | No body (anything sent is ignored) → `RecommendationExplanation { text, model, createdAt, cached, budget { usedTokens, monthlyTokens } }`: a plain-language explanation written by a language model from the server's own proposal only. Stored with a hash of its input; asking again returns it (`cached: true`, no tokens) until the proposal changes. `429` once the site's monthly token budget is used, `503` when no model is configured, `502` if the model declines or answers empty. Audited as `recommendation.explain` when a new one is written. The detail (`GET /:id`) carries `explanation { text, model, createdAt } \| null` and `explainable` |
 
 - **Approve:**
   - It runs every check again against the site as it is now. If one fails, the answer is `409` with the failing checks in `details.checks`.
@@ -151,9 +152,9 @@ Devices page. Nothing reaches a device until someone approves.
 - **Expiry:** the rules service marks proposals past `expiresAt` as `expired` on its sweep.
 - **Audit and live stream:** every action is audited (`recommendation.request`, `.approve`, `.decline`) and published on the live stream (`inbox`, and `command` for an approval).
 
-## Commands `/api/commands` 🔒 (v2, P3-04)
+## Commands `/api/commands` 🔒
 
-What is waiting, on its way or running on devices (ARCHITECTURE, Commands). The rules service sends, verifies and reverts commands; these endpoints show them and stop them early.
+What is waiting, on its way or running on devices ([Rules](../develop/rules.md#commands)). The rules service sends, verifies and reverts commands; these endpoints show them and stop them early.
 
 | Method | Path | Roles | Result |
 | ------ | ---- | ----- | ------ |
@@ -161,9 +162,9 @@ What is waiting, on its way or running on devices (ARCHITECTURE, Commands). The 
 | GET | `/:id` | all | `CommandView`: action, params, status, `sendAt`, `sentAt`, `ackedAt`, `verifiedAt`, `failedAt`, `error`, `expiresAt`, `revertAt`, `revertedAt`, `cancelledAt`, its `recommendation`, and its `revert` once there is one |
 | POST | `/:id/cancel` | owner, manager | Cancels it and returns the `CommandView`. A command not sent yet is dropped; one already out gets its revert. `409` for a finished command or a revert. Audited as `command.cancel` |
 
-## Inbox `/api/inbox` 🔒 all roles (v2, P3-06)
+## Inbox `/api/inbox` 🔒 all roles
 
-Decisions waiting for someone, alerts, and commands waiting or running, in one list (App v2 Inbox).
+Decisions waiting for someone, alerts, and commands waiting or running, in one list (Inbox).
 
 | Method | Path | Query | Result |
 | ------ | ---- | ----- | ------ |
@@ -174,9 +175,11 @@ Decisions waiting for someone, alerts, and commands waiting or running, in one l
 - **`InboxItem`:** `key` (`type:id`), `type`, `id`, `kind` (Decision, Alert, Info, Active, Closed), `title`, `deviceId`, `deviceName`, `sub` (one line, e.g. "Battery · expected saving $266" or "Battery · running until 17:00 · approved by Jamie Reyes"), `status`, `at`, and `due` (when a decision expires, or when a command ends).
 - **Order and paging:** newest first by when the item arrived (which never changes), same-moment items by key. `nextCursor` holds the last item's time and key, so items moving between open and closed while you page never repeat or go missing. A bad cursor is a `400`.
 
-## Audit log `/api/audit` 🔒 owner (v2, P3-07)
+## Audit log
 
-Every write to a site records an `AuditEvent` `{siteId, userId, action, target, before, after, ts}` (plan §0.8). Owners read them here; nothing changes them through the API.
+`/api/audit` 🔒 owner.
+
+Every write to a site records an `AuditEvent` `{siteId, userId, action, target, before, after, ts}`. Owners read them here; nothing changes them through the API.
 
 | Method | Path | Query | Result |
 | ------ | ---- | ----- | ------ |
@@ -186,7 +189,7 @@ Every write to a site records an `AuditEvent` `{siteId, userId, action, target, 
 - **Paging:** `nextCursor` holds the last entry's time and id, so entries written while you page don't shift the pages. A bad cursor or filter is a `400`.
 - **Actions recorded:** `alert.ack`, `.snooze`, `.resolve`, `.false-alarm`, `.fix`; `bill.utility.upload`, `.enter`; `calendar.update`; `command.cancel`; `device.create`, `.update`, `.delete`; `notifications.update`; `recommendation.request`, `.approve`, `.decline`; `site.update`, `site.pv-arrays`, `site.battery`; `tariff.create`; `invite.create`, `.accept`; `device.commission`; `maintenance.create`; `export.create`; `report.create`, `.delete`; `membership.update`, `.delete`; `invite.revoke`; `rule.update`; `siteModel.update`, `.upload`, `.uploadDelete`; `site.create` (migration). `/api/auth/*` changes a person's own account, not a site, and isn't recorded.
 
-## Invites (v2, P4-02)
+## Invites
 
 EcoManage is invite-only. An owner invites an email address with a role; the worker emails a link
 to `{APP_URL}/invite/{token}`. The token is 32 random bytes; only its SHA-256 is stored, and the
@@ -196,10 +199,10 @@ plain token exists only in the email job and the email. Links expire after 7 day
 | ------ | ---- | --- | ------------- |
 | POST | `/api/site/invites` | 🔒 owner | `{ email, role, until? }` → `201 InviteView { id, email, role, until, expiresAt, invitedBy }`. A new invite replaces any unused one for the same address. `409` if the person already has access, `400` for an `until` in the past, `503` when the email can't be queued (no Redis). Audited as `invite.create` |
 | GET | `/api/invites/:token` | the link | `InvitePreview { siteName, email, role, until, expiresAt, invitedBy, hasAccount }`. `404` unknown link, `410` used or expired (the message says which) |
-| DELETE | `/api/site/invites/:id` | 🔒 owner | `204`: an invite not accepted yet stops working. Audited as `invite.revoke` (P4-08) |
+| DELETE | `/api/site/invites/:id` | 🔒 owner | `204`: an invite not accepted yet stops working. Audited as `invite.revoke` |
 | POST | `/api/invites/:token/accept` | the link | New account: `{ name, password }` (at least 8 characters). Existing account for that email: `{ password }`, its own. → user fields + `accessToken`, and sets `em_rt`, like login. Adds the membership with the invited role and `until`. `400` wrong password or missing name, `404`/`410` as above. Audited as `invite.accept` |
 
-## History, exports and reports 🔒 all roles (v2, P4-05, P5-01)
+## History, exports and reports 🔒 all roles
 
 Built from the permanent 15-minute intervals. Dates are local dates (`YYYY-MM-DD`) in the site's
 time zone, both ends included. Money fields are `null` for installers.
@@ -217,7 +220,7 @@ time zone, both ends included. Money fields are `null` for installers.
 | DELETE | `/api/reports/:id` | | `204`; stops its schedule and removes its files, so emailed links stop working. Its creator or the owner only (`403`). Audited as `report.delete` |
 | GET | `/api/report-links/:token` | *(no sign-in)* | The file of one run, from the link in a report email: `404` for an unknown link or a removed report, `410` once it has expired (30 days). Only the SHA-256 of the token is stored, and request logs leave the token out |
 
-## People and rules (v2, P4-08)
+## People and rules
 
 | Method | Path | Roles | Body → result |
 | ------ | ---- | ----- | ------------- |
@@ -226,9 +229,9 @@ time zone, both ends included. Money fields are `null` for installers.
 | DELETE | `/api/site/members/:id` | owner | `204`. Same last-owner rule. Audited as `membership.delete` |
 | GET | `/api/rules` | all | `{ approval { who, expireMin, email }, rules: RuleView[] }`: each rule `{ id, title, device, on, params, defaults, declines30d { count, reasons [{ reason, count }] } }` |
 | PATCH | `/api/rules/:ruleId` | owner, manager | `{ on?, params? }` for a rule: params must be the rule's own settings, of the same kind (number or on/off), not negative (except `belowCents`). `approval`: `{ params: { who?, expireMin?, email? } }`. → the new `RulesResponse`. `404` unknown rule. Audited as `rule.update`. The rules service reads the saved values on its next run |
-| PUT | `/api/site/model` | owner, installer | `{ hub, anchors [{ key, at, label }], buildingLabel, camera { view }, generated? }` (positions in scene metres, one anchor per source or load) → the model as `GET /api/site/model` returns it, saved as the next version. `generated` is the building (P5-03): 3–64 corners within ±250 m that don't cross, at least 4 m², storeys 1–30 of 2–6 m, roof rows 0–60, tilt 0–45°; without it the building carries over. An uploaded model stays in use; `source: "generated"` in the body switches back to the generated scene. Audited as `siteModel.update` |
+| PUT | `/api/site/model` | owner, installer | `{ hub, anchors [{ key, at, label }], buildingLabel, camera { view }, generated? }` (positions in scene metres, one anchor per source or load) → the model as `GET /api/site/model` returns it, saved as the next version. `generated` is the building: 3–64 corners within ±250 m that don't cross, at least 4 m², storeys 1–30 of 2–6 m, roof rows 0–60, tilt 0–45°; without it the building carries over. An uploaded model stays in use; `source: "generated"` in the body switches back to the generated scene. Audited as `siteModel.update` |
 
-## Site model uploads (v2, P5-02)
+## Site model uploads
 
 A 3D file for the site model. The API checks it, keeps the original in private object storage and
 queues it; the worker runs it through the sandboxed converter, which turns it into one GLB (metres,
@@ -244,14 +247,9 @@ KTX2) with a PNG thumbnail on the CDN. `GET /api/site/model` then carries
 | POST | `/api/site/model/uploads/:id/use` | owner, installer | The next site model version draws this upload; anchors, hub and labels carry over → the model. `409` until it is `ready` (or with the reason for a rejected file). Audited as `siteModel.update` |
 | DELETE | `/api/site/model/uploads/:id` | owner, installer | `204`, with its files. `409` while it is in use or still processing. Audited as `siteModel.uploadDelete` |
 
-## Server errors
+## Site `/api/site` 🔒
 
-Each v1 route answers unexpected failures with its own `500` body, for example
-`{"error":"Failed to fetch alerts"}` or `{"message":"Failed to get user"}`.
-
-## Site (v2) `/api/site` 🔒
-
-### Settings (P2-06)
+### Settings
 
 | Method | Path | Roles | Body → result |
 | ------ | ---- | ----- | ------------- |
@@ -260,11 +258,11 @@ Each v1 route answers unexpected failures with its own `500` body, for example
 | PUT | `/pv-arrays` | owner, installer | The whole table `[{ id?, name, inverterId, kwp, tiltDeg (0–90), azimuthDeg (0–360, 180 = south) }]` → `SiteSettings`. New arrays get an id; `422` with `details.issues` if an `inverterId` isn't one of the site's inverters |
 | PATCH | `/battery` | owner, installer | Any of usableKwh, maxKw, floorPct (≥ 10) → `SiteSettings` + `gatewaySync: sent \| pending \| unchanged` |
 | GET | `/gateway` | all | `{ id, online (reported in the last 90 s), fw, uptimeS, buffered, oldestBufferedTs, clockOffsetMs, lastSeenAt, bufferDays: 7, batteryFloorPct, configPending, claim }`. `claim`: `{ serial, state: waiting \| certified, claimedAt }` for a gateway claimed with its QR code, `null` otherwise |
-| GET | `/explanations` | owner | `ExplanationSettingsView { source: site \| server \| none, provider, baseUrl, model, keyHint ("…a1b2"), monthlyTokens, usedTokens, canStoreKeys, updatedAt }`: who writes this site's explanations (P5-05). The key itself is never returned |
+| GET | `/explanations` | owner | `ExplanationSettingsView { source: site \| server \| none, provider, baseUrl, model, keyHint ("…a1b2"), monthlyTokens, usedTokens, canStoreKeys, updatedAt }`: who writes this site's explanations. The key itself is never returned |
 | PUT | `/explanations` | owner | `{ provider: openai-compatible \| anthropic, baseUrl, model, apiKey?, monthlyTokens (≥ 1000) }` → the view. The site's own model with its own key, sealed with `SECRETS_KEY` (leave `apiKey` out to keep the saved one). The base URL must be `https://` to a public host (no localhost, private or link-local addresses, bare service names or credentials in the URL) unless the server sets `LLM_ALLOW_PRIVATE_URLS`. `400` bad URL or no key, `503` without `SECRETS_KEY`. Audited as `site.explanations` (key hint only) |
 | DELETE | `/explanations` | owner | → the view: back to the server's default (or off); the key is forgotten. Audited as `site.explanations` |
 | POST | `/explanations/test` | owner | The settings from the form (before saving), or none for the saved ones → `{ ok, model, latencyMs, error }`: a tiny request with nothing from the site in it; not counted against the budget |
-| POST | `/gateway/claim` | owner, installer | `{ qr }` (the text of the gateway's QR code) or `{ serial, code }` → the `/gateway` view (P5-04). The gateway becomes the site's; if it has already asked for its certificate, it is signed (CN = site id) and sent at once, else when it asks. `400` not a gateway QR code or serial, `404` no gateway with that serial and code (one answer for both), `409` it belongs to another site or is already set up. Audited as `gateway.claim`; the certificate as `gateway.certificate` (no user) |
+| POST | `/gateway/claim` | owner, installer | `{ qr }` (the text of the gateway's QR code) or `{ serial, code }` → the `/gateway` view. The gateway becomes the site's; if it has already asked for its certificate, it is signed (CN = site id) and sent at once, else when it asks. `400` not a gateway QR code or serial, `404` no gateway with that serial and code (one answer for both), `409` it belongs to another site or is already set up. Audited as `gateway.claim`; the certificate as `gateway.certificate` (no user) |
 
 - Validation errors answer `400 { error: { code, message, details: { issues: [{ path, message }] } } }`.
 - Usable capacity and maximum power are stored on the battery device. The floor is stored on the
@@ -274,11 +272,11 @@ Each v1 route answers unexpected failures with its own `500` body, for example
 - Every change is audited: `site.update` records only the changed fields, and there are also `site.pv-arrays` and `site.battery`.
 
 
-### Home (P4-03)
+### Home
 
 | Method | Path | Roles | Result |
 | ------ | ---- | ----- | ------ |
-| GET | `/model` | all | `SiteModel { version, source, upload, generated, hub, anchors [{ key, at, label }], buildingLabel, camera { view } }`: the latest saved model, or the App v2 demo scene (`version: 0`, `source: "default"`). `generated` is the building (P5-03): `{ footprint [[x, z]…], storeys, storeyHeightM, roofRows, arrayTiltDeg, osm { wayId, name } \| null }`; versions saved before P5-03 give the demo building (7 × 4 m, one 2.2 m storey, three rows) |
+| GET | `/model` | all | `SiteModel { version, source, upload, generated, hub, anchors [{ key, at, label }], buildingLabel, camera { view } }`: the latest saved model, or the demo scene (`version: 0`, `source: "default"`). `generated` is the building: `{ footprint [[x, z]…], storeys, storeyHeightM, roofRows, arrayTiltDeg, osm { wayId, name } \| null }`; older versions without one give the demo building (7 × 4 m, one 2.2 m storey, three rows) |
 | GET | `/model/osm-footprint` | owner, installer | `?lat&lon` (both or neither; default the site's location) → `OsmFootprintView { footprint, storeys, wayId, name, at { lat, lon }, attribution }`: the OpenStreetMap building containing the point, else the nearest within 60 m, as an outline in scene metres centred on the building (at most 64 corners; storeys from `building:levels`). Only the point is sent to the Overpass API. `404` no building there, `422` no location, `502` Overpass didn't answer, `503` lookups turned off (`OVERPASS_URL` empty) |
 | GET | `/today` | all | `SiteToday { date, currency, prices, bill }`. `prices`: today's tariff periods in order `[{ name, rateCents, level (off, mid, peak), start, end }]` covering the whole local day (23 or 25 h on DST days), or `null` without a tariff or with a gap today. `bill`: the open period `{ period, totalCents, projectedCents, savedCents }` for owners and managers; `null` for installers or before the first bill |
 
@@ -311,14 +309,14 @@ client reads the stream with `fetch`. Events:
 | `telemetry` | `{ type, deviceId, reading }`, at most one per device every 5 s |
 | `demand`    | `{ type, demand: { intervalStart, soFarKw, projectedKw }, quality }` |
 | `device`    | `{ type, deviceId, status }` when a device goes live, stale or offline |
-| `alert`     | `{ type, alert: AlertView }` when an alert opens, resolves, counts a repeat, or someone acts on it (P2-07, P2-08) |
-| `command`   | `{ type, commandId, deviceId, status }` when a command is sent, acked or fails (P2-08) |
-| `inbox`     | `{ counts, changed: [{ type, id }] }`: Inbox counts right after the snapshot, then at most one every 300 ms while decisions, alerts or commands change (P3-06) |
+| `alert`     | `{ type, alert: AlertView }` when an alert opens, resolves, counts a repeat, or someone acts on it |
+| `command`   | `{ type, commandId, deviceId, status }` when a command is sent, acked or fails |
+| `inbox`     | `{ counts, changed: [{ type, id }] }`: Inbox counts right after the snapshot, then at most one every 300 ms while decisions, alerts or commands change |
 
 A `: heartbeat` comment is sent every 20 s. Events published while the snapshot is being built are
 held back and sent right after it.
 
-## Tariffs `/api/tariffs` 🔒 (P2-01)
+## Tariffs `/api/tariffs` 🔒
 
 | Method | Path | Roles | Result |
 | ------ | ---- | ----- | ------ |
@@ -341,7 +339,7 @@ Body (`tariffInput` in `@ecomanage/shared`): `name`, `validFrom` (local date), `
   changes. Rates are cents per kWh (fractions allowed); money totals are whole cents.
 - The version in force on a day is the one with the latest `validFrom` on or before it.
 
-## Calendar `/api/calendar` 🔒 (P2-06)
+## Calendar `/api/calendar` 🔒
 
 | Method | Path | Roles | Result |
 | ------ | ---- | ----- | ------ |
@@ -353,12 +351,12 @@ Body (`tariffInput` in `@ecomanage/shared`): `name`, `validFrom` (local date), `
 - `weekends` is `closed` or `open`.
 - A site without a calendar answers with an empty one (weekends closed, 08:00–17:00).
 - A day is in use if it is in a term, is not a day off, and is not a weekend (unless weekends are open). The shared helper is `calendarDayType`.
-- The load forecast (P2-10) reads the calendar.
+- The load forecast reads the calendar.
 - Changes are audited as `calendar.update`.
 
-## Notifications `/api/me/notifications` 🔒 all roles (P2-09)
+## Notifications `/api/me/notifications` 🔒 all roles
 
-The signed-in person's email settings for this site (App v2 Settings → Notifications).
+The signed-in person's email settings for this site (Settings → Notifications).
 
 | Method | Path | Result |
 | ------ | ---- | ------ |
@@ -370,7 +368,7 @@ The signed-in person's email settings for this site (App v2 Settings → Notific
 - **`escalateMin`:** 5 to 1440.
 - **Command failures:** always on for owners and managers. `failures: false` from either answers `422`.
 
-## Forecast `/api/forecast` 🔒 all roles (P2-10)
+## Forecast `/api/forecast` 🔒 all roles
 
 `GET /` returns the latest PV and load forecasts from the current 15-minute step, 48 h ahead (type `ForecastView`):
 
@@ -381,9 +379,9 @@ The signed-in person's email settings for this site (App v2 Settings → Notific
 
 The worker issues forecasts every hour. Before the first run the lists are empty and every field is null. A site without a location gets no forecasts, and load needs 7 days of intervals.
 
-## Bills `/api/bills` 🔒 (P2-03 to P2-05)
+## Bills `/api/bills` 🔒
 
-The worker computes one bill per billing period (see ARCHITECTURE, Worker). Money is whole cents.
+The worker computes one bill per billing period ([Worker](../develop/worker.md#billing)). Money is whole cents.
 
 | Method | Path | Roles | Result |
 | ------ | ---- | ----- | ------ |
@@ -409,7 +407,7 @@ version that priced energy), `intervals`, `unpricedIntervals`, `estimated [{ sta
 (contiguous estimated stretches), `savings { baselineCents, solarCents, batteryCents, demandCents,
 baselinePeakKw }` and `computedAt`.
 
-The response shapes are `BillsResponse`, `BillDetail` and `RangeSpend` in `@ecomanage/shared` (P4-06).
+The response shapes are `BillsResponse`, `BillDetail` and `RangeSpend` in `@ecomanage/shared`.
 
 **Range** returns `energyCents`, the three energy `lines`, `exportCreditCents`, `gridKwh`,
 `exportKwh`, `peak { kw, at }` (highest 15-minute demand), `tariffVersions`, `intervals`,

@@ -29,7 +29,7 @@ view, bills from the site's own tariff, and changes that only reach a device onc
 
 [**Documentation**](https://e-choness.github.io/eco-manage/) ·
 [Getting started](https://e-choness.github.io/eco-manage/guide/getting-started) ·
-[What it does](https://e-choness.github.io/eco-manage/guide/features) ·
+[What it does](https://e-choness.github.io/eco-manage/guide/) ·
 [Changelog](./CHANGELOG.md)
 
 </div>
@@ -62,26 +62,6 @@ view, bills from the site's own tariff, and changes that only reach a device onc
 | ![Devices](docs/public/screenshots/devices.png) | ![History](docs/public/screenshots/history.png) |
 | **Settings: the site model** | |
 | ![Site model](docs/public/screenshots/site-model.png) | |
-
-</details>
-
-<details>
-<summary><b>Media kit</b></summary>
-
-A 16:9 banner for slides, videos and link previews, in the same style as the banner above, and the
-app icon. The SVGs are animated and follow light or dark mode; the PNGs are still frames.
-
-<picture>
-  <source media="(prefers-color-scheme: light)" srcset="docs/public/media/banner-16x9-light.png">
-  <img alt="EcoManage 16:9 banner" src="docs/public/media/banner-16x9.png">
-</picture>
-
-| Asset | Files |
-| --- | --- |
-| Banner, 16:9 (1920×1080) | [SVG, animated](docs/public/media/banner-16x9.svg) · [PNG, dark](docs/public/media/banner-16x9.png) · [PNG, light](docs/public/media/banner-16x9-light.png) |
-| Banner, wide (1200×380) | [SVG, animated](docs/public/hero.svg) |
-| Icon | [SVG](apps/web/public/favicon.svg) · [SVG, animated](apps/web/public/logo.svg) · [PNG 512](apps/web/public/icon-512.png) · [PNG 180](apps/web/public/apple-touch-icon.png) |
-| Walkthrough | [dark](docs/public/media/walkthrough-dark.webp) · [light](docs/public/media/walkthrough-light.webp) (animated WebP) |
 
 </details>
 
@@ -154,7 +134,7 @@ flowchart LR
   api -. "optional" .-> llm["Language model"]
 ```
 
-Everything runs as containers with Docker Compose; the [architecture](https://e-choness.github.io/eco-manage/ARCHITECTURE)
+Everything runs as containers with Docker Compose; the [architecture](https://e-choness.github.io/eco-manage/develop/architecture)
 page walks through each service.
 
 <details>
@@ -196,24 +176,20 @@ docker compose --profile e2e run --rm e2e             # Playwright against the r
 ```
 
 CI runs the same commands in the same images on every pull request. See
-[Testing](https://e-choness.github.io/eco-manage/TESTING) and
-[Contributing](https://e-choness.github.io/eco-manage/CONTRIBUTING).
+[Testing](https://e-choness.github.io/eco-manage/develop/testing) and
+[Contributing](https://e-choness.github.io/eco-manage/develop/contributing).
 
 </details>
 
 ## 📚 Documentation
 
-| | |
-| --- | --- |
-| [Getting started](https://e-choness.github.io/eco-manage/guide/getting-started) | Run it, sign in, what to try |
-| [What it does](https://e-choness.github.io/eco-manage/guide/features) | Every page and what's behind it |
-| [Architecture](https://e-choness.github.io/eco-manage/ARCHITECTURE) | Services, data flow, security |
-| [API](https://e-choness.github.io/eco-manage/API_REFERENCE) | Every endpoint |
-| [Gateway agent](https://e-choness.github.io/eco-manage/GATEWAY) | Claiming, setup on a Pi, bench checks |
-| [Deployment](https://e-choness.github.io/eco-manage/DEPLOYMENT) | Configuration and what production needs |
-| [Hosting a demo](https://e-choness.github.io/eco-manage/guide/demo-hosting) | Free options compared |
-| [On Oracle Cloud](https://e-choness.github.io/eco-manage/guide/oracle) | The demo on an Always Free Arm server, behind a Cloudflare Tunnel |
-| [Changelog](./CHANGELOG.md) | What changed, release by release |
+| Section | For | Pages |
+| --- | --- | --- |
+| [**User guide**](https://e-choness.github.io/eco-manage/guide/) | People running a site | [Try the demo](https://e-choness.github.io/eco-manage/guide/getting-started) · [Roles](https://e-choness.github.io/eco-manage/guide/roles) · [Home](https://e-choness.github.io/eco-manage/guide/home) · [Devices](https://e-choness.github.io/eco-manage/guide/devices) · [History](https://e-choness.github.io/eco-manage/guide/history) · [Bills](https://e-choness.github.io/eco-manage/guide/bills) · [Inbox](https://e-choness.github.io/eco-manage/guide/inbox) · [Settings](https://e-choness.github.io/eco-manage/guide/settings) · [Site model](https://e-choness.github.io/eco-manage/guide/site-model) · [Explanations](https://e-choness.github.io/eco-manage/guide/explanations) |
+| [**Deploy**](https://e-choness.github.io/eco-manage/deploy/) | People hosting it | [On a server](https://e-choness.github.io/eco-manage/deploy/production) · [Oracle Cloud](https://e-choness.github.io/eco-manage/deploy/oracle) · [Free demo hosting](https://e-choness.github.io/eco-manage/deploy/demo-hosting) · [Configuration](https://e-choness.github.io/eco-manage/deploy/configuration) · [Gateway](https://e-choness.github.io/eco-manage/deploy/gateway) · [Security](https://e-choness.github.io/eco-manage/deploy/security) · [Operations](https://e-choness.github.io/eco-manage/deploy/operations) · [Troubleshooting](https://e-choness.github.io/eco-manage/deploy/troubleshooting) |
+| [**Develop**](https://e-choness.github.io/eco-manage/develop/) | People changing the code | [Architecture](https://e-choness.github.io/eco-manage/develop/architecture) · [API](https://e-choness.github.io/eco-manage/develop/api) · [Web](https://e-choness.github.io/eco-manage/develop/web) · [Ingest](https://e-choness.github.io/eco-manage/develop/ingest) · [Rules](https://e-choness.github.io/eco-manage/develop/rules) · [Worker](https://e-choness.github.io/eco-manage/develop/worker) · [Simulator](https://e-choness.github.io/eco-manage/develop/simulator) · [Extending](https://e-choness.github.io/eco-manage/develop/extending) · [Testing](https://e-choness.github.io/eco-manage/develop/testing) |
+| [**Reference**](https://e-choness.github.io/eco-manage/reference/api) | Integrations | [REST API](https://e-choness.github.io/eco-manage/reference/api) · [MQTT](https://e-choness.github.io/eco-manage/reference/mqtt) · [Database](https://e-choness.github.io/eco-manage/reference/database) · [Device profiles](https://e-choness.github.io/eco-manage/reference/device-profiles) |
+| [**Changelog**](./CHANGELOG.md) | Everyone | What changed, release by release |
 
 The same pages are in [`docs/`](./docs) in this repository.
 

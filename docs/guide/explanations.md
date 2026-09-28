@@ -18,7 +18,7 @@ The key is encrypted on the server and never shown again; the page shows only it
 characters. **Remove my key** goes back to the server's default model, or turns explanations off.
 
 A server can also have a default model for every site; see `LLM_*` in
-[Deployment](../DEPLOYMENT.md). A site's own key takes its place.
+[Configuration](../deploy/configuration.md#language-models). A site's own key takes its place.
 
 ## What the model sees
 

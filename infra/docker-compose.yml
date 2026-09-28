@@ -388,7 +388,7 @@ services:
 
   # The reference gateway agent (P5-04) against stand-in devices: `docker compose --profile
   # gateway up -d`. It starts unclaimed, with only the bootstrap certificate; register it first
-  # (docs/GATEWAY.md) and claim it in Settings → Site. Its state (buffer, key, certificate) lives
+  # (docs/deploy/gateway.md) and claim it in Settings → Site. Its state (buffer, key, certificate) lives
   # in the gateway_data volume, like the SD card of a real one.
   gateway:
     <<: *workspace
