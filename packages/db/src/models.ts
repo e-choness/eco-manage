@@ -560,6 +560,8 @@ const recommendationSchema = new Schema(
     actualCalc: { type: String, default: null },
     measuredAt: { type: Date, default: null },
     createdBy: { type: ObjectId, ref: 'User', default: null }, // manual requests
+    // An optional plain-language explanation (P5-05), kept for the input it was written from.
+    explanation: { type: new Schema({ text: String, model: String, inputHash: String, createdAt: Date }, { _id: false }), default: null },
   },
   { timestamps: true }
 );
@@ -572,6 +574,21 @@ recommendationSchema.index(
 );
 export type RecommendationDoc = InferSchemaType<typeof recommendationSchema> & { _id: Types.ObjectId };
 export const Recommendation = mongoose.model('Recommendation', recommendationSchema, 'recommendations');
+
+// Language-model tokens a site used in a month (P5-05), against its budget.
+const llmUsageSchema = new Schema(
+  {
+    siteId: { type: ObjectId, ref: 'Site', required: true },
+    month: { type: String, required: true }, // YYYY-MM (UTC)
+    inputTokens: { type: Number, default: 0 },
+    outputTokens: { type: Number, default: 0 },
+    requests: { type: Number, default: 0 },
+  },
+  { timestamps: true }
+);
+llmUsageSchema.index({ siteId: 1, month: 1 }, { unique: true });
+export type LlmUsageDoc = InferSchemaType<typeof llmUsageSchema> & { _id: Types.ObjectId };
+export const LlmUsage = mongoose.model('LlmUsage', llmUsageSchema, 'llmUsage');
 
 // ---- forecasts -----------------------------------------------------------------------------------
 
@@ -738,7 +755,7 @@ auditSchema.index({ siteId: 1, ts: -1 });
 export type AuditEventDoc = InferSchemaType<typeof auditSchema> & { _id: Types.ObjectId };
 export const AuditEvent = mongoose.model('AuditEvent', auditSchema, 'auditEvents');
 
-export const v2Models = [Site, Gateway, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, FleetVehicle, Recommendation, SiteModel, ModelUpload, Export, Report, AuditEvent] as const;
+export const v2Models = [Site, Gateway, Membership, Invite, Device, DeviceProfile, Telemetry, Interval15, Tariff, Bill, Calendar, Alert, RuleMute, Maintenance, Command, NotificationPrefs, Email, Forecast, RuleConfig, FleetVehicle, Recommendation, LlmUsage, SiteModel, ModelUpload, Export, Report, AuditEvent] as const;
 
 /** Creates collections (the time-series one needs explicit creation) and indexes. */
 export const initModels = async (): Promise<void> => {

@@ -1,4 +1,4 @@
-import type { AlertCause, AlertDetail, Check, CommandView, InboxPage, InboxType, RecommendationDetail } from '@ecomanage/shared';
+import type { AlertCause, AlertDetail, Check, CommandView, InboxPage, InboxType, RecommendationDetail, RecommendationExplanation } from '@ecomanage/shared';
 import api, { errorMessage } from './api';
 
 const call = async <T>(p: Promise<{ data: T }>): Promise<T> => {
@@ -30,6 +30,10 @@ export const approveRecommendation = (id: string, params?: Record<string, unknow
 
 // Endpoint: POST /api/recommendations/:id/decline
 export const declineRecommendation = (id: string, reason: string): Promise<unknown> => call(api.post(`/api/recommendations/${id}/decline`, { reason }));
+
+// Description: A plain-language explanation (P5-05), from the server's proposal only; no body sent
+// Endpoint: POST /api/recommendations/:id/explain
+export const explainRecommendation = (id: string): Promise<RecommendationExplanation> => call(api.post(`/api/recommendations/${id}/explain`));
 
 // ---- commands -----------------------------------------------------------------------------------
 

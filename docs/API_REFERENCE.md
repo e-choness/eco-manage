@@ -139,6 +139,7 @@ Devices page. Nothing reaches a device until someone approves.
 | POST | `/:id/check` | owner, manager | `{ params? }` → `{ checks, expectedSavingCents, calc, allPass }` for the action as adjusted (e.g. the kW slider). Writes nothing |
 | POST | `/:id/approve` | owner, manager, per Settings → Rules → Who can approve | `{ params? }` → `{ recommendation, commandId }` |
 | POST | `/:id/decline` | owner, manager | `{ reason }` (3–500 characters) → the declined recommendation |
+| POST | `/:id/explain` | owner, manager | No body (anything sent is ignored) → `RecommendationExplanation { text, model, createdAt, cached, budget { usedTokens, monthlyTokens } }` (P5-05): a plain-language explanation written by a language model from the server's own proposal only. Stored with a hash of its input; asking again returns it (`cached: true`, no tokens) until the proposal changes. `429` once the site's monthly token budget is used, `503` when no model is configured, `502` if the model declines or answers empty. Audited as `recommendation.explain` when a new one is written. The detail (`GET /:id`) carries `explanation { text, model, createdAt } \| null` and `explainable` |
 
 - **Approve:**
   - It runs every check again against the site as it is now. If one fails, the answer is `409` with the failing checks in `details.checks`.

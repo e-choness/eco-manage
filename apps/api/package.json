@@ -24,6 +24,7 @@
     "@ecomanage/profiles": "workspace:*",
     "@ecomanage/recs": "workspace:*",
     "@ecomanage/shared": "workspace:*",
+    "@anthropic-ai/sdk": "^0.128.0",
     "@peculiar/x509": "^2.1.0",
     "bcryptjs": "^3.0.3",
     "bullmq": "^6.3.9",

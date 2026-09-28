@@ -1,6 +1,6 @@
 # Testing
 
-All suites run inside the dev container. As of P5-04 (Node 26, Vitest everywhere): **api 356, web 91, ingest 29, simulator 32, rules 43, recs 33,
+All suites run inside the dev container. As of P5-05 (Node 26, Vitest everywhere): **api 364, web 95, ingest 29, simulator 32, rules 43, recs 33,
 shared 163, profiles 20, db 11, worker 71, gateway 41, modelconv 13**, all passing. Lint and typecheck also pass. The api,
 ingest, db, worker and rules suites need the compose MongoDB (and Redis for api, ingest, rules and the worker's report schedules; the worker's SMTP test uses Mailpit, and its PDF test prints through Gotenberg when it is running).
 

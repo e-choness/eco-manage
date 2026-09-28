@@ -31,6 +31,19 @@ export interface RecommendationDetail extends RecommendationView {
   payload: { deviceId: string; action: string; params: Record<string, unknown>; expiresAt: string; revertAt: string | null };
   /** Whether the signed-in person may approve it (Settings → Rules → Who can approve). */
   canApprove: boolean;
+  /** A plain-language explanation, once someone asked for one (P5-05). */
+  explanation: { text: string; model: string; createdAt: string } | null;
+  /** Whether explanations are turned on for this server (a language model is configured). */
+  explainable: boolean;
+}
+
+/** POST /api/recommendations/:id/explain. Written from the server's own proposal data only. */
+export interface RecommendationExplanation {
+  text: string;
+  model: string;
+  createdAt: string;
+  cached: boolean; // served from the stored explanation, no tokens spent
+  budget: { usedTokens: number; monthlyTokens: number };
 }
 
 const window = z

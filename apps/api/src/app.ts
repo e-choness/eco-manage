@@ -31,6 +31,7 @@ import type { ObjectStore } from '@ecomanage/db';
 import type { SiteEventHub } from './lib/siteEvents';
 import type { OsmLookup } from './modules/site/osm';
 import type { CertSigner } from './modules/gateway/signer';
+import type { ExplainDeps } from './modules/recommendations/explain';
 
 export interface AppDeps {
   env: Pick<Env, 'CORS_ORIGINS' | 'RATE_LIMIT_WINDOW_MS' | 'RATE_LIMIT_MAX' | 'AUTH_RATE_LIMIT_MAX'>;
@@ -48,9 +49,11 @@ export interface AppDeps {
   osm?: OsmLookup;
   /** Signs claimed gateways' certificates with the broker CA (P5-04); absent without the CA key. */
   signer?: CertSigner;
+  /** Plain-language explanations of recommendations (P5-05); absent without a language model. */
+  explain?: ExplainDeps;
 }
 
-export const createApp = ({ env, redis, hub, jobs, objects, gateway, osm, signer, logger = defaultLogger, sseHeartbeatMs }: AppDeps): Express => {
+export const createApp = ({ env, redis, hub, jobs, objects, gateway, osm, signer, explain, logger = defaultLogger, sseHeartbeatMs }: AppDeps): Express => {
   const app = express();
   const window = env.RATE_LIMIT_WINDOW_MS;
 
@@ -72,7 +75,7 @@ export const createApp = ({ env, redis, hub, jobs, objects, gateway, osm, signer
   app.use('/api/auth', authRoutes);
   app.use('/api/alerts', alertsRoutes({ redis, gateway }));
   app.use('/api/devices', devicesRoutes(redis, gateway));
-  app.use('/api/recommendations', recommendationsRoutes({ redis }));
+  app.use('/api/recommendations', recommendationsRoutes({ redis, explain }));
   app.use('/api/commands', commandsRoutes(redis));
   app.use('/api/inbox', inboxRoutes);
   app.use('/api/audit', auditRoutes);

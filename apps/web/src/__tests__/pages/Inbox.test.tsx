@@ -69,6 +69,8 @@ const rec = (over: Partial<RecommendationDetail> = {}): RecommendationDetail => 
   commandId: null,
   payload: { deviceId: 'bat', action: 'force_discharge', params: { kw: 30 }, expiresAt: iso(95 * MIN), revertAt: iso(260 * MIN) },
   canApprove: true,
+  explanation: null,
+  explainable: false,
   ...over,
 })
 
@@ -179,6 +181,49 @@ const setup = (role: Role, path = '/inbox', over: { rec?: RecommendationDetail; 
 }
 
 const detail = () => screen.getByRole('complementary', { name: 'Selected item' })
+
+describe('explanations (P5-05)', () => {
+  const EXPLAINED = { text: 'The battery covers the afternoon peak, so the month’s demand charge stays lower.', model: 'claude-opus-5', createdAt: iso(-MIN) }
+
+  it('writes one on request, sending nothing but the ask', async () => {
+    let explained = false
+    const bodies: string[] = []
+    setup('manager', '/inbox?item=decide:r1')
+    server.use(
+      http.get(`${BASE}/api/recommendations/r1`, () => HttpResponse.json(rec({ explainable: true, explanation: explained ? EXPLAINED : null }))),
+      http.post(`${BASE}/api/recommendations/r1/explain`, async ({ request }) => {
+        bodies.push(await request.text())
+        explained = true
+        return HttpResponse.json({ ...EXPLAINED, cached: false, budget: { usedTokens: 420, monthlyTokens: 200_000 } })
+      })
+    )
+    const plain = await within(await screen.findByRole('complementary', { name: 'Selected item' })).findByRole('region', { name: 'In plain words' })
+    await userEvent.click(within(plain).getByRole('button', { name: 'Explain in plain words' }))
+    expect(await within(plain).findByText(EXPLAINED.text)).toBeInTheDocument()
+    expect(within(plain).getByText(/Written by a language model/)).toBeInTheDocument()
+    expect(bodies).toEqual([''])
+  })
+
+  it('shows what the server says when it can’t', async () => {
+    setup('owner', '/inbox?item=decide:r1', { rec: rec({ explainable: true }) })
+    server.use(http.post(`${BASE}/api/recommendations/r1/explain`, () => HttpResponse.json({ error: { code: 429, message: 'This site’s explanations for the month are used up.' } }, { status: 429 })))
+    const plain = await within(await screen.findByRole('complementary', { name: 'Selected item' })).findByRole('region', { name: 'In plain words' })
+    await userEvent.click(within(plain).getByRole('button', { name: 'Explain in plain words' }))
+    expect(await within(plain).findByRole('alert')).toHaveTextContent('used up')
+  })
+
+  it('shows a written one to an installer, but offers no button', async () => {
+    setup('installer', '/inbox?item=decide:r1', { rec: rec({ explainable: true, explanation: EXPLAINED, canApprove: false }) })
+    expect(await within(await screen.findByRole('complementary', { name: 'Selected item' })).findByText(EXPLAINED.text)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Explain in plain words' })).toBeNull()
+  })
+
+  it('stays out of the way when explanations are off', async () => {
+    setup('owner', '/inbox?item=decide:r1')
+    await waitFor(() => expect(within(detail()).getByRole('region', { name: 'Checks against your limits' })).toBeInTheDocument())
+    expect(within(detail()).queryByRole('region', { name: 'In plain words' })).toBeNull()
+  })
+})
 
 describe('Inbox list', () => {
   it('shows open items with counts and pages further', async () => {

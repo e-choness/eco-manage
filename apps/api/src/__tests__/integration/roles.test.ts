@@ -57,6 +57,7 @@ const ROUTES: Record<string, Access> = {
   'post /api/recommendations/:id/check': MONEY,
   'post /api/recommendations/:id/approve': MONEY,
   'post /api/recommendations/:id/decline': MONEY,
+  'post /api/recommendations/:id/explain': MONEY,
   'get /api/commands/': ALL,
   'get /api/commands/:id': ALL,
   'post /api/commands/:id/cancel': MONEY,

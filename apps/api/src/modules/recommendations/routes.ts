@@ -17,5 +17,6 @@ export const recommendationsRoutes = (deps: RecDeps): Router => {
   router.post('/:id/check', ...requireRole(...DECIDERS), recs.check);
   router.post('/:id/approve', ...requireRole(...DECIDERS), recs.approve);
   router.post('/:id/decline', ...requireRole(...DECIDERS), recs.decline);
+  router.post('/:id/explain', ...requireRole(...DECIDERS), recs.explain);
   return router;
 };
