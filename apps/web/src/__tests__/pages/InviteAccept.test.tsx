@@ -12,6 +12,7 @@ import type { InvitePreview } from '@ecomanage/shared'
 import { server } from '../setup'
 import { InviteAccept } from '@/pages/InviteAccept'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
+import { ThemeProvider } from '@/components/ui/theme-provider'
 
 const BASE = 'http://localhost:3000'
 
@@ -34,6 +35,7 @@ function Home() {
 const renderInvite = (token = 'tok123') =>
   render(
     <QueryClientProvider client={new QueryClient()}>
+      <ThemeProvider defaultTheme="dark" storageKey="t">
       <AuthProvider>
         <MemoryRouter initialEntries={[`/invite/${token}`]}>
           <Routes>
@@ -43,6 +45,7 @@ const renderInvite = (token = 'tok123') =>
           </Routes>
         </MemoryRouter>
       </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 

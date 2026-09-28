@@ -1,8 +1,9 @@
 import type { ReactNode } from "react"
+import { AuthScene } from "./AuthScene"
 
 /**
- * Login and invite screens (App v2 Login): a 520 px panel with the brand on top, the form in the
- * middle and a note at the bottom; the site's picture fills the rest.
+ * Sign-in and invite screens: a 520 px panel with the brand on top, the form in the middle and a
+ * note at the bottom; the site picture, with sample flows, fills the rest on wide screens.
  */
 export function AuthLayout({ children, footer }: { children: ReactNode; footer: ReactNode }) {
   return (
@@ -15,7 +16,7 @@ export function AuthLayout({ children, footer }: { children: ReactNode; footer: 
         <main className="flex flex-col gap-7">{children}</main>
         <div className="text-xs text-app-dm">{footer}</div>
       </div>
-      <div aria-hidden className="hidden lg:block" />
+      <AuthScene />
     </div>
   )
 }

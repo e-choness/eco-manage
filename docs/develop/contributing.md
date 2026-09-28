@@ -44,7 +44,7 @@ your computer; run every command through `docker compose exec api …`.
   `docker compose --profile docs up -d docs` at <http://localhost:5174/eco-manage/>; merging to
   `main` publishes the site. The docs build fails on a broken link.
 - **Changelog:** add what users will notice (features, changes, fixes) under *Unreleased* in
-  `CHANGELOG.md`, in plain words. Internal refactoring stays out.
+  `docs/changelog.md`, in plain words. Internal refactoring stays out.
 
 ## Commits
 

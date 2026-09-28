@@ -26,6 +26,8 @@ Notable changes to EcoManage, newest first. The format follows
 ### Changed
 
 - The "EcoManage" wordmark is set in Audiowide in the app, the documentation and the banners.
+- The sign-in and invite pages show the site in 3D beside the form, with sample power flows
+  moving through it.
 - A demo installation shows the demo account on the sign-in page.
 - The 3D model converter also runs on Arm servers, so site model uploads work there too.
 - The README has a live-flow banner, an animated walkthrough, current screenshots and status

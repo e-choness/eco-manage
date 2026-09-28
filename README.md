@@ -30,7 +30,7 @@ view, bills from the site's own tariff, and changes that only reach a device onc
 [**Documentation**](https://e-choness.github.io/eco-manage/) ·
 [Getting started](https://e-choness.github.io/eco-manage/guide/getting-started) ·
 [What it does](https://e-choness.github.io/eco-manage/guide/) ·
-[Changelog](./CHANGELOG.md)
+[Changelog](https://e-choness.github.io/eco-manage/changelog)
 
 </div>
 
@@ -189,7 +189,7 @@ CI runs the same commands in the same images on every pull request. See
 | [**Deploy**](https://e-choness.github.io/eco-manage/deploy/) | People hosting it | [On a server](https://e-choness.github.io/eco-manage/deploy/production) · [Oracle Cloud](https://e-choness.github.io/eco-manage/deploy/oracle) · [Free demo hosting](https://e-choness.github.io/eco-manage/deploy/demo-hosting) · [Configuration](https://e-choness.github.io/eco-manage/deploy/configuration) · [Gateway](https://e-choness.github.io/eco-manage/deploy/gateway) · [Security](https://e-choness.github.io/eco-manage/deploy/security) · [Operations](https://e-choness.github.io/eco-manage/deploy/operations) · [Troubleshooting](https://e-choness.github.io/eco-manage/deploy/troubleshooting) |
 | [**Develop**](https://e-choness.github.io/eco-manage/develop/) | People changing the code | [Architecture](https://e-choness.github.io/eco-manage/develop/architecture) · [API](https://e-choness.github.io/eco-manage/develop/api) · [Web](https://e-choness.github.io/eco-manage/develop/web) · [Ingest](https://e-choness.github.io/eco-manage/develop/ingest) · [Rules](https://e-choness.github.io/eco-manage/develop/rules) · [Worker](https://e-choness.github.io/eco-manage/develop/worker) · [Simulator](https://e-choness.github.io/eco-manage/develop/simulator) · [Extending](https://e-choness.github.io/eco-manage/develop/extending) · [Testing](https://e-choness.github.io/eco-manage/develop/testing) |
 | [**Reference**](https://e-choness.github.io/eco-manage/reference/api) | Integrations | [REST API](https://e-choness.github.io/eco-manage/reference/api) · [MQTT](https://e-choness.github.io/eco-manage/reference/mqtt) · [Database](https://e-choness.github.io/eco-manage/reference/database) · [Device profiles](https://e-choness.github.io/eco-manage/reference/device-profiles) |
-| [**Changelog**](./CHANGELOG.md) | Everyone | What changed, release by release |
+| [**Changelog**](https://e-choness.github.io/eco-manage/changelog) | Everyone | What changed, release by release |
 
 The same pages are in [`docs/`](./docs) in this repository.
 

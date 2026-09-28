@@ -10,20 +10,23 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../setup'
 import { Login } from '@/pages/Login'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { ThemeProvider } from '@/components/ui/theme-provider'
 
 const BASE = 'http://localhost:3000'
 
 const renderLogin = (entry: string | { pathname: string; state: unknown } = '/login') =>
   render(
-    <AuthProvider>
-      <MemoryRouter initialEntries={[entry]}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<p>Home page</p>} />
-          <Route path="/inbox" element={<p>Inbox page</p>} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>
+    <ThemeProvider defaultTheme="dark" storageKey="t">
+      <AuthProvider>
+        <MemoryRouter initialEntries={[entry]}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<p>Home page</p>} />
+            <Route path="/inbox" element={<p>Inbox page</p>} />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>
+    </ThemeProvider>
   )
 
 const fill = async (email: string, password: string) => {
@@ -33,6 +36,15 @@ const fill = async (email: string, password: string) => {
 }
 
 describe('Login', () => {
+  it('shows the site picture with sample flows beside the form, hidden from screen readers', () => {
+    const { container } = renderLogin()
+    const picture = container.querySelector('[aria-hidden="true"]')
+    expect(picture?.querySelector('caption')?.textContent).toBe('Power flows now')
+    // Sources and loads balance at the switchboard: solar + battery + grid = EVs + heat pump + building.
+    const kw = Object.fromEntries([...picture!.querySelectorAll('tbody tr')].map((r) => [r.querySelector('th')!.textContent, Number(r.querySelector('td')!.textContent)]))
+    expect(kw.Solar + kw.Battery + kw.Grid).toBeCloseTo(kw['EV chargers'] + kw['Heat pump'] + kw.Building, 0)
+  })
+
   it('shows the App v2 sign-in panel', async () => {
     renderLogin()
     expect(await screen.findByRole('heading', { name: 'Sign in to your site' })).toBeInTheDocument()
