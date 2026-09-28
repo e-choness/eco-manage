@@ -1,0 +1,73 @@
+# Production images for a hosted demo (infra/deploy), for amd64 and arm64 (Oracle's Ampere A1),
+# pushed to GitHub Container Registry: ghcr.io/<owner>/<repo>/{app,web,modelconv}, tagged
+# `main` and `sha-<short sha>`. arm64 is built under emulation, so a run takes a while.
+name: Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - apps/**
+      - packages/**
+      - infra/deploy/nginx.conf
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .github/workflows/images.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: images
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: app
+            file: Dockerfile
+            target: app
+          - image: web
+            file: Dockerfile
+            target: web
+          - image: modelconv
+            file: apps/modelconv/Dockerfile
+            target: ""
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.image }}
+          tags: |
+            type=raw,value=main
+            type=sha,prefix=sha-
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

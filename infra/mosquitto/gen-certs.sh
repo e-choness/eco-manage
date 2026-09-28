@@ -47,7 +47,8 @@ issue() { # name cn [san]
   echo "issued $name (CN=$cn)"
 }
 
-issue server mosquitto "DNS:mosquitto,DNS:localhost,IP:127.0.0.1"
+# MQTT_SERVER_SAN adds names gateways use from outside, e.g. "DNS:mqtt.example.com,IP:203.0.113.7".
+issue server mosquitto "DNS:mosquitto,DNS:localhost,IP:127.0.0.1${MQTT_SERVER_SAN:+,$MQTT_SERVER_SAN}"
 issue svc-ingest svc-ingest
 issue svc-api svc-api
 issue svc-rules svc-rules

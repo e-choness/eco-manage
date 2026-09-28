@@ -1,0 +1,332 @@
+# A hosted demo on one server (docs/guide/oracle.md): production images, the simulated Maple
+# Grove School, and a Cloudflare Tunnel for HTTPS without open ports. Nothing listens on the
+# server's public address unless MQTT_PORT opens the broker to real gateways.
+#
+#   cp infra/deploy/.env.example infra/deploy/.env    # then fill it in (setup.sh does this)
+#   docker compose -f infra/deploy/compose.yml up -d
+#   docker compose -f infra/deploy/compose.yml run --rm seed
+#
+# Images come from GHCR (.github/workflows/images.yml); `up -d --build` builds them here instead.
+name: ecomanage-demo
+
+x-app: &app
+  image: ${IMAGE_PREFIX:-ghcr.io/e-choness/eco-manage}/app:${IMAGE_TAG:-main}
+  build:
+    context: ../..
+    target: app
+  env_file: .env
+  restart: unless-stopped
+  volumes:
+    - mqtt_certs:/certs:ro
+
+x-env: &env
+  NODE_ENV: production
+  DATABASE_URL: mongodb://mongodb:27017/ecomanage
+  REDIS_URL: redis://redis:6379
+  MQTT_URL: mqtts://mosquitto:8883
+  MQTT_CERT_DIR: /certs
+  S3_ENDPOINT: http://objects:9000
+  S3_BUCKET: ecomanage-assets
+  S3_ACCESS_KEY: ecomanage
+  S3_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY in infra/deploy/.env}
+  ASSET_PUBLIC_URL: /cdn
+
+services:
+  web:
+    image: ${IMAGE_PREFIX:-ghcr.io/e-choness/eco-manage}/web:${IMAGE_TAG:-main}
+    build:
+      context: ../..
+      target: web
+    ports:
+      # For checks over SSH (ssh -L 8080:localhost:8080); the tunnel reaches web:80 directly.
+      - "127.0.0.1:8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    restart: unless-stopped
+
+  api:
+    <<: *app
+    working_dir: /repo/apps/api
+    command: ["node", "--import", "tsx", "src/server.ts"]
+    environment:
+      <<: *env
+      CORS_ORIGINS: ${PUBLIC_URL:?set PUBLIC_URL in infra/deploy/.env}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+      objects-setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  ingest:
+    <<: *app
+    working_dir: /repo/apps/ingest
+    command: ["node", "--import", "tsx", "src/main.ts"]
+    environment: *env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+
+  rules:
+    <<: *app
+    working_dir: /repo/apps/rules
+    command: ["node", "--import", "tsx", "src/main.ts"]
+    environment: *env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+
+  worker:
+    <<: *app
+    working_dir: /repo/apps/worker
+    command: ["node", "--import", "tsx", "src/main.ts"]
+    environment:
+      <<: *env
+      APP_URL: ${PUBLIC_URL}
+      SMTP_URL: ${SMTP_URL:-smtp://mailpit:1025}
+      MAIL_FROM: ${MAIL_FROM:-EcoManage demo <demo@ecomanage.local>}
+      WEATHER_PROVIDER: ${WEATHER_PROVIDER:-simulated}
+      WEATHER_SEED: ${SIM_SEED:-42}
+      GOTENBERG_URL: http://gotenberg:3000
+      MODELCONV_URL: http://modelconv:3100
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      gotenberg:
+        condition: service_started
+      mailpit:
+        condition: service_started
+      modelconv:
+        condition: service_started
+      objects-setup:
+        condition: service_completed_successfully
+    # The only service on the converter's internal network.
+    networks: [default, convert]
+
+  # The simulated site, talking to the broker exactly like a gateway.
+  simulator:
+    <<: *app
+    working_dir: /repo/apps/simulator
+    command: ["node", "--import", "tsx", "src/main.ts"]
+    environment:
+      <<: *env
+      SIM_SPEED: ${SIM_SPEED:-1}
+      SIM_SEED: ${SIM_SEED:-42}
+      SIM_STATE_FILE: /state/simulator.json
+    volumes:
+      - mqtt_certs:/certs:ro
+      - simulator_state:/state
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+
+  # One-shot: resets the demo accounts and data, then computes the current bill (otherwise Bills
+  # is empty until the worker's hourly pass). `docker compose … run --rm seed`; setup.sh also
+  # runs it nightly, so visitors' changes don't pile up.
+  seed:
+    <<: *app
+    working_dir: /repo/apps
+    command: ["sh", "-c", "cd api && node --import tsx src/scripts/seed.ts && cd ../worker && node --import tsx src/scripts/refreshBills.ts"]
+    environment: *env
+    profiles: ["tools"]
+    restart: "no"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  # One-shot: the asset bucket, with anonymous reads for processed models only.
+  objects-setup:
+    <<: *app
+    working_dir: /repo
+    command: ["node", "packages/db/scripts/setup-bucket.mjs"]
+    environment: *env
+    restart: "no"
+    depends_on:
+      objects:
+        condition: service_healthy
+
+  # The sandboxed 3D model converter: read-only, no capabilities, non-root, capped, and only on
+  # an internal network shared with the worker.
+  modelconv:
+    image: ${IMAGE_PREFIX:-ghcr.io/e-choness/eco-manage}/modelconv:${IMAGE_TAG:-main}
+    build:
+      context: ../..
+      dockerfile: apps/modelconv/Dockerfile
+    read_only: true
+    tmpfs:
+      - /tmp:size=1g,mode=1777
+    user: "1000:1000"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 1
+    networks: [convert]
+    restart: unless-stopped
+
+  gotenberg:
+    image: gotenberg/gotenberg:8.37.0
+    command:
+      - gotenberg
+      - --chromium-disable-javascript=true
+      - --chromium-allow-list=^file:///tmp/.*
+      - --api-timeout=60s
+    restart: unless-stopped
+
+  # Every email the demo sends stays here: http://localhost:8025 over SSH. Set SMTP_URL to send
+  # real mail instead.
+  mailpit:
+    image: axllent/mailpit:v1.31.3
+    ports:
+      - "127.0.0.1:8025:8025"
+    environment:
+      MP_MAX_MESSAGES: 500
+    restart: unless-stopped
+
+  objects:
+    image: rustfs/rustfs:1.0.0
+    environment:
+      RUSTFS_ACCESS_KEY: ecomanage
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY}
+    volumes:
+      - objects_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:8
+    # The demo's data is small; leave memory for the rest of the stack.
+    command: ["--wiredTigerCacheSizeGB", "1"]
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  # The broker's CA and certificates, made once and kept in the mqtt_certs volume.
+  mqtt-certs:
+    image: alpine:3.24
+    command: ["sh", "/gen-certs.sh"]
+    environment:
+      # The simulated site's gateway (quoted: unquoted, YAML reads it as a number).
+      GATEWAY_SITES: "650000000000000000000001"
+      MQTT_SERVER_SAN: ${MQTT_SERVER_SAN:-}
+    volumes:
+      - ../mosquitto/gen-certs.sh:/gen-certs.sh:ro
+      - mqtt_certs:/certs
+    restart: "no"
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0.22
+    ports:
+      # Local only by default; MQTT_PORT=8883 opens it to real gateways (see the guide).
+      - "${MQTT_PORT:-127.0.0.1:8883}:8883"
+    volumes:
+      - ../mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ../mosquitto/acl:/mosquitto/config/acl:ro
+      - mqtt_certs:/mosquitto/certs:ro
+      - mosquitto_data:/mosquitto/data
+    depends_on:
+      mqtt-certs:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - mosquitto_sub
+        - -h
+        - localhost
+        - -p
+        - "8883"
+        - --cafile
+        - /mosquitto/certs/ca.crt
+        - --cert
+        - /mosquitto/certs/svc-health.crt
+        - --key
+        - /mosquitto/certs/svc-health.key
+        - -t
+        - $$SYS/broker/uptime
+        - -C
+        - "1"
+        - -W
+        - "3"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  # HTTPS at your own hostname through a named Cloudflare Tunnel (profile "tunnel"): the tunnel's
+  # public hostname points at http://web:80.
+  tunnel:
+    image: cloudflare/cloudflared:2026.9.3
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    profiles: ["tunnel"]
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Or a throwaway https://….trycloudflare.com address for trying it out (profile "quick-tunnel";
+  # the address is in its log and changes on every restart).
+  quick-tunnel:
+    image: cloudflare/cloudflared:2026.9.3
+    command: ["tunnel", "--no-autoupdate", "--url", "http://web:80"]
+    profiles: ["quick-tunnel"]
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  objects_data:
+  mosquitto_data:
+  simulator_state:
+  mqtt_certs:
+
+networks:
+  default:
+  convert:
+    internal: true

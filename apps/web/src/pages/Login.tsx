@@ -53,7 +53,7 @@ export function Login() {
         <button type="submit" disabled={busy} className={authButton}>
           {busy ? "Signing in…" : "Sign in"}
         </button>
-        {import.meta.env.DEV ? <div className="text-[13px] text-app-dm">Demo account: demo@ecomanage.io · Demo1234!</div> : null}
+        {import.meta.env.DEV || import.meta.env.VITE_DEMO === "true" ? <div className="text-[13px] text-app-dm">Demo account: demo@ecomanage.io · Demo1234!</div> : null}
       </form>
     </AuthLayout>
   )

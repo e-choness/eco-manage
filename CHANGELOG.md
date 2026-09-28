@@ -12,6 +12,9 @@ Notable changes to EcoManage, newest first. The format follows
   published to GitHub Pages.
 - **Open in GitHub Codespaces:** the full stack, seeded with the demo site, in the browser.
 - A guide to hosting a demo for free.
+- **Hosting on Oracle Cloud:** production images for amd64 and arm64, published to GitHub
+  Container Registry, and a one-command setup that runs the demo on an Always Free Arm server
+  behind a Cloudflare Tunnel, reset every night.
 - A new app icon: the switchboard with the site's flows, animated at large sizes (the sign-in
   page), with icons for phones and a web app manifest.
 - A media kit: a 16:9 banner (animated SVG and PNG, light and dark) beside the wide banner, and an
