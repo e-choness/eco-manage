@@ -30,7 +30,7 @@ ARG VITE_DEMO=true
 ENV VITE_DEMO=$VITE_DEMO
 RUN pnpm --filter @ecomanage/web build
 
-FROM nginx:1.29-alpine AS web
+FROM nginx:1.31-alpine AS web
 COPY infra/deploy/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=web-build /repo/apps/web/dist /usr/share/nginx/html
 
