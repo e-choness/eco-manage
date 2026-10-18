@@ -18,17 +18,17 @@
     "@ecomanage/recs": "workspace:*",
     "@ecomanage/shared": "workspace:*",
     "ioredis": "^6.0.0",
-    "mongoose": "^9.10.2",
-    "mqtt": "^5.10.1",
-    "pino": "^10.3.1",
+    "mongoose": "^9.11.2",
+    "mqtt": "^5.16.1",
+    "pino": "^10.4.0",
     "tsx": "^4.23.15",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@ecomanage/simulator": "workspace:*",
-    "@types/node": "^26.6.3",
-    "eslint": "^10.11.0",
+    "@types/node": "^26.6.5",
+    "eslint": "^10.13.0",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.5"
   }
 }
