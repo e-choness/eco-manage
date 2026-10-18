@@ -224,7 +224,7 @@ services:
   # `models/` (the web app reaches them through /cdn, standing in for a CDN); originals under
   # `uploads/` are private. RustFS (Apache 2.0); any S3 store works. Console on :9001.
   objects:
-    image: rustfs/rustfs:1.0.0
+    image: rustfs/rustfs:1.0.2
     environment:
       RUSTFS_ACCESS_KEY: ecomanage
       RUSTFS_SECRET_KEY: ecomanage-dev-secret
