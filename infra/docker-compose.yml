@@ -207,7 +207,7 @@ services:
   # Prints report PDFs from HTML (P5-01): headless Chromium in its own container, JavaScript off,
   # and Chromium may open only its own temporary files, so report text can't make it fetch anything.
   gotenberg:
-    image: gotenberg/gotenberg:8.37.0
+    image: gotenberg/gotenberg:8.38.1
     command:
       - gotenberg
       - --chromium-disable-javascript=true
