@@ -17,12 +17,12 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@ecomanage/shared": "workspace:*",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^26.6.3",
-    "eslint": "^10.11.0",
+    "@types/node": "^26.6.5",
+    "eslint": "^10.13.0",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.5"
   }
 }
