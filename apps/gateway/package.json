@@ -22,18 +22,18 @@
     "@ecomanage/shared": "workspace:*",
     "@peculiar/x509": "^2.1.0",
     "modbus-serial": "^8.0.25",
-    "mqtt": "^5.10.1",
-    "pino": "^10.3.1",
+    "mqtt": "^5.16.1",
+    "pino": "^10.4.0",
     "reflect-metadata": "^0.2.2",
     "tsx": "^4.23.15",
     "ws": "^8.22.0",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^26.6.3",
-    "@types/ws": "^8.18.1",
-    "eslint": "^10.11.0",
+    "@types/node": "^26.6.6",
+    "@types/ws": "^8.18.2",
+    "eslint": "^10.14.0",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.5"
   }
 }
